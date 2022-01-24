@@ -1,0 +1,231 @@
+---
+title: "WGCNA processing round 1"
+author: "Lev Tsypin"
+output: html_document
+---
+
+## Load libraries and set env
+```{r}
+setwd("~/Documents/git/TGNE-2022/TGNE/WGCNA/")
+library(geneplotter)
+library(RColorBrewer)
+library(WGCNA)
+options(stringsAsFactors = FALSE)
+allowWGCNAThreads()
+```
+
+Read in the data
+```{r}
+full <- read.csv('../microarray_probe_alignment_and_filtering/full_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv', row.names=1)
+grow <- read.csv('../microarray_probe_alignment_and_filtering/grow_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv', row.names=1)
+starve <- read.csv('../microarray_probe_alignment_and_filtering/starve_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv', row.names=1)
+sex <- read.csv('../microarray_probe_alignment_and_filtering/sex_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv', row.names=1)
+veg <- read.csv('../microarray_probe_alignment_and_filtering/veg_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv', row.names=1)
+```
+
+For each WGCNA run, need to determine the soft threshold power
+
+Function from tutorial (https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/Tutorials/FemaleLiver-02-networkConstr-auto.pdf)
+
+```{r}
+soft.threshold.select.fun <- function(df.T) {
+        # Choose a set of soft-thresholding powers
+        powers = c(c(1:10), seq(from = 12, to=20, by=2))
+        # Call the network topology analysis function
+        sft = pickSoftThreshold(df.T, powerVector = powers, verbose = 5)
+        # Plot the results:
+        sizeGrWindow(9, 5)
+        par(mfrow = c(1,2));
+        cex1 = 0.9;
+        # Scale-free topology fit index as a function of the soft-thresholding power
+        plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+             xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
+             main = paste("Scale independence"));
+        text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+             labels=powers,cex=cex1,col="red");
+        # this line corresponds to using an R^2 cut-off of h
+        abline(h=0.90,col="red")
+        # Mean connectivity as a function of the soft-thresholding power
+        plot(sft$fitIndices[,1], sft$fitIndices[,5],
+             xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+             main = paste("Mean connectivity"))
+        text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+}
+```
+
+Check out filtered and normalized data
+```{r}
+soft.threshold.select.fun(t(full))
+```
+```{r}
+soft.threshold.select.fun(t(grow))
+```
+
+```{r}
+soft.threshold.select.fun(t(starve))
+```
+
+```{r}
+soft.threshold.select.fun(t(veg))
+```
+
+```{r}
+soft.threshold.select.fun(t(sex))
+```
+It looks like it would be fruitless to try to separate the growth and starvation
+phases. The appropriate soft-thresholds appear to be 20 for the full profiles,
+12 for the vegetative profiles, and 12 for the sexual profiles. According to
+the WGCNA FAQ 
+(https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/faq.html),
+it's recommended to use bicor instead of the regular Pearson's correlation with
+maxPOutliers = 0.05.
+
+```{r}
+run.wgcna <- function(dfT, power.thresh, base.name) {
+  net <- blockwiseModules(dfT, 
+                          power = power.thresh,
+                          corType = 'bicor',
+                          maxPOutliers = 0.05,
+                          maxBlockSize = 30000,
+                          TOMType = "unsigned", 
+                          minModuleSize = 30,
+                          reassignThreshold = 0, 
+                          mergeCutHeight = 0.25,
+                          numericLabels = TRUE, 
+                          pamRespectsDendro = FALSE,
+                          saveTOMs = TRUE,
+                          saveTOMFileBase = base.name,
+                          verbose = 3)
+  return(net)
+}
+
+save.wgcna.result <- function(net, out.file.name) {
+  net.MLs = net$colors
+  net.MCs = labels2colors(net$colors)
+  net.MEs = net$MEs
+  net.geneTree = net$dendrograms[[1]]
+  save(net.MLs, 
+       net.MCs, 
+       net.MEs, 
+       net.geneTree, 
+       file = out.file.name)
+}
+```
+
+```{r}
+full.wgcna.net.1 <- run.wgcna(t(full), 20, './full_wgcna_net_1')
+save.wgcna.result(full.wgcna.net.1, './full_wgcna_net_1.RData')
+```
+
+```{r}
+table(full.wgcna.net.1$colors)
+```
+
+```{r}
+plotDendroAndColors(full.wgcna.net.1$dendrograms[[1]],
+                    labels2colors((full.wgcna.net.1$colors)),
+                    "Module colors 1",
+                    dendroLabels = FALSE, 
+                    hang = 0.03,
+                    addGuide = TRUE, 
+                    guideHang = 0.05)
+```
+
+```{r}
+MET <- orderMEs(full.wgcna.net.1$MEs)
+sizeGrWindow(0.25, 1)
+par(cex = 0.9)
+plotEigengeneNetworks(MET, "", marDendro = c(0,4,1,2), marHeatmap = c(3,4,1,2), cex.lab = 0.8, xLabelsAngle= 90)
+```
+
+
+```{r}
+veg.wgcna.net.1 <- run.wgcna(t(veg), 12, './veg_wgcna_net_1')
+save.wgcna.result(veg.wgcna.net.1, './veg_wgcna_net_1.RData')
+```
+
+```{r}
+table(veg.wgcna.net.1$colors)
+```
+
+```{r}
+plotDendroAndColors(veg.wgcna.net.1$dendrograms[[1]],
+                    labels2colors((veg.wgcna.net.1$colors)),
+                    "Module colors 1",
+                    dendroLabels = FALSE, 
+                    hang = 0.03,
+                    addGuide = TRUE, 
+                    guideHang = 0.05)
+```
+
+```{r}
+MET <- orderMEs(veg.wgcna.net.1$MEs)
+sizeGrWindow(0.25, 1)
+par(cex = 0.9)
+plotEigengeneNetworks(MET, "", marDendro = c(0,4,1,2), marHeatmap = c(3,4,1,2), cex.lab = 0.8, xLabelsAngle= 90)
+```
+
+```{r}
+sex.wgcna.net.1 <- run.wgcna(t(sex), 12, './sex_wgcna_net_1')
+save.wgcna.result(sex.wgcna.net.1, './sex_wgcna_net_1.RData')
+```
+
+
+```{r}
+table(sex.wgcna.net.1$colors)
+```
+
+```{r}
+plotDendroAndColors(sex.wgcna.net.1$dendrograms[[1]],
+                    labels2colors((sex.wgcna.net.1$colors)),
+                    "Module colors 1",
+                    dendroLabels = FALSE, 
+                    hang = 0.03,
+                    addGuide = TRUE, 
+                    guideHang = 0.05)
+```
+
+```{r}
+MET <- orderMEs(sex.wgcna.net.1$MEs)
+sizeGrWindow(0.25, 1)
+par(cex = 0.9)
+plotEigengeneNetworks(MET, "", marDendro = c(0,4,1,2), marHeatmap = c(3,4,1,2), cex.lab = 0.8, xLabelsAngle= 90)
+```
+Make a label data frame
+```{r}
+my.cond.fun <- function(x, labs) {
+        result <- ifelse(x %in% names(labs), labs[x], 'NA')
+        return(result)
+}
+
+label.df <- data.frame(row.names(full))
+colnames(label.df) <- c('TTHERM_ID')
+```
+
+Load the data, if not in environment already
+```{r}
+# load('./full_wgcna_net_1.RData')
+# load('./veg_wgcna_net_1.RData')
+# load('./sex_wgcna_net_1.RData')
+```
+
+
+
+```{r}
+full.labs <- lapply(label.df[, 'TTHERM_ID'], my.cond.fun, labs=full.wgcna.net.1$colors)
+
+veg.labs <- lapply(label.df[, 'TTHERM_ID'], my.cond.fun, labs=veg.wgcna.net.1$colors)
+
+sex.labs <- lapply(label.df[, 'TTHERM_ID'], my.cond.fun, labs=sex.wgcna.net.1$colors)
+
+label.df[, 'wgcna_label_full'] <- unlist(full.labs)
+label.df[, 'wgcna_label_veg'] <- unlist(veg.labs)
+label.df[, 'wgcna_label_sex'] <- unlist(sex.labs)
+```
+
+```{r}
+head(label.df)
+write.csv(label.df, './wgcna_labels_round_1.csv', row.names=FALSE)
+```
+
+

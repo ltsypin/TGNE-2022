@@ -1,0 +1,89 @@
+---
+title: "CLR processing round 1"
+author: "Lev Tsypin"
+output: html_document
+---
+
+Set up the environment
+
+```{r}
+setwd('~/Documents/git/TGNE-2022/TGNE/CLR_MCL/')
+library(parmigene)
+library(igraph)
+```
+
+Load the data
+```{r}
+full <- read.csv(
+  '../microarray_probe_alignment_and_filtering/full_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv',
+  row.names = 1
+  )
+
+veg <- read.csv(
+  '../microarray_probe_alignment_and_filtering/veg_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv',
+  row.names = 1
+)
+sex <- read.csv(
+  '../microarray_probe_alignment_and_filtering/sex_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv',
+  row.names = 1
+)
+```
+
+Run CLR. Set the number of nearest neighbors to 5 so that the approach between CLR and Leiden is comparable.
+```{r}
+full.mut.info.mat <- knnmi.all(full, k=5)
+full.clr.mat <- clr(full.mut.info.mat)
+
+save(full.clr.mat, file='./full_filt_norm_CLR.RData')
+
+
+# Save the CLR matrices in .ncol graph format for feeding into the MCL algorithm
+full.graph <- graph_from_adjacency_matrix(full.clr.mat, 
+                                          mode='undirected',
+                                          weighted=TRUE
+                                          )
+write.graph(full.graph, './full_clr_graph_round_1.ncol', format='ncol')
+
+
+veg.mut.info.mat <- knnmi.all(veg, k=5)
+veg.clr.mat <- clr(veg.mut.info.mat)
+
+save(veg.clr.mat, file='./veg_filt_norm_CLR.RData')
+
+veg.graph <- graph_from_adjacency_matrix(veg.clr.mat, 
+                                          mode='undirected',
+                                          weighted=TRUE
+                                          )
+
+write.graph(veg.graph, './veg_clr_graph_round_1.ncol', format='ncol')
+
+sex.mut.info.mat <- knnmi.all(sex, k=5)
+sex.clr.mat <- clr(sex.mut.info.mat)
+
+save(sex.clr.mat, file='./sex_filt_norm_CLR.RData')
+
+
+sex.graph <- graph_from_adjacency_matrix(sex.clr.mat,
+                                          mode='undirected',
+                                          weighted=TRUE
+                                          )
+
+write.graph(sex.graph, './sex_clr_graph_round_1.ncol', format='ncol')
+
+```
+
+
+
+```{r}
+
+# load('./full_filt_norm_CLR.RData')
+
+
+
+# load('./veg_filt_norm_CLR.RData')
+
+
+# load('./sex_filt_norm_CLR.RData')
+
+```
+

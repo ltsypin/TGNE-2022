@@ -1,0 +1,2452 @@
+---
+title: "Gene Filtering for new and improved 2021 TGN"
+output: html_notebook
+---
+
+## Load libraries and set env
+```{r}
+setwd("~/Documents/git/TGNE-2022/TGNE/microarray_probe_alignment_and_filtering/")
+library(geneplotter)
+library(RColorBrewer)
+library(maSigPro)
+library(actuar)
+library(fitdistrplus)
+library(WGCNA)
+options(stringsAsFactors = FALSE)
+allowWGCNAThreads()
+```
+
+## Filter dataset
+First, load unfiltered data
+```{r}
+unfiltered <- read.csv(
+  './agg_tidy_2021aligned_qc_rma_expression_full.csv', 
+  row.names = 1
+)
+
+unfiltered.sex <- read.csv(
+  './agg_tidy_2021aligned_qc_rma_expression_sex.csv',
+  row.names = 1
+)
+
+unfiltered.starve <- read.csv(
+  './agg_tidy_2021aligned_qc_rma_expression_starve.csv',
+  row.names = 1
+)
+
+unfiltered.grow <- read.csv(
+  './agg_tidy_2021aligned_qc_rma_expression_grow.csv',
+  row.names = 1
+)
+
+unfiltered.veg <- read.csv(
+  './agg_tidy_2021aligned_qc_rma_expression_veg.csv',
+  row.names = 1
+)
+
+head(unfiltered)
+head(unfiltered.sex)
+head(unfiltered.starve)
+head(unfiltered.grow)
+head(unfiltered.veg)
+```
+
+Now, check out simple clustering to see if there are any aberrant batch effects
+```{r}
+sampleTree = hclust(dist(t(unfiltered)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "unfiltered, all chips", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+
+Now, check out simple clustering for growth case
+```{r}
+sampleTree = hclust(dist(t(unfiltered.grow)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "grow unfiltered", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+
+Now, check out simple clustering for vegetative case
+```{r}
+sampleTree = hclust(dist(t(unfiltered.veg)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "veg unfiltered", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+
+The above plots show that Yifan Liu's samples (S0_GSM647651, S0_GSM647652, 
+S9_GSM647653, and S9_GSM647654) are uniquely different from the others. All the
+others cluster very well according to the physiological phases, beyond the
+expermenter. I will exlude Yifan Liu's microarrays from further analyses.
+
+Now, check out simple clustering for sexual case
+```{r}
+sampleTree = hclust(dist(t(unfiltered.sex)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "sex unfiltered", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+Here's we can see that Ron Pearlman's samples for C12 and C14 (GSM656237 and 
+GSM656238) don't quite correspond to Wei Miao's and Marty
+Gorovsky's, but it does not seem appropriate to exclude them from the analysis 
+because the other samples seem well-aligned.
+
+Remove Yifan Liu's chips and Ron Pearlman's C15m chip and write to csv
+```{r}
+unfiltered.clean <- subset(unfiltered, 
+                        select = -c(S0_GSM647651, 
+                                    S0_GSM647652, 
+                                    S9_GSM647653, 
+                                    S9_GSM647654)
+                        )
+
+unfiltered.starve.clean <- subset(unfiltered.starve, 
+                        select = -c(S0_GSM647651, 
+                                    S0_GSM647652, 
+                                    S9_GSM647653, 
+                                    S9_GSM647654)
+                        )
+
+unfiltered.veg.clean <- subset(unfiltered.veg, 
+                        select = -c(S0_GSM647651, 
+                                    S0_GSM647652, 
+                                    S9_GSM647653, 
+                                    S9_GSM647654)
+                        )
+
+unfiltered.sex.clean <- unfiltered.sex
+
+unfiltered.grow.clean <- unfiltered.grow
+```
+
+Now, check the vegetative clustering again to see what changed.
+```{r}
+sampleTree = hclust(dist(t(unfiltered.clean)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "unfiltered clean", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+
+Now, check out simple clustering for starvation case
+```{r}
+sampleTree = hclust(dist(t(unfiltered.starve.clean)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "starve unfiltered clean", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+
+Now, check out simple clustering for starvation case
+```{r}
+sampleTree = hclust(dist(t(unfiltered.sex.clean)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "sex unfiltered clean", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+
+This is much better!
+
+
+Visualize histogram of the expression data directly:
+```{r}
+log.unfiltered.clean = log(unfiltered.clean)
+hist(log.unfiltered.clean, main='Log Expression Hist', breaks=sqrt(length(unfiltered.clean)))
+```
+
+Now, take a look a some statistics of variation. From the histograms above,
+which indicate that the expression data might be log-normally distributed, it
+looks like the geometric mean and geometric coefficient of variation may be
+the appropriate metrics.
+```{r}
+wei.range.fun <- function(v) {
+        return(max(v) - min(v))
+}
+
+maxfold.fun <- function(v) {
+        return(max(v) / min(v))
+}
+
+geom.mean.fun <- function(v) {
+  return(exp(mean(log(v))))
+}
+
+geom.cv.fun <- function(v) {
+  return(sqrt(exp(sd(log(v))^2)-1))
+}
+
+expr.wei.range <- apply(unfiltered.clean, 1, wei.range.fun)
+expr.maxfold <- apply(unfiltered.clean, 1, maxfold.fun)
+expr.mean <- apply(unfiltered.clean, 1, mean)
+expr.geom.mean <- apply(unfiltered.clean, 1, geom.mean.fun)
+expr.geom.cv <- apply(unfiltered.clean, 1, geom.cv.fun)
+expr.sd <- apply(unfiltered.clean, 1, sd)
+expr.cv <- expr.sd / expr.mean
+expr.iqr <- apply(unfiltered.clean, 1, IQR)
+expr.med <- apply(unfiltered.clean, 1, median)
+expr.mad <- apply(unfiltered.clean, 1, mad)
+
+# I want to take genes that change at least four-fold in expression. Let's see
+# if this is reasonable
+maxfold.ecdf <- ecdf(expr.maxfold)
+maxfold.ecdf(4)
+```
+
+
+
+Visualize histograms of metrics
+```{r}
+# sizeGrWindow(12,9)
+hist(log(expr.geom.mean), main='Geometric mean expression hist', breaks=sqrt(length(expr.geom.mean)))
+abline(v=quantile(log(expr.geom.mean), probs=c(0.25)), lwd=1, col='red')
+abline(v=median(log(expr.geom.mean)), lwd=1, col='blue')
+```
+
+```{r}
+# sizeGrWindow(12,9)
+hist(log(expr.geom.cv), main='Geometric CV hist', breaks=sqrt(length(expr.geom.cv)))
+abline(v=quantile(log(expr.geom.cv), probs=c(0.25)), lwd=1, col='red')
+abline(v=median(log(expr.geom.cv)), lwd=1, col='blue')
+```
+
+```{r}
+# sizeGrWindow(12,9)
+hist(log(expr.wei.range), main='Log Wei Range Hist', breaks=sqrt(length(expr.wei.range)))
+abline(v=quantile(log(expr.wei.range), probs=c(0.1)), lwd=1, col='red')
+abline(v=median(log(expr.wei.range)), lwd=1, col='blue')
+```
+Interestingly, just correcting against the 2021 genome already removed a lot
+of the left (noise) peak, relative to the original analysis.
+
+
+```{r}
+# sizeGrWindow(12,9)
+hist(log2(expr.maxfold), main='Log2 Max Fold-change Hist', breaks=sqrt(length(expr.maxfold)))
+abline(v=quantile(log2(expr.maxfold), probs=c(maxfold.ecdf(4))), lwd=1, col='red')
+abline(v=median(log2(expr.maxfold)), lwd=1, col='blue')
+```
+
+```{r}
+# sizeGrWindow(12,9)
+hist(log(expr.mean), main='Log Mean Expr. Hist', breaks=sqrt(length(expr.mean)))
+abline(v=quantile(log(expr.mean), probs=c(0.25)), lwd=1, col='red')
+abline(v=median(log(expr.mean)), lwd=1, col='blue')
+```
+
+
+```{r}
+# sizeGrWindow(12,9)
+hist(log(expr.cv), main='Log CV Hist', breaks=sqrt(length(expr.cv)))
+abline(v=quantile(log(expr.cv), probs=c(0.15)), lwd=1, col='red')
+abline(v=median(log(expr.cv)), lwd=1, col='blue')
+```
+It looks like only the absolute range (Wei-range) and mean expression
+distributions show clear evidence of noise that should be filtered out.
+
+Now, try to visualize potential filters. First, let's look at mean expression vs. coefficient of 
+variation
+```{r}
+# sizeGrWindow(12,9)
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.mean),
+                 log(expr.cv),
+                 colramp=blues.ramp)
+plot(expr.mean, expr.cv, main='Coef. Var. vs. Mean Expr.', log='xy', col=dCol, pch=16, cex=0.1, ylim=c(0.01, 1000))
+abline(v=quantile(expr.mean, probs=c(0.25)), lwd=1, col='red')
+abline(h=quantile(expr.cv, probs=c(0.25)), lwd=1, col='red')
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.geom.mean),
+                 log(expr.geom.cv),
+                 colramp=blues.ramp)
+plot(expr.geom.mean, expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr.', log='xy', col=dCol, pch=16, cex=0.1, ylim=c(0.01, 1000))
+abline(v=quantile(expr.geom.mean, probs=c(0.25)), lwd=1, col='red')
+abline(h=quantile(expr.geom.cv, probs=c(0.5)), lwd=1, col='red')
+
+```
+This actually already looks very good. The y-axis scales for the two plots are
+very different, so it seems that there are some genes that have huge geometric
+CVs that are outliers. In both plots, however, there is no apparent irregularity
+in dispersion (i.e., there is no apparent heteroskedasticity) to the right of
+the 25th percentile mean filter. Some very highly expressed genes seem a very 
+low CV. Check below if this is a problem. But it seems that it will be okay to
+normalize all the gene expression and be concerned with only the gene
+expression patterns after filtering.
+
+We can verify that there aren't weird outlier effects using the interquartile
+range and median instead of the CV and mean. The Median Absolute Deviation (MAD) might be more robust than IQR
+
+```{r}
+# sizeGrWindow(12,9)
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.iqr / expr.med),
+                 log(expr.med),
+                 colramp=blues.ramp)
+plot(expr.med, expr.iqr/expr.med, main='IQR/med vs. med', log='xy', col=dCol, pch=16, cex=0.1, ylim=c(0.01, 1000))
+abline(v=quantile(expr.mean, probs=c(0.25)), lwd=1, col='red')
+abline(h=quantile(expr.iqr/expr.med, probs=c(0.25)), lwd=1, col='red')
+
+# sizeGrWindow(12,9)
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.mad/expr.med),
+                 log(expr.med),
+                 colramp=blues.ramp)
+plot(expr.med, expr.mad/expr.med, main='MAD/med vs. med', log='xy', col=dCol, pch=16, cex=0.1, ylim=c(0.01, 1000))
+abline(v=quantile(expr.mean, probs=c(0.25)), lwd=1, col='red')
+abline(h=quantile(expr.mad/expr.med, probs=c(0.5)), lwd=1, col='red')
+```
+
+We see that the Median Absolute Distance does tighten the dispersion of tje
+points more than all the other approaches, which indicates that there are
+indeed outlying genes that have a very high variability in their expression.
+Nonetheless, all these metrics indicate that it should be possible to filter
+and select a subset of genes that is generally non-heteroskedastic.
+
+
+This helps confirm that a normalization approach will bring all the genes'
+expression profiles into the same range without introducing any pathological
+transformations. The tail of very highly expressed genes with a very low
+spread is still apparent, too. This plot also seems to imply that trying to
+use an OR filter to grab genes in the upper left quadrant might not be very
+bad either... I think this is a question of whether we want to be greedy for
+the number of genes or greedy for the quality of the dataset.
+
+
+Now, check the absolute range metric
+```{r}
+# sizeGrWindow(12,9)
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.mean),
+                 log(expr.wei.range),
+                 colramp=blues.ramp)
+plot(expr.mean, expr.wei.range, main='Wei Range vs. Mean Expr.', log='xy', col=dCol, pch=16, cex=0.1)
+abline(v=quantile(expr.mean, probs=c(0.25)), lwd=1, col='red')
+abline(h=quantile(expr.wei.range, probs=c(0.1)), lwd=1, col='red')
+```
+Here, it's clear that the higher the mean expression the greater the range
+of expression, which makes sense.
+
+
+Now, look at max fold-change vs mean
+```{r}
+# sizeGrWindow(12,9) 
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.geom.mean),
+                 log2(expr.maxfold),
+                 colramp=blues.ramp)
+plot(expr.geom.mean, log2(expr.maxfold), main='Max. Fold Change vs. Geom. Mean Expr.', log='x', col=dCol, pch=16, cex=0.1)
+abline(v=quantile(expr.geom.mean, probs=c(0.25)), lwd=1, col='red')
+abline(h=quantile(log2(expr.maxfold), probs=c(0.5)), lwd=1, col='red')
+```
+It looks like the genes with intermediate expression have the highest fold-
+change in their expression, which also makes sense: if you have both very
+high and very low values, the average will be somewhere in the middle. Looking
+at this, if we take the upper left quadrant, we would be taking genes that
+have, for example a mean expression of 50 AU and at least a 10-fold maximum
+change in expression. It seems plausible that those could be useful genes to
+keep.
+
+
+
+Now, look at the absolute range vs. fold-change
+```{r}
+# sizeGrWindow(12,9)
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log2(expr.wei.range),
+                 log2(expr.maxfold),
+                 colramp=blues.ramp)
+plot(log2(expr.wei.range), log2(expr.maxfold), main='Max. Fold-change vs. Wei Range', col=dCol, pch=16, cex=0.1)
+abline(v=quantile(log2(expr.wei.range), probs=c(0.1)), lwd=1, col='red')
+abline(h=quantile(log2(expr.maxfold), probs=c(0.4)), lwd=1, col='red')
+```
+
+Now, look at the absolute range vs. coefficient of variation
+```{r}
+# sizeGrWindow(12,9)
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.wei.range),
+                 log(expr.cv),
+                 colramp=blues.ramp)
+plot(expr.wei.range, expr.geom.cv, main='Geom. Coef. Var. vs. Wei Range', log='xy', col=dCol, pch=16, cex=0.1)
+abline(v=quantile(expr.wei.range, probs=c(0.1)), lwd=1, col='red')
+abline(h=quantile(expr.cv, probs=c(0.5)), lwd=1, col='red')
+
+```
+
+Now, look at the max fold-change vs. coefficient of variation
+```{r}
+# sizeGrWindow(12,9)
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log2(expr.geom.cv),
+                 log2(expr.maxfold),
+                 colramp=blues.ramp)
+plot(log2(expr.geom.cv), log2(expr.maxfold), main='Max. Fold-Change vs. Geom. CV', col=dCol, pch=16, cex=0.1)
+abline(v=quantile(log2(expr.geom.cv), probs=c(0.5)), lwd=1, col='red')
+abline(h=quantile(log2(expr.maxfold), probs=c(0.5)), lwd=1, col='red')
+```
+Maximum fold-change and CV are very highly correlated. It looks like, if we
+want to be greedy and still get good genes, it makes sense to take ones that
+have their maximum fold-change, CV, and IQR/med all above the 50% mark.
+
+It's pretty clear that a fairly stringent (25%) filter for mean expression will give me a very solid dataset on its own.
+
+See what different filtering approaches give
+```{r}
+# Just the geometric mean
+filt.geom.mean <- expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))
+
+# Main filter by the mean, but also allow some exceptionally well-behaved
+# genes with a low expression
+filt.greedy.med.only <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))) | ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) & expr.iqr/expr.med >= quantile(expr.iqr/expr.med, probs=c(0.5)))
+
+filt.greedy.mad.only <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.5))) | ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) & expr.mad/expr.med >= quantile(expr.mad/expr.med, probs=c(0.5)))
+
+filt.greedy <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))) | 
+  ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & 
+     (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) &
+     (
+       expr.iqr/expr.med >= quantile(expr.iqr/expr.med, probs=c(0.5)) |
+       expr.mad/expr.med >= quantile(expr.mad/expr.med, probs=c(0.5))
+        )
+   )
+
+# Take genes by mean and also a CV above a low threshold
+filt.geom.mean.cv <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.5))) & (expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.05)))
+
+# filt.range.mean <- (expr.wei.range >= quantile(expr.wei.range, probs=c(0.1))) & (expr.mean >= quantile(expr.mean, probs=c(0.25)))
+# 
+# filt.fold.mean <- (expr.maxfold >= quantile(expr.maxfold, probs=c(maxfold.ecdf(4))))  & (expr.mean >= quantile(expr.mean, probs=c(0.25)))
+# 
+# filt.range.fold <- (expr.wei.range >= quantile(expr.wei.range, probs=c(0.1))) & (expr.maxfold >= quantile(expr.maxfold, probs=c(maxfold.ecdf(4))))
+# 
+# filt.range.cv <- (expr.cv >= quantile(expr.cv, probs=c(0.15))) & (expr.wei.range >= quantile(expr.wei.range, probs=c(0.1)))
+# 
+# filt.fold.cv <- (expr.cv >= quantile(expr.cv, probs=c(0.15))) & (expr.maxfold >= quantile(expr.maxfold, probs=c(maxfold.ecdf(4))))
+```
+
+```{r}
+sum(filt.geom.mean)
+sum(filt.greedy.med.only)
+sum(filt.greedy.mad.only)
+sum(filt.greedy)
+sum(filt.geom.mean.cv)
+
+# sum(filt.range.mean)
+# sum(filt.fold.mean)
+# sum(filt.range.fold)
+# sum(filt.range.cv)
+# sum(filt.fold.cv)
+
+quantile(expr.geom.mean, probs=c(0.25))
+quantile(expr.geom.cv, probs=c(0.05))
+quantile(expr.geom.cv, probs=c(0.5))
+quantile(expr.iqr/expr.med, probs=c(0.5))
+quantile(expr.mad/expr.med, probs=c(0.5))
+quantile(expr.maxfold, probs=c(0.5))
+```
+
+NEED TO IRON THIS SECTION OUT? KEEP?
+
+It looks like adding the CV filter to the mean intensity one removes 83 genes
+from the plain mean intensity filter. Allowing for well-behaved lowly-
+expressed genes adds 1385 genes (greedy.3)
+relative to the mean intensity only set.
+Let's take a look.
+
+```{r}
+genes1 <- names(filt.geom.mean.cv[filt.geom.mean.cv])
+genes2 <- names(filt.geom.mean[filt.geom.mean])
+to.check <- setdiff(genes2, genes1)
+paste(to.check, collapse="\n")
+```
+
+These genes are actually all very good and should be kept:
+
+TTHERM_ID	TGD2021_description	eggNOG_description
+TTHERM_00686150	RPS31 ubiquitin-40S ribosomal protein S27a	Ribosomal protein S27a
+TTHERM_00471090	RPS7 40S ribosomal protein S7	Belongs to the eukaryotic ribosomal protein eS7 family
+TTHERM_00497880	RPL3 60S ribosomal protein L3 putative	Ribosomal protein L3
+TTHERM_01151500	RPS3 40S ribosomal protein S3	Ribosomal protein S3, C-terminal domain
+TTHERM_01055600	GRL8 Ndc1 protein	-
+TTHERM_01014440	hypothetical protein	-
+TTHERM_00823680	Tonsoku-like protein	Ribosomal protein S19e
+TTHERM_00938820	EEF2 elongation factor 2 putative	Elongation factor G, domain IV family protein
+TTHERM_00760310	papain family cysteine protease	Papain family cysteine protease
+TTHERM_00716240	RPL2 60S ribosomal protein L2/L8	Ribosomal Proteins L2, C-terminal domain
+TTHERM_00695810	transmembrane protein putative	magnesium ion homeostasis
+TTHERM_00578640	RPL13 60S ribosomal protein L13	Ribosomal protein L13e
+TTHERM_00558620	ATU1 tubulin/FtsZ family GTPase domain protein	structural constituent of cytoskeleton
+TTHERM_00628610	CTH34 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00585260	ATP2 ATP synthase F1 beta subunit	Produces ATP from ADP in the presence of a proton gradient across the membrane
+TTHERM_00584660	calpain family cysteine protease	Belongs to the peptidase C2 family
+TTHERM_00502130	calcium-dependent kinase	EF hand
+TTHERM_00502170	PH-GRAM-WBP2 domain protein putative	female pronucleus assembly
+TTHERM_00502460	amine-terminal domain guanylate-binding protein	Guanylate-binding protein, N-terminal domain
+TTHERM_00590130	PHP2 MORN repeat protein	MORN repeat protein
+TTHERM_00590140	ser/thr phosphatase family protein	Ser Thr protein phosphatase family protein
+TTHERM_00522630	RPS0 40S ribosomal protein S0	Required for the assembly and or stability of the 40S ribosomal subunit. Required for the processing of the 20S rRNA- precursor to mature 18S rRNA in a late step of the maturation of 40S ribosomal subunits
+TTHERM_00531900	ubiquitin-conjugating enzyme	Belongs to the ubiquitin-conjugating enzyme family
+TTHERM_00476670	RPL20 60S ribosomal protein L18a	Ribosomal proteins 50S-L18Ae/60S-L20/60S-L18A
+TTHERM_00486930	Serine/Threonine kinase domain protein	RAC-beta serine threonine protein
+TTHERM_00442200	Selenium-binding protein 2	-
+TTHERM_00343500	signal recognition particle 54 kDa protein SRP54 putative	Binds to the signal sequence of presecretory protein when they emerge from the ribosomes and transfers them to TRAM (translocating chain-associating membrane protein)
+TTHERM_00943010	RPL31 60S ribosomal protein L31 putative	Ribosomal_L31e
+TTHERM_00899420	SFR4 hypothetical protein	-
+TTHERM_00339620	RPL40 ubiquitin/ribosomal fusion protein putative	Ubiquitin exists either covalently attached to another protein, or free (unanchored). When covalently bound, it is conjugated to target proteins via an isopeptide bond either as a monomer (monoubiquitin), a polymer linked via different Lys residues of the ubiquitin (polyubiquitin chains) or a linear polymer linked via the initiator Met of the ubiquitin (linear polyubiquitin chains). Polyubiquitin chains, when attached to a target protein, have different functions depending on the Lys residue of the ubiquitin that is linked
+TTHERM_00333210	RPL4 60S ribosomal protein L4	60S ribosomal protein L4 C-terminal domain
+TTHERM_00316280	RAB1A small guanosine triphosphatase family (GTPase)-like Ras family protein	Ras-related protein
+TTHERM_00289350	transmembrane protein putative	-
+TTHERM_01053000	RPL10 60S ribosomal protein L10	Ribosomal protein L16p/L10e
+TTHERM_00655820	translation elongation factor EF-1alpha	Elongation factor Tu C-terminal domain
+TTHERM_00220990	Serine/Threonine kinase domain protein	Serine/Threonine protein kinases, catalytic domain
+TTHERM_00218790	vacuolar H+-translocating inorganic pyrophosphatase	Inorganic H+ pyrophosphatase
+TTHERM_00216010	FTT18 Bmh1 14-3-3 family protein	Belongs to the 14-3-3 family
+TTHERM_00238830	serine/threonine-protein phosphatase PP1	Serine-threonine protein phosphatase N-terminal domain
+TTHERM_00189080	GDP dissociation inhibitor	GDP dissociation inhibitor
+TTHERM_00149798	RPS6 40S ribosomal protein S6	Ribosomal protein S6e
+TTHERM_00149300	RPS4 40S ribosomal protein S4	Ribosomal family S4e
+TTHERM_00128320	CTH5 eukaryotic aspartyl protease	Belongs to the peptidase A1 family
+TTHERM_00858120	IQ calmodulin-binding motif protein	IQ calmodulin-binding motif
+TTHERM_000079459	papain family cysteine protease	Papain family cysteine protease
+TTHERM_00077240	TTU3 polyubiquitin	Ubiquitin exists either covalently attached to another protein, or free (unanchored). When covalently bound, it is conjugated to target proteins via an isopeptide bond either as a monomer (monoubiquitin), a polymer linked via different Lys residues of the ubiquitin (polyubiquitin chains) or a linear polymer linked via the initiator Met of the ubiquitin (linear polyubiquitin chains). Polyubiquitin chains, when attached to a target protein, have different functions depending on the Lys residue of the ubiquitin that is linked
+TTHERM_00075670	RPL43 60S ribosomal protein L37a	Ribosomal L37ae protein family
+TTHERM_00434070	RPS9 ribosomal protein S9 component of cytosolic 80S ribosome and 40S small subunit	Belongs to the universal ribosomal protein uS4 family
+TTHERM_00630470	ARP1 transmembrane protein putative	-
+TTHERM_00630500	CAM1 calmodulin 1	EF-hand calcium binding domain 3
+TTHERM_00263600	cyclic nucleotide-binding domain protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00636970	RPP0 60S acidic ribosomal protein P0	Ribosomal protein P0 is the functional equivalent of E.coli protein L10
+TTHERM_00193740	RPS2 40S ribosomal protein S2 putative	Ribosomal protein S5, C-terminal domain
+TTHERM_00209310	hypothetical protein	-
+TTHERM_00202850	transmembrane protein putative	Transmembrane protein, putative
+TTHERM_00056140	ERS3 glutamylglutaminyl-tRNA synthetase protein	Belongs to the class-I aminoacyl-tRNA synthetase family
+TTHERM_00160770	FTT49 tyrosine 3-monooxygenase/tryptophan 5-monooxygenase activation protein epsilon protein	14-3-3 homologues
+TTHERM_00641150	CTH40 papain family cysteine protease	pattern binding
+TTHERM_00112800	serine/threonine protein phosphatase 2A	phosphatase activity
+TTHERM_00577240	50S ribosomal protein L1P	Ribosomal protein L1p/L10e family
+TTHERM_01339580	hyaluronan/mRNA-binding family protein	Hyaluronan / mRNA binding family
+TTHERM_01329990	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00094090	hypothetical protein	-
+TTHERM_000088159	serine/threonine protein phosphatase 2A	Serine threonine-protein phosphatase
+TTHERM_00085180	RPL32 60S ribosomal protein L32	Ribosomal_L32e
+TTHERM_00735340	vacuolar H+-translocating inorganic pyrophosphatase	Inorganic H+ pyrophosphatase
+TTHERM_00736480	RPL5 60S ribosomal protein L5	Ribosomal large subunit proteins 60S L5, and 50S L18
+TTHERM_00037330	transcription factor 25	Transcriptional repressor TCF25
+TTHERM_00028740	RPL12 ribosomal protein L11 amine-terminal domain protein	Ribosomal protein L11, N-terminal domain
+TTHERM_00653620	vacuolar type H+-ATPase proteolipid subunit	Proton-conducting pore forming subunit of the membrane integral V0 complex of vacuolar ATPase. V-ATPase is responsible for acidifying a variety of intracellular compartments in eukaryotic cells
+TTHERM_00488340	RPL29 60S ribosomal protein L18	Belongs to the universal ribosomal protein uL15 family
+TTHERM_00227770	eukaryotic translation initiation factor 5A	Translation initiation factor eIF-5A family protein
+TTHERM_00378890	GRL5 granule lattice protein	-
+TTHERM_01146030	CAT1 catalase heme-binding enzyme	Occurs in almost all aerobically respiring organisms and serves to protect cells from the toxic effects of hydrogen peroxide
+TTHERM_00365340	transitional endoplasmic reticulum ATPase putative	Cell division cycle ATPase
+TTHERM_00016170	HHT3 histone H3.4	histone H3.2
+TTHERM_00255680	hypothetical protein	-
+TTHERM_00470700	transmembrane protein putative	-
+TTHERM_00467520	hypothetical protein	-
+TTHERM_00310370	transmembrane protein putative	-
+TTHERM_00191829	transmembrane protein putative	-
+TTHERM_00491130	cell surface immobilization antigen SerH6 putative	-
+TTHERM_00606960	SerH cell surface immobilization antigen	-
+
+Now, let's see what extra genes the greedy filter allows us to keep:
+```{r}
+genes1 <- names(filt.geom.mean[filt.geom.mean])
+genes2 <- names(filt.greedy[filt.greedy])
+to.check <- setdiff(genes2, genes1)
+length(to.check)
+paste(to.check, collapse="\n")
+```
+
+These are also really good genes! Most of them (837, 60%) have orthologs identified by
+eggNOG and most have really promising annotations.
+
+TTHERM_ID	TGD2021_description	eggNOG_description
+TTHERM_00898140	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_001070373	hypothetical protein	CCHC-type zinc finger nucleic acid binding protein
+TTHERM_00684670	MFS transporter	Major Facilitator Superfamily protein
+TTHERM_00685830	oxidoreductase short chain dehydrogenase/reductase family protein	Belongs to the short-chain dehydrogenases reductases (SDR) family
+TTHERM_00685840	tetratricopeptide repeat protein	TPR Domain containing protein
+TTHERM_00686000	EF-hand protein	protein serine/threonine kinase activity
+TTHERM_00471900	transmembrane protein putative	His Kinase A (phosphoacceptor) domain
+TTHERM_000471259	Putative 8-oxo-dGTP diphosphatase	zinc ion binding
+TTHERM_00470460	SacI-like domain protein	SacI homology domain
+TTHERM_00497220	diacylglycerol acyltransferase	Diacylglycerol acyltransferase family protein
+TTHERM_00497230	hypothetical protein	-
+TTHERM_00497690	aldo/keto reductase family oxidoreductase	oxidoreductase activity
+TTHERM_00678540	CTH25 eukaryotic aspartyl protease	aspartic-type endopeptidase activity
+TTHERM_01099240	RAB11F Rab-family small GTPase	GTPase activity
+TTHERM_01099280	transmembrane protein putative	-
+TTHERM_00549540	zinc finger lsd1 subclass family protein	serine-type endopeptidase activity
+TTHERM_00548380	hypothetical protein	meiotic spindle midzone assembly
+TTHERM_00545770	phosphatidylserine decarboxylase family protein putative	Phosphatidylserine decarboxylase family protein
+TTHERM_00543570	LSF10 leishmanolysin family protein	serine-type endopeptidase activity
+TTHERM_00541520	LSF5 leishmanolysin family protein	serine-type endopeptidase activity
+TTHERM_00541510	phosphate transport system ABC domain protein	ABC transporter B family member
+TTHERM_01092360	lipase family protein	Lipase family
+TTHERM_00765170	starch-binding domain protein	Starch binding domain
+TTHERM_01260670	cyclic nucleotide-binding domain protein putative	interleukin-8 biosynthetic process
+TTHERM_01207610	MCM2/3/5 family protein	Belongs to the MCM family
+TTHERM_01169520	hypothetical protein	-
+TTHERM_01097910	transmembrane protein putative	REJ domain
+TTHERM_01106160	transporter protein (auxin efflux carrier) putative	Membrane transport protein
+TTHERM_01129750	transmembrane protein putative	-
+TTHERM_01197150	ABC1 family protein	ABC1 family
+TTHERM_01020700	ABC1 ABC1 family protein	ABC1 family
+TTHERM_01020670	DHHC zinc finger protein	Pfam:zf-DHHC
+TTHERM_01080330	aldo/keto reductase family oxidoreductase	Oxidoreductase, aldo keto reductase family protein
+TTHERM_01080370	aldo/keto reductase family oxidoreductase	Oxidoreductase, aldo keto reductase family protein
+TTHERM_001080402	transmembrane protein putative	-
+TTHERM_01080430	hypothetical protein	-
+TTHERM_01043192	hypothetical protein	cysteine-type endopeptidase inhibitor activity
+TTHERM_01043350	glutamine cyclotransferase	Glutamine cyclotransferase
+TTHERM_01326860	cancer susceptibility protein putative	Cancer susceptibility candidate 1 N-terminus
+TTHERM_01326870	cation channel family protein putative	phosphorelay sensor kinase activity
+TTHERM_001055426	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_01016200	autophagocytosis associated protein active-site protein	Autophagocytosis associated protein, active-site domain
+TTHERM_01014730	ankyrin domain protein	ankyrin 3, node of Ranvier (ankyrin G)
+TTHERM_00947340	transmembrane protein putative	Tetratricopeptide repeat protein
+TTHERM_00947370	hypothetical protein	-
+TTHERM_01005040	kinase domain protein	-
+TTHERM_00932030	ankyrin domain protein	Ankyrin repeats (many copies)
+TTHERM_01084380	RNA cap guanine-N2 methyltransferase	trans-aconitate 3-methyltransferase activity
+TTHERM_00999080	bacterial polymorphic membrane repeat protein	-
+TTHERM_00999110	UbiE/COQ5 methyltransferase	UbiE COQ5 methyltransferase
+TTHERM_00930820	WD domain G-beta repeat protein	WD domain, G-beta repeat protein
+TTHERM_00969630	zinc finger C2H2 type family protein	-
+TTHERM_00969650	kinase domain protein	-
+TTHERM_01002910	response regulator receiver domain protein	phosphorelay sensor kinase activity
+TTHERM_01002900	cation channel family protein	cyclic nucleotide-gated ion channel activity
+TTHERM_01002820	ATPase histidine kinase- DNA gyrase B	ATPase, histidine kinase-, DNA gyrase B-, and HSP90-like domain containing protein
+TTHERM_01002700	transmembrane protein putative	-
+TTHERM_01002650	C3HC4 type (RING finger) zinc finger protein	Zinc finger, C3HC4 type family protein
+TTHERM_00849290	transmembrane protein putative	-
+TTHERM_00925870	CTH56 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00925850	CTH49 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00925450	transmembrane protein putative	Slime mold cyclic AMP receptor
+TTHERM_00925380	lipase family protein	Lipase family
+TTHERM_00864910	signal recognition particle receptor beta subunit	50S ribosome-binding GTPase
+TTHERM_01251200	zinc-binding dehydrogenase family oxidoreductase	Zinc-binding dehydrogenase family
+TTHERM_01117320	mammalian STARD1-STARD15-like lipid-binding START domain protein putative	START domain
+TTHERM_00824050	transmembrane protein putative	1-phosphatidylinositol-4-phosphate 5-kinase activity
+TTHERM_00823960	MFS transporter	Major Facilitator Superfamily protein
+TTHERM_00823840	transmembrane protein putative	Alpha beta hydrolase family protein
+TTHERM_00823420	LBP/BPI/CETP family carboxy-terminal domain protein	lipid binding
+TTHERM_000823383	transmembrane protein putative	Transmembrane amino acid transporter protein
+TTHERM_00842480	CYC24 amine-terminal domain cyclin	Cyclin_C
+TTHERM_00842570	hypothetical protein	-
+TTHERM_00842650	FAD/FMN-binding family oxidoreductase	Oxidoreductase, FAD FMN-binding family protein
+TTHERM_00825140	hypothetical protein	-
+TTHERM_00803690	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00803530	acyltransferase family protein	acyltransferase family
+TTHERM_00802530	tetratricopeptide repeat protein	interleukin-8 biosynthetic process
+TTHERM_00802360	transmembrane amino acid transporter protein	-
+TTHERM_00722970	hypothetical protein	-
+TTHERM_00723440	hypothetical protein	Sperm-tail PG-rich repeat
+TTHERM_00723650	TDP1 tyrosyl-DNA phosphodiesterase family protein	Tyrosyl-DNA phosphodiesterase family protein
+TTHERM_00732680	cyclic nucleotide-binding domain protein	Cyclic nucleotide-monophosphate binding domain
+TTHERM_00730250	hypothetical protein	Trypsin-like peptidase domain
+TTHERM_00822150	chitin synthase	Chitin synthase family protein
+TTHERM_00821960	hypothetical protein	-
+TTHERM_00821880	RNA recognition motif protein	Pfam:RRM_6
+TTHERM_00821800	NRK6 plant dual-specificity MAP kinase kinase family domain protein	protein serine/threonine kinase activity
+TTHERM_00939010	START domain protein	START domain
+TTHERM_001266113	Got1/SFT2 family protein	vesicle-mediated transport
+TTHERM_01267140	zinc finger lsd1 subclass family protein	serine-type endopeptidase activity
+TTHERM_00941470	hypothetical protein	-
+TTHERM_00691390	zinc finger C2H2 type family protein	zinc finger
+TTHERM_00691620	lipase family protein	Lipase family
+TTHERM_00760550	zinc-binding alcohol dehydrogenase family protein	oxidoreductase activity
+TTHERM_00716170	hypothetical protein	kinase-like protein
+TTHERM_00716160	hypothetical protein	kinase-like protein
+TTHERM_00715940	Serine/Threonine kinase	Leucine rich repeat N-terminal domain
+TTHERM_01319520	translation initiation factor eIF-5A family protein putative	interleukin-8 biosynthetic process
+TTHERM_01318470	eukaryotic translation initiation factor 5A	Translation initiation factor eIF-5A family protein
+TTHERM_01318450	eukaryotic translation initiation factor 5A	Translation initiation factor eIF-5A family protein
+TTHERM_01318430	eukaryotic translation initiation factor 5A	Translation initiation factor eIF-5A family protein
+TTHERM_01409990	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00756300	bowman-birk serine protease inhibitor family protein	domain containing protein
+TTHERM_000836739	hypothetical protein	-
+TTHERM_00695600	alternative oxidase	Alternative oxidase
+TTHERM_00695840	tetratricopeptide repeat protein	interleukin-8 biosynthetic process
+TTHERM_00696930	transmembrane protein putative	AMP-binding enzyme family protein
+TTHERM_00697030	NRAMP (natural resistance-associated macrophage protein) metal ion transporter family protein	NRAMP family Mn2 Fe2
+TTHERM_00697120	hypothetical protein	-
+TTHERM_00697570	hypothetical protein	-
+TTHERM_00694310	ABC transporter family protein	ABC transporter family protein
+TTHERM_00693150	ATPase histidine kinase- DNA gyrase B putative	phosphorelay sensor kinase activity
+TTHERM_00827200	hypothetical protein	-
+TTHERM_00773180	zinc finger C3HC4 type (RING finger) protein	protein polyubiquitination
+TTHERM_00773200	YKT6-family R-SNARE protein	Synaptobrevin
+TTHERM_00773550	hypothetical protein	HypA-like protein
+TTHERM_00680640	cyclic nucleotide-binding domain protein	Ion channel
+TTHERM_00683020	CTH118 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00683320	phage head-tail adaptor family protein putative	Phage head-tail adaptor family protein
+TTHERM_00852800	hypothetical protein	ankyrin repeats
+TTHERM_00688620	cation channel family protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00689830	tRNA modification GTPase MnmE	Belongs to the TRAFAC class TrmE-Era-EngA-EngB-Septin- like GTPase superfamily. TrmE GTPase family
+TTHERM_00689870	DOMON domain protein	DOMON domain
+TTHERM_00663960	transmembrane protein putative	-
+TTHERM_00660450	CTH76 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00660410	CTH122 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00660350	papain family cysteine protease	cysteine-type peptidase activity
+TTHERM_00660280	hypothetical protein	-
+TTHERM_00616110	transmembrane protein putative	-
+TTHERM_00616440	transmembrane protein putative	-
+TTHERM_00616490	cyclic nucleotide-binding domain protein	-
+TTHERM_00647450	cation channel family protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00647110	cyclic nucleotide-binding domain protein	-
+TTHERM_00657590	transmembrane protein putative	-
+TTHERM_00659050	ImpB/MucB/SamB family protein	Deoxycytidyl transferase involved in DNA repair. Transfers a dCMP residue from dCTP to the 3'-end of a DNA primer in a template-dependent reaction. May assist in the first step in the bypass of abasic lesions by the insertion of a nucleotide opposite the lesion. Required for normal induction of mutations by physical and chemical agents
+TTHERM_00727530	small GTP-binding domain protein	-
+TTHERM_00709650	integral membrane protein DUF6 containing protein	calcium ion export across plasma membrane
+TTHERM_00709630	transmembrane protein putative	-
+TTHERM_00709560	zinc finger lsd1 subclass family protein	serine-type endopeptidase activity
+TTHERM_00707470	zinc finger lsd1 subclass family protein	serine-type endopeptidase activity
+TTHERM_00706360	ABC transporter C family protein	ABC transporter family protein
+TTHERM_01141480	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_01141460	MAC/perforin domain protein	MAC/Perforin domain
+TTHERM_01141420	MAC/perforin domain protein	MAC/Perforin domain
+TTHERM_00600070	ABC transporter family protein	ABC transporter family protein
+TTHERM_00649510	nucleotidyltransferase	Predicted nucleotidyltransferase
+TTHERM_00649030	calpain family cysteine protease	-
+TTHERM_00648850	hypothetical protein	-
+TTHERM_00648830	hypothetical protein	-
+TTHERM_00648820	hypothetical protein	-
+TTHERM_00648670	transmembrane protein putative	-
+TTHERM_00622810	hypothetical protein	Telomerase component p95
+TTHERM_00578850	SCO1/SenC family protein	SCO1/SenC
+TTHERM_00559960	kinase domain protein putative	-
+TTHERM_00560100	RAP domain protein	chloroplast rRNA processing
+TTHERM_00561500	NTP7 nucleoside transporter family protein	nucleoside transmembrane transporter activity
+TTHERM_00561540	CTH26 eukaryotic aspartyl protease	aspartic-type endopeptidase activity
+TTHERM_00558690	transmembrane protein putative	-
+TTHERM_00558700	transmembrane protein putative	-
+TTHERM_00703350	polyketide cyclase/dehydrase	ubiquinone binding
+TTHERM_01075770	hypothetical protein	TraB family
+TTHERM_01075750	transmembrane protein putative	-
+TTHERM_00628590	hypothetical protein	-
+TTHERM_00628569	cyclic nucleotide-binding domain protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00628568	cyclic nucleotide-binding domain protein	Cyclic nucleotide-binding domain containing protein
+TTHERM_001212889	kinase domain protein	Leucine Rich repeat
+TTHERM_00924280	hypothetical protein	-
+TTHERM_00922840	bowman-birk serine protease inhibitor family protein putative	-
+TTHERM_00794010	MATE efflux family protein	MatE
+TTHERM_00794220	hypothetical protein	Mortierella verticillata NRRL 6337
+TTHERM_00794460	bowman-birk serine protease inhibitor family protein	serine-type endopeptidase activity
+TTHERM_00666940	lipase family protein	phospholipase A1 activity
+TTHERM_00666660	kinase domain protein putative	interleukin-8 biosynthetic process
+TTHERM_00585390	response regulator receiver domain protein	ATPase, histidine kinase-, DNA gyrase B-, and HSP90-like domain containing protein
+TTHERM_00585300	transmembrane protein putative	-
+TTHERM_00584820	Serine/Threonine kinase domain protein	protein serine/threonine kinase activity
+TTHERM_00584790	NUDIX hydrolase	NUDIX domain
+TTHERM_00584770	ankyrin repeat protein	ankyrin 3, node of Ranvier (ankyrin G)
+TTHERM_00584750	ankyrin repeat protein	Ankyrin repeats (many copies)
+TTHERM_00500730	Accumulation-associated protein	-
+TTHERM_00500940	autophagy protein Atg8 ubiquitin-like protein	IDI-7. Source PGD
+TTHERM_00502350	EF hand protein	EF-hand domain pair
+TTHERM_00502530	FHA domain protein	SAM domain (Sterile alpha motif)
+TTHERM_00586840	type III restriction enzyme res subunit	ATP-dependent DNA helicase activity
+TTHERM_00590260	hypothetical protein	-
+TTHERM_00590310	transmembrane protein putative	-
+TTHERM_00494260	Ras family protein	Ras family
+TTHERM_00494780	hypothetical protein	Zinc finger in DBF-like proteins
+TTHERM_00494848	SEC144 divergent CRAL/TRIO domain protein	Domain in homologues of a S. cerevisiae phosphatidylinositol transfer protein (Sec14p)
+TTHERM_00525120	Kinesin-related protein 8	-
+TTHERM_000525169	transmembrane protein putative	-
+TTHERM_00526180	ABC transporter family protein	ABC transporter family protein
+TTHERM_00526300	aldo/keto reductase family oxidoreductase	oxidoreductase activity
+TTHERM_00526340	aldo/keto reductase family oxidoreductase	oxidoreductase activity
+TTHERM_00527300	pyroglutamyl-peptidase I	Pyroglutamyl peptidase
+TTHERM_00516349	Ras family protein	RAB8B, member RAS oncogene family
+TTHERM_00516410	hypothetical protein	Leucine Rich repeat
+TTHERM_00516430	GyrI-like small molecule-binding domain protein	Testis-expressed sequence 264
+TTHERM_000516450	glutathione S-transferase amine-terminal domain protein	Testis-expressed sequence 264
+TTHERM_000516461	kinase domain protein	-
+TTHERM_00518470	glutathione S-transferase amine-terminal domain protein	Testis-expressed sequence 264
+TTHERM_00519770	TNFR/NGFR cysteine-rich region family protein	Zinc finger LSD1 subclass family protein
+TTHERM_00535200	beta-Pak interactive eXchange factor Src-like 3 domain protein	Src homology 3 domains
+TTHERM_00537010	cyclic nucleotide-binding domain protein	phosphorelay sensor kinase activity
+TTHERM_00721870	ADP-ribosylation factor 1 putative	ARF-like small GTPases; ARF, ADP-ribosylation factor
+TTHERM_00997600	cyclic nucleotide-binding domain protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00997730	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_00564270	cation channel family protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00529490	aromatic ring-opening dioxygenase catalytic subunit LigB	Catalytic LigB subunit of aromatic ring-opening dioxygenase
+TTHERM_00530050	B-box zinc finger protein	-
+TTHERM_00530659	hypothetical protein	SWI SNF-related matrix-associated actin-dependent regulator of chromatin subfamily A-like protein
+TTHERM_00467440	DALR anticodon-binding domain protein	Arginyl tRNA synthetase N terminal dom
+TTHERM_00467400	tetratricopeptide repeat protein	TPR Domain containing protein
+TTHERM_00467210	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_00444390	cyclic nucleotide-binding domain protein	Cyclic nucleotide-binding domain containing protein
+TTHERM_00446060	S-adenosyl-L-methionine-dependent methyltransferase putative	Arginine methyltransferase involved in the assembly or stability of mitochondrial NADH ubiquinone oxidoreductase complex (complex I)
+TTHERM_00522400	tetratricopeptide repeat protein	CHAT domain
+TTHERM_00522110	MORN motif protein	MORN repeat-containing protein
+TTHERM_00520930	RNB-like protein	RNB
+TTHERM_00520900	hypothetical protein	-
+TTHERM_00532300	transmembrane protein putative	-
+TTHERM_00532140	transmembrane protein putative	Phosphatidylserine decarboxylase family protein
+TTHERM_00438960	cyclic nucleotide-binding domain protein	phosphorelay sensor kinase activity
+TTHERM_00438810	integral membrane protein DUF6 containing protein	calcium ion export across plasma membrane
+TTHERM_00437520	tetratricopeptide repeat protein	Tetratricopeptide repeat
+TTHERM_00437460	hypothetical protein	Encoded by
+TTHERM_00458180	EGF-like domain protein	domain containing protein
+TTHERM_00455620	GNAT family acetyltransferase	Acetyltransferase (GNAT) family
+TTHERM_000455598	Mpv17/pmp22 family protein	Mpv17 PMP22 family protein
+TTHERM_00420180	hypothetical protein	-
+TTHERM_00420320	WD domain G-beta repeat protein	Cell division cycle
+TTHERM_00420580	ATPase histidine kinase- DNA gyrase B	phosphorelay sensor kinase activity
+TTHERM_00420650	tubulin-tyrosine ligase family protein	Tubulin-tyrosine ligase family protein
+TTHERM_00421190	SFR11 Uncharacterized oxidoreductase C2F3.05c	-
+TTHERM_00421200	REX1 exonuclease	exonuclease activity
+TTHERM_00476790	EB1 protein	microtubule binding
+TTHERM_00476920	hypothetical protein	-
+TTHERM_00483410	CTH91 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00473230	GST48 glutathione S-transferase amine-terminal domain protein	glutathione transferase activity
+TTHERM_00475220	RPB82 RNA polymerase rpb8	transcription by RNA polymerase I
+TTHERM_00475290	transmembrane protein putative	Phosphatidylserine decarboxylase family protein
+TTHERM_00475350	hypothetical protein	NDC80 homolog, kinetochore complex component (S. cerevisiae)
+TTHERM_00475380	hypothetical protein	GTPase activator activity
+TTHERM_00486750	RasGEF domain protein	midbrain morphogenesis
+TTHERM_00486180	Serine/Threonine kinase domain protein	positive regulation of hh target transcription factor activity
+TTHERM_00485960	phosphopantetheine-protein transferase domain protein	4'-phosphopantetheinyl transferase superfamily
+TTHERM_00485880	hypothetical protein	-
+TTHERM_00441800	cyclic nucleotide-binding domain protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00412090	transmembrane protein putative	-
+TTHERM_00412040	AAA family ATPase	establishment of protein localization to peroxisome
+TTHERM_00411970	REJ domain protein	REJ domain
+TTHERM_00411450	transmembrane protein putative	Serine-rich 25 kDa antigen protein
+TTHERM_00410291	hypothetical protein	LRR receptor-like serine threonine-protein kinase
+TTHERM_00410160	chromosome condensation regulator RCC1 repeat protein	Regulator of chromosome condensation (RCC1) repeat
+TTHERM_00409090	ABC transporter family protein	ABC transporter family protein
+TTHERM_00409040	tetratricopeptide repeat protein	Tetratricopeptide repeat protein
+TTHERM_00408920	tetratricopeptide repeat protein	TPR Domain containing protein
+TTHERM_00398090	zinc finger C-x8-C-x5-C-x3-H type protein	3'-UTR-mediated mRNA destabilization
+TTHERM_00399340	cytochrome b5-like heme/steroid-binding domain protein	-
+TTHERM_00401870	kinase domain protein putative	-
+TTHERM_00402160	IPT/TIG domain protein	Polycystic kidney and hepatic disease 1 (autosomal
+TTHERM_00405580	ubiquitin-like Rad60 SUMO-like protein	Ubiquitin exists either covalently attached to another protein, or free (unanchored). When covalently bound, it is conjugated to target proteins via an isopeptide bond either as a monomer (monoubiquitin), a polymer linked via different Lys residues of the ubiquitin (polyubiquitin chains) or a linear polymer linked via the initiator Met of the ubiquitin (linear polyubiquitin chains). Polyubiquitin chains, when attached to a target protein, have different functions depending on the Lys residue of the ubiquitin that is linked
+TTHERM_00405586	transmembrane amino acid transporter protein	Transmembrane amino acid transporter protein
+TTHERM_00406680	transmembrane protein putative	Transmembrane protein, putative
+TTHERM_00448880	Glutathione S-transferase Mu 1	meiotic spindle midzone assembly
+TTHERM_00449320	Serine/Threonine kinase domain protein	Leucine rich repeat N-terminal domain
+TTHERM_00450880	ubiquitin carboxy-terminal hydrolase	Belongs to the peptidase C19 family
+TTHERM_00450910	ubiquitin carboxyl-terminal hydrolase family protein putative	Belongs to the peptidase C19 family
+TTHERM_00371100	DMAP1 hypothetical protein	-
+TTHERM_00371140	WD domain G-beta repeat protein	WD domain, G-beta repeat protein
+TTHERM_00371290	DRH17 DEAD/DEAH-box helicase	helicase superfamily c-terminal domain
+TTHERM_00372630	transmembrane protein putative	-
+TTHERM_00372640	ABC transporter family protein	ABC transporter family protein
+TTHERM_00343820	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00343840	hypothetical protein	-
+TTHERM_00344180	transmembrane protein putative	-
+TTHERM_00344280	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00344300	hypothetical protein	-
+TTHERM_00344380	hypothetical protein	-
+TTHERM_00344391	hypothetical protein	-
+TTHERM_01347950	SNF2 family amine-terminal domain protein	domain containing protein
+TTHERM_01512220	type A von willebrand factor domain protein	Von Willebrand factor type A domain containing protein
+TTHERM_01023000	transmembrane protein putative	-
+TTHERM_00325630	integral membrane protein DUF6 containing protein	EamA-like transporter family
+TTHERM_00328540	anaphase-promoting complex subunit 11 RING-H2 finger protein	Zinc finger, C3HC4 type family protein
+TTHERM_00329780	kinase domain protein	-
+TTHERM_00338150	hypothetical protein	Eukaryotic protein of unknown function (DUF842)
+TTHERM_00335870	PAS domain S-box protein	-
+TTHERM_00310810	calpain family cysteine protease	-
+TTHERM_00310690	RING-H2 zinc finger protein	RING-H2 zinc finger domain
+TTHERM_00310530	chromosome condensation regulator RCC1 repeat protein	Regulator of chromosome condensation (RCC1) repeat
+TTHERM_00310460	hypothetical protein	-
+TTHERM_00310010	hypothetical protein	Domain of unknown function (DUF4419)
+TTHERM_00309970	ankyrin domain protein	ankyrin repeats
+TTHERM_00309930	zinc finger lsd1 subclass family protein	serine-type endopeptidase activity
+TTHERM_00304350	YbaK/prolyl-tRNA synthetase associated domain protein	Aminoacyl-tRNA editing domain
+TTHERM_001215039	cyclic nucleotide-binding domain protein	-
+TTHERM_00463840	pectinacetylesterase family protein	Pectinacetylesterase family
+TTHERM_00463650	glycosyl hydrolase family 31 protein	Belongs to the glycosyl hydrolase 31 family
+TTHERM_00463180	endonuclease/exonuclease/phosphatase family protein	Endonuclease-reverse transcriptase
+TTHERM_00462820	kinase domain protein putative	-
+TTHERM_00302090	leishmanolysin family protein	Leishmanolysin family
+TTHERM_00301870	ABC transporter family protein	ABC transporter family protein
+TTHERM_00301830	SNARE associated protein	SNARE associated Golgi protein
+TTHERM_00300600	transmembrane protein putative	Glycosyl hydrolase family 10
+TTHERM_00300190	Zinc finger CCCH domain-containing protein 9	-
+TTHERM_00299860	Zinc finger CCCH domain-containing protein 9	-
+TTHERM_00298490	transmembrane protein putative	Transmembrane protein, putative
+TTHERM_00298340	transmembrane protein putative	-
+TTHERM_00317380	transmembrane protein putative	-
+TTHERM_00317250	WD domain G-beta repeat protein	WD domain, G-beta repeat
+TTHERM_00317100	transmembrane protein putative	-
+TTHERM_00317010	snRNA-activating protein of 50 kDa MW carboxy-terminal protein	snRNA-activating protein of 50kDa MW C terminal
+TTHERM_00316420	kinase domain protein	-
+TTHERM_00316130	ubiquitin-conjugating enzyme	protein polyubiquitination
+TTHERM_000296019	transmembrane protein putative	-
+TTHERM_00295350	transmembrane protein putative	-
+TTHERM_00292200	transmembrane protein putative	-
+TTHERM_00292110	14-3-3 family protein 14-3-3 beta/zeta	protein domain specific binding
+TTHERM_00290620	leishmanolysin family protein putative	Leishmanolysin family
+TTHERM_00289600	leishmanolysin family protein	Leishmanolysin family
+TTHERM_00289540	leishmanolysin family protein	Leishmanolysin family
+TTHERM_00289490	COPI associated protein	COPI associated protein
+TTHERM_00289440	transmembrane protein putative	-
+TTHERM_00285479	ubiquitin	-
+TTHERM_00285330	mammalian STARD1-STARD15-like lipid-binding START domain protein putative	START domain
+TTHERM_00285260	type A von willebrand factor domain protein	Von Willebrand factor type A domain containing protein
+TTHERM_00283570	hypothetical protein	-
+TTHERM_00283490	glycosyl hydrolase family cellulase	Belongs to the glycosyl hydrolase 5 (cellulase A) family
+TTHERM_00283390	cytochrome P450 family protein putative	Zinc carboxypeptidase family protein
+TTHERM_00283160	ABC transporter C family protein	ABC transporter family protein
+TTHERM_00277290	transmembrane protein putative	-
+TTHERM_00277170	hypothetical protein	Leishmanolysin family
+TTHERM_00277100	cyclic nucleotide-binding domain protein	Cyclic nucleotide-monophosphate binding domain
+TTHERM_00418070	transmembrane protein putative	-
+TTHERM_00417990	H-type lectin domain protein	extracellular matrix
+TTHERM_00417950	transmembrane protein putative	-
+TTHERM_00417880	peroxidase putative	-
+TTHERM_00415690	ser/thr protein phosphatase family protein	Ser Thr protein phosphatase family protein
+TTHERM_00884680	transmembrane protein putative	serine-type endopeptidase activity
+TTHERM_00885810	transmembrane protein putative	serine-type endopeptidase activity
+TTHERM_00885880	WD domain G-beta repeat protein	-
+TTHERM_00274620	GST22 glutathione S-transferase amine-terminal domain protein	glutathione transferase activity
+TTHERM_00274530	bacterial stress protein	cAMP binding
+TTHERM_00274510	tellurium resistance protein	cAMP binding
+TTHERM_00268340	transmembrane protein putative	domain containing protein
+TTHERM_00268080	STOP protein	STOP protein
+TTHERM_00268020	MATE efflux family protein	antiporter activity
+TTHERM_00267970	orn/lys/arg decarboxylase major region protein	arginine decarboxylase activity
+TTHERM_00266660	ETA1 kinase domain protein	-
+TTHERM_00266540	phosphatidylserine decarboxylase family protein putative	Phosphatidylserine decarboxylase family protein
+TTHERM_00266530	transmembrane protein putative	-
+TTHERM_00266280	anaphase-promoting complex subunit 11 RING-H2 finger protein	Zinc finger, C3HC4 type family protein
+TTHERM_00394550	cyclic nucleotide-binding domain protein	Cyclic nucleotide-binding domain containing protein
+TTHERM_00391220	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_00782150	transmembrane protein putative	Protein of unknown function (DUF726)
+TTHERM_01311280	aldo/keto reductase family oxidoreductase	Oxidoreductase, aldo keto reductase family protein
+TTHERM_01052860	transmembrane protein putative	-
+TTHERM_01461140	IBR domain protein	RWD
+TTHERM_01156890	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_01156800	transmembrane protein putative	-
+TTHERM_01156750	kinase domain protein	positive regulation of hh target transcription factor activity
+TTHERM_00778400	REJ domain protein	REJ domain
+TTHERM_00777040	ADP-ribosylation factor 1	GTP binding
+TTHERM_00774860	hypothetical protein	-
+TTHERM_000774831	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_000323149	hypothetical protein	-
+TTHERM_00322890	transmembrane protein putative	-
+TTHERM_00321540	cation channel family protein	phosphorelay sensor kinase activity
+TTHERM_00320180	hypothetical protein	-
+TTHERM_00320160	lipase family protein	Lipase family
+TTHERM_00320039	RABX34 small GTPase family Rab protein	Rab subfamily of small GTPases
+TTHERM_00979940	LSF3 leishmanolysin family protein	Leishmanolysin family
+TTHERM_00979890	hypothetical protein	-
+TTHERM_00979820	calpain family cysteine protease	-
+TTHERM_01149310	transmembrane protein putative	-
+TTHERM_01150350	TPA3 Na,H/K antiporter P-type ATPase alpha subunit family protein	Belongs to the cation transport ATPase (P-type) (TC 3.A.3) family
+TTHERM_01150420	hypothetical protein	-
+TTHERM_00656070	NUDIX hydrolase	NUDIX domain
+TTHERM_00221080	hypothetical protein	-
+TTHERM_00219570	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_00216110	ATPase histidine kinase- DNA gyrase B	phosphorelay sensor kinase activity
+TTHERM_00237340	zinc finger C3HC4 type (RING finger) protein	Zinc finger, C3HC4 type (RING finger)
+TTHERM_00238800	nudix domain protein putative	NUDIX domain
+TTHERM_00241480	ABC transporter B family protein	ABC transporter family protein
+TTHERM_00241490	transmembrane protein putative	-
+TTHERM_00241870	GDA1/CD39 nucleoside phosphatase family protein	8-oxo-dGTP phosphohydrolase activity
+TTHERM_00241920	AAA domain protein	AAA domain
+TTHERM_000242459	kinase domain protein putative	interleukin-8 biosynthetic process
+TTHERM_00242520	transmembrane protein putative	-
+TTHERM_00146360	tetratricopeptide repeat protein	TPR Domain containing protein
+TTHERM_00145130	cyclic nucleotide-binding domain protein	phosphorelay sensor kinase activity
+TTHERM_00143570	TGL10 ab-hydrolase associated lipase region family protein	Ab-hydrolase associated lipase region family protein
+TTHERM_00143560	ab-hydrolase associated lipase region family protein	Ab-hydrolase associated lipase region family protein
+TTHERM_00142480	ATPase histidine kinase- DNA gyrase B	domain containing protein
+TTHERM_00142430	kelch motif protein	Galactose oxidase, central domain
+TTHERM_00142240	signal recognition particle 54 kDa protein SRP54 putative	Binds to the signal sequence of presecretory protein when they emerge from the ribosomes and transfers them to TRAM (translocating chain-associating membrane protein)
+TTHERM_000188551	transmembrane protein putative	-
+TTHERM_00188900	hypothetical protein	-
+TTHERM_00188929	RAP domain protein	RAP
+TTHERM_00189140	hypothetical protein	norepinephrine secretion
+TTHERM_00189480	hypothetical protein	-
+TTHERM_00190650	MFS transporter	Synaptic vesicle 2-related protein
+TTHERM_00191130	D-mannose-binding lectin	chitin binding
+TTHERM_00191360	cyclic nucleotide-binding domain protein	Cyclic nucleotide-monophosphate binding domain
+TTHERM_00191470	transmembrane protein putative	AMP-binding enzyme family protein
+TTHERM_00191650	kinase domain protein	cellular response to bisphenol A
+TTHERM_00192100	DNA topoisomerase II	Control of topological states of DNA by transient breakage and subsequent rejoining of DNA strands. Topoisomerase II makes double-strand breaks
+TTHERM_00894430	Elongation factor 4	-
+TTHERM_00894390	Elongation factor 4	-
+TTHERM_00892330	Elongation factor 4	-
+TTHERM_00633200	hypothetical protein	-
+TTHERM_00635720	cyclic nucleotide-binding domain protein	-
+TTHERM_00962040	aldo/keto reductase family oxidoreductase	Oxidoreductase, aldo keto reductase family protein
+TTHERM_00962000	aldo/keto reductase family oxidoreductase	Oxidoreductase, aldo keto reductase family protein
+TTHERM_00961900	cyclic nucleotide-binding domain protein	Cyclic nucleotide-monophosphate binding domain
+TTHERM_01246710	hypothetical protein	-
+TTHERM_00152020	oxidoreductase short chain dehydrogenase/reductase family protein	Belongs to the short-chain dehydrogenases reductases (SDR) family
+TTHERM_00151650	hypothetical protein	von Willebrand factor type A domain
+TTHERM_00151430	cyclic nucleotide-binding domain protein	Cyclic nucleotide-binding domain containing protein
+TTHERM_00151130	transmembrane protein putative	-
+TTHERM_00149990	5-formyltetrahydrofolate cyclo-ligase	5-formyltetrahydrofolate cyclo-ligase family
+TTHERM_00149800	hypothetical protein	Ring finger
+TTHERM_00149080	Serine/Threonine kinase domain protein	protein kinase activity
+TTHERM_00148930	3-prime5-prime-cyclic nucleotide phosphodiesterase family protein	Metal dependent phosphohydrolases with conserved 'HD' motif.
+TTHERM_01034450	cyclic nucleotide-binding domain protein	-
+TTHERM_01087890	hypothetical protein	-
+TTHERM_01088000	REJ domain protein	REJ domain
+TTHERM_01412060	ribonuclease Z	3'-tRNA processing endoribonuclease activity
+TTHERM_01478580	von willebrand factor type A domain protein	Von Willebrand factor type A domain containing protein
+TTHERM_01606700	von willebrand factor type A (vWA) domain was originally protein	Von Willebrand factor type A domain containing protein
+TTHERM_001360490	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00126900	tetratricopeptide repeat protein	Tetratricopeptide repeat protein
+TTHERM_00127060	zinc finger in N-recognin	ubiquitin-dependent protein catabolic process via the N-end rule pathway
+TTHERM_00128530	von willebrand factor type A domain protein	Vault protein inter-alpha-trypsin domain
+TTHERM_00129400	START domain protein	START domain
+TTHERM_00129970	hypothetical protein	-
+TTHERM_00138300	cation channel family protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00138100	cyclic nucleotide-binding domain protein	cAMP-dependent protein kinase regulator activity
+TTHERM_00138000	DHHC zinc finger protein	Belongs to the DHHC palmitoyltransferase family
+TTHERM_00137830	3-prime5-prime-cyclic nucleotide phosphodiesterase family protein	Metal dependent phosphohydrolases with conserved 'HD' motif.
+TTHERM_00137700	transmembrane amino acid transporter protein	Transmembrane amino acid transporter protein
+TTHERM_00137580	transmembrane protein putative	Tetratricopeptide repeat protein
+TTHERM_00136340	carboxy-terminal crystallin fold protein 10p putative	-
+TTHERM_000134818	zinc finger C3HC4 type (RING finger) protein	RING-H2 zinc finger domain
+TTHERM_00133560	WD domain G-beta repeat protein	WD40 repeats
+TTHERM_00312020	hypothetical protein	-
+TTHERM_00312830	cation channel family protein	phosphorelay sensor kinase activity
+TTHERM_00313200	ATPase histidine kinase- DNA gyrase B	-
+TTHERM_00313360	transmembrane protein putative	serine-type endopeptidase activity
+TTHERM_00571750	protein kinase	protein serine/threonine kinase activity
+TTHERM_000571589	kinase domain protein putative	interleukin-8 biosynthetic process
+TTHERM_00554460	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_01499890	hypothetical protein	-
+TTHERM_01227800	cyclic nucleotide-binding domain protein	Cyclic nucleotide-monophosphate binding domain
+TTHERM_01227790	GNAT family acetyltransferase	Acetyltransferase (GNAT) domain
+TTHERM_01227710	Gtr1/RagA G motif protein	GTPase activity
+TTHERM_01227690	hypothetical protein	-
+TTHERM_00848060	von willebrand factor type A domain protein	Zinc carboxypeptidase family protein
+TTHERM_00847040	von willebrand factor type A domain protein	Zinc carboxypeptidase family protein
+TTHERM_00985130	telomerase component p95	Telomerase component p95
+TTHERM_00857890	MutS domain II family protein	chiasma assembly
+TTHERM_00857840	transmembrane protein putative	TMEM151 family
+TTHERM_00857780	NAD-dependent aldehyde dehydrogenase family protein	Aldehyde dehydrogenase (NAD) family protein
+TTHERM_00079580	CTH87 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00079359	Serine/Threonine kinase domain protein	protein serine/threonine kinase activity
+TTHERM_00077600	zinc-binding dehydrogenase family oxidoreductase	-
+TTHERM_00077560	GST47 glutathione S-transferase amine-terminal domain protein	glutathione transferase activity
+TTHERM_00077530	GST44 glutathione S-transferase amine-terminal domain protein	glutathione transferase activity
+TTHERM_00077100	kelch motif protein	Broad-Complex, Tramtrack and Bric a brac
+TTHERM_00075880	CrcB-like protein	CrcB-like protein, Camphor Resistance (CrcB)
+TTHERM_00074439	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_001394333	cyclic nucleotide-binding domain protein	-
+TTHERM_00581470	cyclic nucleotide-binding domain protein	phosphorelay sensor kinase activity
+TTHERM_00581640	AKAP7 2-prime5-prime RNA ligase-like domain protein	AKAP7 2'5' RNA ligase-like domain
+TTHERM_00581660	zinc finger LSD1 subclass family protein putative	Furin-like repeats
+TTHERM_00581909	kinase domain protein putative	interleukin-8 biosynthetic process
+TTHERM_00582040	Trk system potassium uptake protein TrkA amine-terminal domain protein	NAD(P)H-binding
+TTHERM_00717530	protein phosphatase 2c	N-terminal protein myristoylation
+TTHERM_00717950	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_00717970	hypothetical protein	AMP-binding enzyme family protein
+TTHERM_001527452	transmembrane protein putative	Transmembrane protein, putative
+TTHERM_00598660	hypothetical protein	-
+TTHERM_00596560	transmembrane protein putative	Transmembrane protein, putative
+TTHERM_00594260	tetratricopeptide repeat protein	TPR Domain containing protein
+TTHERM_00594240	transmembrane protein putative	Expressed protein
+TTHERM_00593010	ABC transporter family protein	ABC transporter family protein
+TTHERM_00592752	Aspartate--tRNA ligase, cytoplasmic	tRNA synthetases class II (D, K and N)
+TTHERM_000429641	transmembrane protein putative	-
+TTHERM_00429710	hypothetical protein	Leucine Rich repeat
+TTHERM_00430150	hypothetical protein	Telomerase component p95
+TTHERM_00433760	kazal-type proteinase inhibitor 1	Kazal-type proteinase inhibitor 1
+TTHERM_00433770	kinase domain protein	-
+TTHERM_00434150	lipase family protein	Lipase family
+TTHERM_01178670	hypothetical protein	-
+TTHERM_01178750	hypothetical protein	-
+TTHERM_00629770	transmembrane protein putative	-
+TTHERM_00629800	transmembrane protein putative	-
+TTHERM_00630270	GST12 glutathione S-transferase amine-terminal domain protein	glutathione transferase activity
+TTHERM_00630530	hypothetical protein	-
+TTHERM_00630570	ATPase histidine kinase- DNA gyrase B	phosphorelay sensor kinase activity
+TTHERM_00630710	hypothetical protein	Zinc carboxypeptidase family protein
+TTHERM_00630720	transmembrane protein putative	extracellular matrix
+TTHERM_00896080	amidase	amidase family
+TTHERM_00895790	histone methylation protein DOT1	Histone methylation protein DOT1
+TTHERM_00895720	CTH83 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00895640	GPX4 phospholipid hydroperoxide glutathione peroxidase	Belongs to the glutathione peroxidase family
+TTHERM_01323720	transmembrane protein putative	serine-type endopeptidase activity
+TTHERM_001323739	hypothetical protein	ISXO2-like transposase domain
+TTHERM_01317420	transmembrane protein putative	-
+TTHERM_00259290	transmembrane protein	-
+TTHERM_00259540	proprotein convertase-like protein	Pregnancy-associated plasma protein-A
+TTHERM_00263409	cyclic nucleotide-binding domain protein	Cation channel family protein
+TTHERM_00263420	hypothetical protein	-
+TTHERM_00263500	cation channel family protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00263550	cyclic nucleotide-binding domain protein	phosphorelay sensor kinase activity
+TTHERM_00193240	hypothetical protein	Domain of unknown function (DUF4615)
+TTHERM_00193770	transmembrane protein putative	Leucine Rich repeat
+TTHERM_00194130	MMS4 hypothetical protein	Essential meiotic structure-specific endonuclease 1
+TTHERM_00194430	hypothetical protein	-
+TTHERM_00196340	hypothetical protein	ribosomal protein import into nucleus
+TTHERM_00196500	transmembrane protein putative	-
+TTHERM_00214670	protein kinase	NIMA (never in mitosis gene a)-related kinase 1
+TTHERM_000213644	kinase domain protein	Leucine Rich repeat
+TTHERM_00209400	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00209390	ABC transporter family protein	ABC transporter family protein
+TTHERM_000205206	transmembrane protein putative	CSL zinc finger
+TTHERM_00203060	kinase domain protein	Leucine Rich repeat
+TTHERM_00203030	TWI9 piwi-like protein	Belongs to the argonaute family
+TTHERM_00203000	transmembrane protein putative	-
+TTHERM_00202830	zinc finger C3HC4 type (RING finger) protein	Zinc finger, C3HC4 type (RING finger)
+TTHERM_000201617	MFS transporter	-
+TTHERM_00198300	transmembrane protein putative	serine-type endopeptidase activity
+TTHERM_00198240	cytochrome P450 family monooxygenase	Cytochrome P450
+TTHERM_00198200	cytochrome P450 family monooxygenase	oxidoreductase activity, acting on paired donors, with incorporation or reduction of molecular oxygen, reduced iron-sulfur protein as one donor, and incorporation of one atom of oxygen
+TTHERM_00197960	mammalian STARD1-STARD15-like lipid-binding START domain protein putative	START domain
+TTHERM_00816240	transmembrane protein putative	interleukin-8 biosynthetic process
+TTHERM_00820740	pectinacetylesterase family protein	pectin acetylesterase activity
+TTHERM_00820750	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_01307940	hypothetical protein	Zinc carboxypeptidase family protein
+TTHERM_01026400	hypothetical protein	-
+TTHERM_001026363	transmembrane protein putative	-
+TTHERM_001026177	SLEI family protein putative	interleukin-8 biosynthetic process
+TTHERM_01421350	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_001421352	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_00071130	response regulator receiver domain protein	cheY-homologous receiver domain
+TTHERM_00069600	Nucleotide-binding oligomerization domain-containing protein 2	-
+TTHERM_00069190	hypothetical protein	Leucine Rich repeat
+TTHERM_00059520	transmembrane protein putative	serine-type endopeptidase activity
+TTHERM_00059070	hypothetical protein	-
+TTHERM_00058950	hypothetical protein	Carboxymuconolactone decarboxylase family
+TTHERM_00058620	kinase domain protein	-
+TTHERM_00058580	hypothetical protein	-
+TTHERM_00058259	aldo/keto reductase family oxidoreductase	Aldo/keto reductase family
+TTHERM_00160820	FAD/FMN-binding family oxidoreductase	Oxidoreductase, FAD FMN-binding family protein
+TTHERM_00160640	tetraspanin family protein	Tetraspanin family
+TTHERM_00160600	transmembrane protein putative	-
+TTHERM_000158289	cyclic nucleotide-binding domain protein putative	-
+TTHERM_00155520	hypothetical protein	AMP-binding enzyme family protein
+TTHERM_00155420	transmembrane protein putative	-
+TTHERM_00643490	UbiE/COQ5 methyltransferase	UbiE COQ5 methyltransferase
+TTHERM_00644660	hypothetical protein	-
+TTHERM_00644670	cyclic nucleotide-binding domain protein	interleukin-8 biosynthetic process
+TTHERM_00644760	hypothetical protein	-
+TTHERM_001325754	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00043830	cytochrome C biogenesis protein	-
+TTHERM_00046100	hypothetical protein	-
+TTHERM_00046110	GPX7 phospholipid hydroperoxide glutathione peroxidase	Belongs to the glutathione peroxidase family
+TTHERM_00052120	transmembrane protein putative	-
+TTHERM_01142700	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_00123960	hypothetical protein	-
+TTHERM_00123900	hypothetical protein	-
+TTHERM_00123640	zinc finger C2H2 type family protein	serine-type endopeptidase activity
+TTHERM_000123577	cyclic nucleotide-binding domain protein	cyclic nucleotide-gated ion channel activity
+TTHERM_00122549	cyclic nucleotide-binding domain protein	-
+TTHERM_00122460	ubiquinone/menaquinone biosynthesis methyltransferase family protein	ubiE/COQ5 methyltransferase family
+TTHERM_00117580	16S rRNA methyltransferase	MraW methylase family
+TTHERM_00117550	DNA-directed RNA polymerase omega subunit family protein	-
+TTHERM_00112940	TGL7 Ab-hydrolase associated lipase region protein	Partial alpha/beta-hydrolase lipase region
+TTHERM_00112720	oxygen-in-dependent coproporphyrinogen III oxidase putative	Elongator protein 3, MiaB family, Radical SAM
+TTHERM_00112480	THD15 SIR2 family transcriptional regulator	Transcriptional regulator, Sir2 family protein
+TTHERM_00112360	hypothetical protein	-
+TTHERM_00109240	transmembrane protein putative	-
+TTHERM_00575540	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_00576970	transmembrane protein putative	-
+TTHERM_000577049	inner membrane protein putative	Protein of unknown function (DUF423)
+TTHERM_01423430	beta-lactamase	Beta-lactamase
+TTHERM_01186250	MAC/perforin domain protein	MAC/Perforin domain
+TTHERM_01415160	hypothetical protein	AMP-binding enzyme family protein
+TTHERM_001399608	transmembrane protein putative	AMP-binding enzyme family protein
+TTHERM_01399540	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_01399520	hypothetical protein	F-box LRR-repeat protein
+TTHERM_01287960	LBP/BPI/CETP family carboxy-terminal domain protein	lipid binding
+TTHERM_01287990	kinase domain protein	-
+TTHERM_00162860	hypothetical protein	-
+TTHERM_00163900	hypothetical protein	-
+TTHERM_00166100	GST37 glutathione S-transferase amine-terminal domain protein	Glutathione S-transferase, N-terminal domain containing protein
+TTHERM_00170580	tetratricopeptide repeat protein	Tetratricopeptide repeat
+TTHERM_00170590	tetratricopeptide repeat protein	Tetratricopeptide repeat
+TTHERM_00171680	hypothetical protein	Alpha beta hydrolase family protein
+TTHERM_00186020	kinase domain protein putative	-
+TTHERM_000187089	kinase domain protein	-
+TTHERM_00187200	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_00187210	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_00187212	RAN GTPase-activating protein 1	-
+TTHERM_00187230	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_00094280	FAD/FMN-binding family oxidoreductase	Oxidoreductase, FAD FMN-binding family protein
+TTHERM_00094250	RAN GTPase-activating protein 1	TPR Domain containing protein
+TTHERM_00094110	transmembrane protein putative	-
+TTHERM_00093990	hypothetical protein	-
+TTHERM_000092919	hypothetical protein	Leucine Rich repeat
+TTHERM_00092860	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_00091580	rab-GTPase-TBC domain protein	regulation of vesicle fusion
+TTHERM_00083930	transmembrane protein putative	-
+TTHERM_00083910	transmembrane protein putative	-
+TTHERM_00083840	transmembrane protein putative	-
+TTHERM_00083790	ABC transporter family protein	ABC transporter family protein
+TTHERM_00083780	transmembrane protein putative	-
+TTHERM_00083670	RAB65 Ras family small GTPase	GTPase activity
+TTHERM_00083580	cation channel family protein	Cation channel family protein
+TTHERM_00083400	lysozyme protein	family 25
+TTHERM_00354610	hypothetical protein	-
+TTHERM_00355169	hypothetical protein	-
+TTHERM_00355180	hypothetical protein	-
+TTHERM_00355440	kinase domain protein	phosphorylase kinase activity
+TTHERM_00355470	IPT/TIG domain protein	Polycystic kidney and hepatic disease 1 (autosomal recessive)-like 1
+TTHERM_00881320	CTH117 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00878210	CTH112 papain family cysteine protease	Papain family cysteine protease
+TTHERM_00877100	CTH80 papain family cysteine protease	Papain family cysteine protease
+TTHERM_01127460	transporter/monovalent cation:proton antiporter-1 (CPA1) family protein	Transporter monovalent cation proton
+TTHERM_01127470	transporter/monovalent cation:proton antiporter-1 (CPA1) family protein	Transporter monovalent cation proton
+TTHERM_01127520	transporter/monovalent cation:proton antiporter-1 (CPA1) family protein	Transporter monovalent cation proton
+TTHERM_00944110	bowman-birk serine protease inhibitor family protein	-
+TTHERM_00944090	cyclic nucleotide-binding domain protein	Cyclic nucleotide-monophosphate binding domain
+TTHERM_00620890	Protein NLRC5	-
+TTHERM_00620930	cytochrome P450 family monooxygenase	oxidoreductase activity, acting on paired donors, with incorporation or reduction of molecular oxygen, reduced iron-sulfur protein as one donor, and incorporation of one atom of oxygen
+TTHERM_00621570	Tim10/DDP family zinc finger protein	Tim10/DDP family zinc finger
+TTHERM_01012090	transmembrane protein putative	interleukin-8 biosynthetic process
+TTHERM_000812603	transmembrane protein putative	-
+TTHERM_01068020	MAC/perforin domain protein	MAC Perforin domain containing protein
+TTHERM_01082920	ubiquitin-conjugating enzyme E2	Belongs to the ubiquitin-conjugating enzyme family
+TTHERM_01462160	transmembrane protein putative	interleukin-8 biosynthetic process
+TTHERM_01100320	zinc knuckle protein putative	-
+TTHERM_01100330	zinc knuckle protein putative	-
+TTHERM_01100520	oxalate/formate antiporter	Major Facilitator Superfamily protein
+TTHERM_00799182	hypothetical protein	Major Facilitator Superfamily protein
+TTHERM_00798170	oxalate/formate antiporter family transporter	Major Facilitator Superfamily protein
+TTHERM_00875870	kinase domain protein	MAP kinase activity
+TTHERM_00874760	Nucleotide-binding oligomerization domain-containing protein 2	-
+TTHERM_00869580	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_01417320	ABC transporter family protein	ABC transporter family protein
+TTHERM_01102790	hypothetical protein	-
+TTHERM_01102760	zinc carboxypeptidase family protein	Zinc carboxypeptidase family protein
+TTHERM_01102660	GCC2 and GCC3 family protein	Immobilization antigen
+TTHERM_01369770	cytochrome P450 family monooxygenase	iron ion binding
+TTHERM_01137233	hypothetical protein	-
+TTHERM_01550970	hypothetical protein	Zinc carboxypeptidase family protein
+TTHERM_00733980	transmembrane protein putative	Immobilization antigen
+TTHERM_00735390	phage head-tail family protein putative	-
+TTHERM_00907070	NTP1 nucleoside transporter family protein	nucleoside transmembrane transporter activity
+TTHERM_00907090	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00042640	exocyst complex component Sec6	-
+TTHERM_00041550	hypothetical protein	GTPase activator activity
+TTHERM_00039090	hypothetical protein	Zinc carboxypeptidase family protein
+TTHERM_00037610	zinc finger lsd1 subclass family protein	serine-type endopeptidase activity
+TTHERM_00036990	hypothetical protein	-
+TTHERM_00035670	serine carboxypeptidase S28 family protein	Serine carboxypeptidase S28 family protein
+TTHERM_00035280	ABC-2 family transporter protein	ABC transporter family protein
+TTHERM_00034920	ABC transporter family protein	ABC transporter family protein
+TTHERM_00032860	hypothetical protein	Furin-like repeat, cysteine-rich
+TTHERM_00030420	ML domain protein	-
+TTHERM_00030280	transmembrane protein putative	-
+TTHERM_00030000	transmembrane protein putative	Transmembrane protein, putative
+TTHERM_000654259	CRAL/TRIO domain protein	CRAL/TRIO domain
+TTHERM_00675780	kinase domain protein	-
+TTHERM_00675750	CNH domain protein	-
+TTHERM_00675720	RAP domain protein	-
+TTHERM_00674502	ATP-dependent DNA helicase srs2	ATP-dependent DNA helicase activity
+TTHERM_00491190	transmembrane protein putative	REJ domain
+TTHERM_000491079	cyclic nucleotide-binding domain protein	Leucine Rich repeat
+TTHERM_00491040	transmembrane protein putative	-
+TTHERM_00490860	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_00490550	zinc finger lsd1 subclass family protein	serine-type endopeptidase activity
+TTHERM_00488270	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_000488179	transmembrane protein putative	interleukin-8 biosynthetic process
+TTHERM_001171650	tetratricopeptide repeat protein	-
+TTHERM_001170583	kinase domain protein	-
+TTHERM_01006600	WD domain G-beta repeat protein	WD domain, G-beta repeat protein
+TTHERM_00954080	transmembrane protein putative	AMP-binding enzyme family protein
+TTHERM_01403830	transmembrane protein putative	-
+TTHERM_01532560	REJ domain protein	REJ domain
+TTHERM_01424460	hypothetical protein	GTPase activator activity
+TTHERM_01217240	hypothetical protein	Zinc carboxypeptidase family protein
+TTHERM_001284761	transmembrane protein putative	-
+TTHERM_00862770	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00861670	immobilization antigen	-
+TTHERM_00861620	immobilization antigen	-
+TTHERM_00860520	transmembrane protein putative	extracellular matrix
+TTHERM_01495760	REJ domain protein	REJ domain
+TTHERM_00937620	kinase domain protein	-
+TTHERM_00957530	transmembrane protein putative	PAS domain S-box
+TTHERM_00956490	transmembrane protein putative	-
+TTHERM_00712000	tetratricopeptide repeat protein	TPR Domain containing protein
+TTHERM_00713320	ubiquitin-conjugating enzyme family protein	-
+TTHERM_00607170	zinc finger protein	The RING-variant domain is a C4HC3 zinc-finger like motif found in a number of cellular and viral proteins. Some of these proteins have been shown both in vivo and in vitro to have ubiquitin E3 ligase activity.
+TTHERM_01571180	kinase domain protein putative	interleukin-8 biosynthetic process
+TTHERM_00834900	kinase domain protein putative	interleukin-8 biosynthetic process
+TTHERM_00834920	tubulin beta chain	Tubulin is the major constituent of microtubules. It binds two moles of GTP, one at an exchangeable site on the beta chain and one at a non-exchangeable site on the alpha chain
+TTHERM_00834960	BLT6 tubulin/FtsZ family GTPase domain protein	Tubulin is the major constituent of microtubules. It binds two moles of GTP, one at an exchangeable site on the beta chain and one at a non-exchangeable site on the alpha chain
+TTHERM_002653450	cyclic nucleotide-binding domain protein	-
+TTHERM_000951962	Tonsoku-like protein	-
+TTHERM_00951860	AMP-binding enzyme family protein	AMP-binding enzyme family protein
+TTHERM_00951830	transmembrane protein putative	AMP-binding enzyme family protein
+TTHERM_00951810	tetratricopeptide repeat protein	interleukin-8 biosynthetic process
+TTHERM_00951710	ABC transporter C family protein	ABC transporter family protein
+TTHERM_01188330	transmembrane amino acid transporter protein	Transmembrane amino acid transporter protein
+TTHERM_01188340	transmembrane amino acid transporter protein	Transmembrane amino acid transporter protein
+TTHERM_01188390	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00790850	immobilization antigen	Immobilization antigen
+TTHERM_00790550	hypothetical protein	Encoded by
+TTHERM_00994370	transmembrane protein putative	-
+TTHERM_00222400	transmembrane protein putative	-
+TTHERM_00225980	transmembrane protein putative	AMP-binding enzyme family protein
+TTHERM_00227020	cytochrome P450 family monooxygenase	oxidoreductase activity, acting on paired donors, with incorporation or reduction of molecular oxygen, reduced iron-sulfur protein as one donor, and incorporation of one atom of oxygen
+TTHERM_00227250	cation channel family protein putative	Cation channel family protein
+TTHERM_000235239	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00236260	kinase domain protein	phosphorylase kinase activity
+TTHERM_00854290	transmembrane protein	-
+TTHERM_01498890	kinase domain protein	-
+TTHERM_01504080	transmembrane protein putative	Broad-Complex, Tramtrack and Bric a brac
+TTHERM_01165250	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_001166292	N2,N2-dimethylguanosine tRNA methyltransferase	N2,N2-dimethylguanosine tRNA methyltransferase
+TTHERM_01364620	Protein phosphatase 1 regulatory subunit 37	-
+TTHERM_01306900	hypothetical protein	-
+TTHERM_01305850	transmembrane protein putative	interleukin-8 biosynthetic process
+TTHERM_01552980	Protein CARMIL	-
+TTHERM_01551970	Protein CARMIL	-
+TTHERM_01248940	hypothetical protein	-
+TTHERM_00243700	DHHC zinc finger protein	protein-cysteine S-palmitoyltransferase activity
+TTHERM_00245370	cyclic nucleotide-binding domain protein	phosphorelay sensor kinase activity
+TTHERM_00245610	transmembrane protein putative	Transmembrane protein, putative
+TTHERM_00247160	transmembrane protein putative	-
+TTHERM_00107110	cytochrome b5-like heme/steroid-binding domain protein	Oxidoreductase FAD-binding domain
+TTHERM_00107080	transmembrane protein putative	-
+TTHERM_00106720	hypothetical protein	-
+TTHERM_00105400	transmembrane protein putative	-
+TTHERM_000105369	transmembrane protein putative	serine-type endopeptidase activity
+TTHERM_00102690	transmembrane protein putative	serine-type endopeptidase activity
+TTHERM_00101430	transmembrane protein putative	Extracellular tail, of 10TM putative phosphate transporter
+TTHERM_00101220	hypothetical protein	Leucine Rich repeat
+TTHERM_00100050	transmembrane protein putative	EGF domain, unclasssified subfamily
+TTHERM_00096769	transmembrane protein putative	transmembrane receptor protein tyrosine kinase activity
+TTHERM_00095590	zinc finger lsd1 subclass family protein	serine-type endopeptidase activity
+TTHERM_000423321	hypothetical protein	Zinc carboxypeptidase family protein
+TTHERM_00423350	hypothetical protein	Zinc carboxypeptidase family protein
+TTHERM_00423360	hypothetical protein	Zinc carboxypeptidase family protein
+TTHERM_00423389	multidrug resistance protein-like transporter family ABC domain protein	ABC transporter family protein
+TTHERM_000424558	transmembrane protein putative	extracellular matrix
+TTHERM_00424600	kinase domain protein	-
+TTHERM_00425850	MFS transporter	Major Facilitator Superfamily protein
+TTHERM_00426050	Von willebrand factor type A (vWA) domain was originally protein	von Willebrand factor type A domain
+TTHERM_00427440	hypothetical protein	-
+TTHERM_00427480	endonuclease/exonuclease/phosphatase family protein	Endonuclease Exonuclease phosphatase family protein
+TTHERM_00376203	hypothetical protein	Helicase conserved C-terminal domain containing protein
+TTHERM_00383640	cullin protein neddylation domain protein	Belongs to the cullin family
+TTHERM_01146060	peptide deformylase	Removes the formyl group from the N-terminal Met of newly synthesized proteins
+TTHERM_01147140	transmembrane protein putative	-
+TTHERM_01018310	zinc carboxypeptidase family protein	Zinc carboxypeptidase family protein
+TTHERM_001042011	transmembrane protein putative	-
+TTHERM_01429500	kinase domain protein	-
+TTHERM_01139360	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_01413110	hypothetical protein	interleukin-8 biosynthetic process
+TTHERM_00700960	kinase domain protein	-
+TTHERM_00699830	tetratricopeptide repeat protein	protein N-acetylglucosaminyltransferase activity
+TTHERM_00698620	kinase domain protein	-
+TTHERM_000698619	hypothetical protein	-
+TTHERM_01250150	lysozyme protein	family 25
+TTHERM_01250170	lysozyme protein	family 25
+TTHERM_00359160	kinase domain protein	Leucine Rich repeat
+TTHERM_000361565	Protein NLRC3	interleukin-8 biosynthetic process
+TTHERM_00361610	kinase domain protein	-
+TTHERM_00361860	serine carboxypeptidase family protein	Belongs to the peptidase S10 family
+TTHERM_00361900	immobilization antigen	Immobilization antigen
+TTHERM_00361940	immobilization antigen	Immobilization antigen
+TTHERM_00363010	immobilization antigen	Immobilization antigen
+TTHERM_00363110	immobilization antigen	Immobilization antigen
+TTHERM_00363160	transmembrane protein putative	Transmembrane protein, putative
+TTHERM_00365390	Na,H K antiporter P-type ATPase alpha subunit family protein	Belongs to the cation transport ATPase (P-type) (TC 3.A.3) family
+TTHERM_00805860	hypothetical protein	-
+TTHERM_00807920	Alpha-protein kinase vwkA	von Willebrand factor (vWF) type A domain
+TTHERM_00808050	SET domain protein	peptidyl-lysine monomethylation
+TTHERM_00809220	cation channel family protein	phosphorelay sensor kinase activity
+TTHERM_00809320	transmembrane protein putative	-
+TTHERM_01132860	TWI10 piwi domain protein	Belongs to the argonaute family
+TTHERM_00974150	DnaJ carboxy-terminal domain protein	unfolded protein binding. It is involved in the biological process described with
+TTHERM_00974260	ERS1 tRNA synthetase class I (E and Q) catalytic domain protein	glutamyl-tRNA aminoacylation
+TTHERM_00975330	ATP12 chaperone protein	ATP12 chaperone protein
+TTHERM_01125160	nucleotide-sugar transporter	Nucleotide-sugar transporter
+TTHERM_01285870	hypothetical protein	-
+TTHERM_01050550	hypothetical protein	-
+TTHERM_001333175	Nucleotide-binding oligomerization domain-containing protein 1	-
+TTHERM_01467270	MHC class II transactivator	-
+TTHERM_01468310	kinase domain protein	-
+TTHERM_01594610	hypothetical protein	-
+TTHERM_00976520	hypothetical protein	-
+TTHERM_00024170	oxidoreductase short chain dehydrogenase/reductase family protein	3-oxo-behenoyl-CoA reductase activity
+TTHERM_00023992	hypothetical protein	-
+TTHERM_00019650	hypothetical protein	Zinc finger LSD1 subclass family protein
+TTHERM_00011910	phage head-tail adaptor family protein putative	Phage head-tail adaptor family protein
+TTHERM_00011510	LITAF-like zinc ribbon domain protein	LITAF-like zinc ribbon domain protein
+TTHERM_00008700	cyclic nucleotide-binding domain protein	phosphorelay sensor kinase activity
+TTHERM_00006290	MFS transporter	transmembrane transport
+TTHERM_00000030	Serine/Threonine kinase domain protein	cellular response to bisphenol A
+TTHERM_00992790	hypothetical protein	-
+TTHERM_00384650	transmembrane protein putative	Furin-like repeats
+TTHERM_00388260	kinase domain protein	Leucine Rich repeat
+TTHERM_00726170	scramblase	Scramblase
+TTHERM_00257180	kinase binding protein	tRNA threonylcarbamoyladenosine modification
+TTHERM_00257140	casein kinase I	peptidyl-serine phosphorylation
+TTHERM_00257130	kinase domain protein	Protein tyrosine kinase
+TTHERM_000257098	50S ribosome-binding GTPase	-
+TTHERM_00257010	kinase domain protein	interleukin-8 biosynthetic process
+TTHERM_00256930	dual specificity tyrosine phosphatase putative	-
+TTHERM_00253468	transmembrane protein putative	-
+TTHERM_00251240	metal cation transporter ZIP family protein	ZIP Zinc transporter family protein
+TTHERM_00251130	cyclic nucleotide-binding domain protein	-
+TTHERM_00251020	kinase domain protein	Protein tyrosine kinase
+TTHERM_00249790	TPA12 E1-E2 ATPase family protein	E1-E2 ATPase family protein
+TTHERM_00249690	alpha/beta superfamily hydrolase	palmitoyl-(protein) hydrolase activity
+TTHERM_00249670	kinase domain protein	-
+TTHERM_00912280	kinase domain protein	-
+TTHERM_00912270	ABC transporter family protein	ABC transporter family protein
+TTHERM_00912240	ABC3 ABC transporter C family protein	ABC transporter family protein
+TTHERM_01028830	hypothetical protein	-
+TTHERM_01029900	transmembrane protein putative	-
+TTHERM_01076930	Endoglucanase 1	Leucine Rich repeat
+TTHERM_00686130	Cyclic nucleotide-gated olfactory channel	-
+TTHERM_00686160	Cyclic nucleotide-gated olfactory channel	-
+TTHERM_000471329	transmembrane protein putative	-
+TTHERM_00470780	transmembrane protein putative	-
+TTHERM_00498080	transmembrane protein putative	-
+TTHERM_00678070	hypothetical protein	-
+TTHERM_01098990	Proprotein convertase subtilisin/kexin type 5	-
+TTHERM_01099080	Proprotein convertase subtilisin/kexin type 5	-
+TTHERM_02094560	hypothetical protein	-
+TTHERM_00545880	hypothetical protein	-
+TTHERM_00543640	hypothetical protein	-
+TTHERM_01092450	Major surface trophozoite antigen 11	-
+TTHERM_01092410	Major surface trophozoite antigen 11	-
+TTHERM_01085610	Major surface trophozoite antigen 11	-
+TTHERM_001085711	transmembrane protein putative	-
+TTHERM_00765090	Major surface trophozoite antigen 11	-
+TTHERM_00765100	Major surface trophozoite antigen 11	-
+TTHERM_00765350	Major surface trophozoite antigen 11	-
+TTHERM_000766429	transmembrane protein putative	-
+TTHERM_001164069	hypothetical protein	-
+TTHERM_01169420	hypothetical protein	-
+TTHERM_01097970	cell surface immobilization antigen	-
+TTHERM_01097920	hypothetical protein	-
+TTHERM_01108560	hypothetical protein	-
+TTHERM_01108590	hypothetical protein	-
+TTHERM_01106170	hypothetical protein	-
+TTHERM_001151571	hypothetical protein	-
+TTHERM_01197010	ubiquitin carboxyl-terminal hydrolase family protein	-
+TTHERM_01049220	transmembrane protein putative	-
+TTHERM_01043190	Calcium-dependent protein kinase 20	-
+TTHERM_001001378	hypothetical protein	-
+TTHERM_01055730	hypothetical protein	-
+TTHERM_01015980	hypothetical protein	-
+TTHERM_01016060	hypothetical protein	-
+TTHERM_01079070	hypothetical protein	-
+TTHERM_01079330	hypothetical protein	-
+TTHERM_01014610	transmembrane protein putative	-
+TTHERM_01014500	transmembrane protein putative	-
+TTHERM_01004960	transmembrane protein putative	-
+TTHERM_00933110	hypothetical protein	-
+TTHERM_01084310	hypothetical protein	-
+TTHERM_00998920	hypothetical protein	-
+TTHERM_00999140	hypothetical protein	-
+TTHERM_01027580	hypothetical protein	-
+TTHERM_00930740	Proteasome subunit beta 2	-
+TTHERM_00929490	Proteasome subunit beta 2	-
+TTHERM_00925790	hypothetical protein	-
+TTHERM_00925440	hypothetical protein	-
+TTHERM_00925430	hypothetical protein	-
+TTHERM_00787130	transmembrane protein putative	-
+TTHERM_00787040	D-amino-acid oxidase	-
+TTHERM_00786950	D-amino-acid oxidase	-
+TTHERM_01387090	hypothetical protein	-
+TTHERM_01117280	transmembrane protein putative	-
+TTHERM_000842567	transmembrane protein putative	-
+TTHERM_00804780	hypothetical protein	-
+TTHERM_00802480	hypothetical protein	-
+TTHERM_00723520	hypothetical protein	-
+TTHERM_00939070	hypothetical protein	-
+TTHERM_000691225	hypothetical protein	-
+TTHERM_00691870	transmembrane protein putative	-
+TTHERM_00691910	hypothetical protein	-
+TTHERM_00760230	transmembrane protein putative	-
+TTHERM_00716330	hypothetical protein	-
+TTHERM_01542800	hypothetical protein	-
+TTHERM_00836740	hypothetical protein	-
+TTHERM_00836710	hypothetical protein	-
+TTHERM_000695779	transmembrane protein putative	-
+TTHERM_00697122	hypothetical protein	-
+TTHERM_00827100	hypothetical protein	-
+TTHERM_00827110	hypothetical protein	-
+TTHERM_00688640	hypothetical protein	-
+TTHERM_00688740	hypothetical protein	-
+TTHERM_00689910	nucleotidyltransferase	-
+TTHERM_00616020	hypothetical protein	-
+TTHERM_000616089	transmembrane protein putative	-
+TTHERM_00616720	hypothetical protein	-
+TTHERM_000647419	hypothetical protein	-
+TTHERM_00646920	transmembrane protein putative	-
+TTHERM_00657490	transmembrane protein putative	-
+TTHERM_00658720	hypothetical protein	-
+TTHERM_00670780	hypothetical protein	-
+TTHERM_00670440	hypothetical protein	-
+TTHERM_00670420	PD-(D/E)XK nuclease family transposase	-
+TTHERM_00670260	hypothetical protein	-
+TTHERM_00670150	hypothetical protein	-
+TTHERM_00670130	hypothetical protein	-
+TTHERM_00706410	transmembrane protein putative	-
+TTHERM_00705090	hypothetical protein	-
+TTHERM_00600760	MyTH4 domain protein	-
+TTHERM_000623100	hypothetical protein	-
+TTHERM_00624390	hypothetical protein	-
+TTHERM_00578440	transmembrane protein putative	-
+TTHERM_00580370	hypothetical protein	-
+TTHERM_00580400	hypothetical protein	-
+TTHERM_00559850	transmembrane protein putative	-
+TTHERM_00561210	hypothetical protein	-
+TTHERM_00561390	hypothetical protein	-
+TTHERM_00561550	eukaryotic aspartyl protease family protein putative	-
+TTHERM_00561750	transmembrane protein putative	-
+TTHERM_00556740	hypothetical protein	-
+TTHERM_000703757	transmembrane protein putative	-
+TTHERM_00922990	hypothetical protein	-
+TTHERM_00922970	hypothetical protein	-
+TTHERM_00794360	hypothetical protein	-
+TTHERM_00666770	transmembrane protein putative	-
+TTHERM_01104870	hypothetical protein	-
+TTHERM_00585469	transmembrane protein putative	-
+TTHERM_00585410	hypothetical protein	-
+TTHERM_000585149	Accumulation-associated protein	-
+TTHERM_00585020	Accumulation-associated protein	-
+TTHERM_00502450	hypothetical protein	-
+TTHERM_00586560	hypothetical protein	-
+TTHERM_00586690	transmembrane protein putative	-
+TTHERM_00588860	F-box protein	-
+TTHERM_00590280	hypothetical protein	-
+TTHERM_00492570	hypothetical protein	-
+TTHERM_00494300	hypothetical protein	-
+TTHERM_000526548	transmembrane protein putative	-
+TTHERM_00519840	hypothetical protein	-
+TTHERM_00535390	hypothetical protein	-
+TTHERM_00535900	hypothetical protein	-
+TTHERM_00721190	transmembrane protein putative	-
+TTHERM_00721560	transmembrane protein putative	-
+TTHERM_00563860	hypothetical protein	-
+TTHERM_000564149	hypothetical protein	-
+TTHERM_000566759	hypothetical protein	-
+TTHERM_00566900	hypothetical protein	-
+TTHERM_00566910	hypothetical protein	-
+TTHERM_00529960	hypothetical protein	-
+TTHERM_00530039	transmembrane protein putative	-
+TTHERM_00469120	hypothetical protein	-
+TTHERM_00467250	hypothetical protein	-
+TTHERM_00444810	transmembrane protein putative	-
+TTHERM_00520890	hypothetical protein	-
+TTHERM_00532760	UBA/TS-N domain protein	-
+TTHERM_00532390	hypothetical protein	-
+TTHERM_00437300	hypothetical protein	-
+TTHERM_00458170	hypothetical protein	-
+TTHERM_00458160	hypothetical protein	-
+TTHERM_00456950	hypothetical protein	-
+TTHERM_00420510	hypothetical protein	-
+TTHERM_00476400	Uncharacterized oxidoreductase C2F3.05c	-
+TTHERM_00481170	transmembrane protein putative	-
+TTHERM_000484730	transmembrane protein putative	-
+TTHERM_00475340	hypothetical protein	-
+TTHERM_00485850	hypothetical protein	-
+TTHERM_000442267	transmembrane protein putative	-
+TTHERM_00442570	transmembrane protein putative	-
+TTHERM_000442799	hypothetical protein	-
+TTHERM_00412000	hypothetical protein	-
+TTHERM_000408795	transmembrane protein putative	-
+TTHERM_00399690	hypothetical protein	-
+TTHERM_00400760	hypothetical protein	-
+TTHERM_001613759	Glutathione S-transferase Mu 1	-
+TTHERM_00448770	Glutathione S-transferase Mu 1	-
+TTHERM_00450860	ubiquitin carboxy-terminal hydrolase	-
+TTHERM_00371170	transmembrane protein putative	-
+TTHERM_00348740	transmembrane protein putative	-
+TTHERM_00348340	hypothetical protein	-
+TTHERM_00343300	Serine/Threonine kinase domain protein	-
+TTHERM_00343640	hypothetical protein	-
+TTHERM_00343740	transmembrane protein putative	-
+TTHERM_00346910	hypothetical protein	-
+TTHERM_001295314	hypothetical protein	-
+TTHERM_00899540	hypothetical protein	-
+TTHERM_00329980	transmembrane protein putative	-
+TTHERM_00340140	hypothetical protein	-
+TTHERM_00339760	transmembrane protein putative	-
+TTHERM_00339740	transmembrane protein putative	-
+TTHERM_00339660	endo-1,4-beta-xylanase xylA putative	-
+TTHERM_00338160	PD-(D/E)XK nuclease family transposase	-
+TTHERM_00310270	transmembrane protein putative	-
+TTHERM_000307767	transmembrane protein putative	-
+TTHERM_00304122	Sensor protein GacS	-
+TTHERM_01159940	transmembrane protein putative	-
+TTHERM_000463609	hypothetical protein	-
+TTHERM_00463460	hypothetical protein	-
+TTHERM_00463400	hypothetical protein	-
+TTHERM_00463220	hypothetical protein	-
+TTHERM_00463110	hypothetical protein	-
+TTHERM_00460570	hypothetical protein	-
+TTHERM_00460550	transmembrane protein putative	-
+TTHERM_000300459	transmembrane protein putative	-
+TTHERM_000300029	Zinc finger CCCH domain-containing protein 9	-
+TTHERM_00299790	Zinc finger CCCH domain-containing protein 9	-
+TTHERM_00317420	transmembrane protein putative	-
+TTHERM_000317059	hypothetical protein	-
+TTHERM_00316870	transmembrane protein putative	-
+TTHERM_00316650	hypothetical protein	-
+TTHERM_000316259	hypothetical protein	-
+TTHERM_00297120	transmembrane protein putative	-
+TTHERM_00297100	hypothetical protein	-
+TTHERM_000295409	transmembrane protein putative	-
+TTHERM_00295130	hypothetical protein	-
+TTHERM_00294880	hypothetical protein	-
+TTHERM_00294630	hypothetical protein	-
+TTHERM_00292120	hypothetical protein	-
+TTHERM_00290920	transmembrane protein putative	-
+TTHERM_00289250	transmembrane protein putative	-
+TTHERM_00289180	endo-1,4-beta-xylanase xylA putative	-
+TTHERM_00289110	Protein phosphatase Slingshot homolog 1	-
+TTHERM_00283500	transmembrane protein putative	-
+TTHERM_00283050	hypothetical protein	-
+TTHERM_00279660	hypothetical protein	-
+TTHERM_00277580	transmembrane protein putative	-
+TTHERM_00277400	hypothetical protein	-
+TTHERM_00277230	hypothetical protein	-
+TTHERM_000418349	hypothetical protein	-
+TTHERM_00884590	transmembrane protein putative	-
+TTHERM_000885859	hypothetical protein	-
+TTHERM_000885885	hypothetical protein	-
+TTHERM_000275929	hypothetical protein	-
+TTHERM_00275880	hypothetical protein	-
+TTHERM_00268300	hypothetical protein	-
+TTHERM_00268100	hypothetical protein	-
+TTHERM_000392769	hypothetical protein	-
+TTHERM_00391270	hypothetical protein	-
+TTHERM_00784730	hypothetical protein	-
+TTHERM_01311230	hypothetical protein	-
+TTHERM_01311270	hypothetical protein	-
+TTHERM_001222467	hypothetical protein	-
+TTHERM_00775949	transmembrane protein putative	-
+TTHERM_00775910	immobilization antigen	-
+TTHERM_00775870	SERJ predicted protein	-
+TTHERM_000324191	Protein NLRC3	-
+TTHERM_001150388	transmembrane protein putative	-
+TTHERM_000749019	transmembrane protein putative	-
+TTHERM_01063940	hypothetical protein	-
+TTHERM_00655500	hypothetical protein	-
+TTHERM_00221190	hypothetical protein	-
+TTHERM_00220630	Protein NLRC3	-
+TTHERM_00218710	hypothetical protein	-
+TTHERM_00239010	hypothetical protein	-
+TTHERM_00143600	Lipopolysaccharide-induced tumor necrosis factor-alpha factor homolog	-
+TTHERM_00189410	EuAP1 APETALA-like MADS-box protein putative	-
+TTHERM_00190700	hypothetical protein	-
+TTHERM_000191709	transmembrane protein putative	-
+TTHERM_00191890	hypothetical protein	-
+TTHERM_00894440	Elongation factor 4	-
+TTHERM_00891270	transmembrane protein putative	-
+TTHERM_00888002	hypothetical protein	-
+TTHERM_00633339	hypothetical protein	-
+TTHERM_00633640	hypothetical protein	-
+TTHERM_00634672	hypothetical protein	-
+TTHERM_00635690	hypothetical protein	-
+TTHERM_000635749	hypothetical protein	-
+TTHERM_00152130	transmembrane protein putative	-
+TTHERM_00151620	hypothetical protein	-
+TTHERM_00151060	hypothetical protein	-
+TTHERM_000150028	transmembrane protein putative	-
+TTHERM_00149440	hypothetical protein	-
+TTHERM_00148810	hypothetical protein	-
+TTHERM_001034480	Nucleotide-binding oligomerization domain-containing protein 1	-
+TTHERM_01649030	Nucleotide-binding oligomerization domain-containing protein 1	-
+TTHERM_01485662	hypothetical protein	-
+TTHERM_01321580	adenosine/AMP deaminase family protein putative	-
+TTHERM_00125220	hypothetical protein	-
+TTHERM_00125540	hypothetical protein	-
+TTHERM_00125660	transmembrane protein putative	-
+TTHERM_00125750	transmembrane protein putative	-
+TTHERM_00127120	hypothetical protein	-
+TTHERM_00128410	transmembrane protein putative	-
+TTHERM_00128590	hypothetical protein	-
+TTHERM_00128880	hypothetical protein	-
+TTHERM_000128899	transmembrane protein putative	-
+TTHERM_00129160	hypothetical protein	-
+TTHERM_00129270	transmembrane protein putative	-
+TTHERM_00129790	hypothetical protein	-
+TTHERM_00129930	hypothetical protein	-
+TTHERM_00138110	hypothetical protein	-
+TTHERM_000136238	hypothetical protein	-
+TTHERM_00133610	hypothetical protein	-
+TTHERM_00131210	transmembrane protein putative	-
+TTHERM_00313170	hypothetical protein	-
+TTHERM_00313350	hypothetical protein	-
+TTHERM_00313580	cell surface immobilization antigen	-
+TTHERM_00569380	hypothetical protein	-
+TTHERM_00569230	hypothetical protein	-
+TTHERM_00554440	hypothetical protein	-
+TTHERM_00554449	hypothetical protein	-
+TTHERM_00554560	hypothetical protein	-
+TTHERM_00848080	hypothetical protein	-
+TTHERM_00985190	hypothetical protein	-
+TTHERM_000079455	hypothetical protein	-
+TTHERM_00079290	hypothetical protein	-
+TTHERM_00079020	hypothetical protein	-
+TTHERM_00077830	hypothetical protein	-
+TTHERM_00077810	hypothetical protein	-
+TTHERM_00077360	hypothetical protein	-
+TTHERM_00075750	transmembrane protein putative	-
+TTHERM_00075730	zinc finger C2H2 type family protein putative	-
+TTHERM_00075660	hypothetical protein	-
+TTHERM_00581570	Protein NLRC3	-
+TTHERM_00581730	transmembrane protein putative	-
+TTHERM_00582080	hypothetical protein	-
+TTHERM_00583400	transmembrane protein putative	-
+TTHERM_00583440	hypothetical protein	-
+TTHERM_00594180	hypothetical protein	-
+TTHERM_00592970	transmembrane protein putative	-
+TTHERM_01338530	transmembrane protein putative	-
+TTHERM_00429729	hypothetical protein	-
+TTHERM_000429979	transmembrane protein putative	-
+TTHERM_00430180	hypothetical protein	-
+TTHERM_000433738	transmembrane protein putative	-
+TTHERM_00434220	transmembrane protein putative	-
+TTHERM_000629769	transmembrane protein putative	-
+TTHERM_00629940	transmembrane protein putative	-
+TTHERM_00630180	hypothetical protein	-
+TTHERM_00630350	hypothetical protein	-
+TTHERM_00630370	hypothetical protein	-
+TTHERM_00895670	hypothetical protein	-
+TTHERM_00259339	Proprotein convertase subtilisin/kexin type 5	-
+TTHERM_00263080	transmembrane protein putative	-
+TTHERM_00263120	transmembrane protein putative	-
+TTHERM_00263200	hypothetical protein	-
+TTHERM_00263320	chitin recognition protein	-
+TTHERM_00264770	Potassium channel AKT1	-
+TTHERM_00637190	hypothetical protein	-
+TTHERM_00637830	hypothetical protein	-
+TTHERM_00193280	hypothetical protein	-
+TTHERM_00193290	hypothetical protein	-
+TTHERM_00209330	transmembrane protein putative	-
+TTHERM_000204119	hypothetical protein	-
+TTHERM_00202860	transmembrane protein putative	-
+TTHERM_00201640	transmembrane protein putative	-
+TTHERM_00200560	hypothetical protein	-
+TTHERM_00198520	hypothetical protein	-
+TTHERM_00198510	transmembrane protein putative	-
+TTHERM_000198388	transmembrane protein putative	-
+TTHERM_000817290	transmembrane protein putative	-
+TTHERM_01026170	hypothetical protein	-
+TTHERM_000066709	transmembrane protein putative	-
+TTHERM_00059310	transmembrane protein putative	-
+TTHERM_00058360	transmembrane protein putative	-
+TTHERM_000058309	transmembrane protein putative	-
+TTHERM_00053890	transmembrane protein putative	-
+TTHERM_00161150	hypothetical protein	-
+TTHERM_000160719	14-3-3 protein 6	-
+TTHERM_000158529	14-3-3 protein 6	-
+TTHERM_00158530	14-3-3 protein 6	-
+TTHERM_00155530	hypothetical protein	-
+TTHERM_00155510	transmembrane protein putative	-
+TTHERM_00641260	hypothetical protein	-
+TTHERM_00641340	hypothetical protein	-
+TTHERM_000641369	transmembrane protein putative	-
+TTHERM_00642380	hypothetical protein	-
+TTHERM_00643410	hypothetical protein	-
+TTHERM_00643460	hypothetical protein	-
+TTHERM_00046300	hypothetical protein	-
+TTHERM_000046679	transmembrane protein putative	-
+TTHERM_00047200	transmembrane protein putative	-
+TTHERM_00047350	hypothetical protein	-
+TTHERM_00048760	40S ribosomal protein S3a	-
+TTHERM_00048780	40S ribosomal protein S3a	-
+TTHERM_00049180	hypothetical protein	-
+TTHERM_00049480	transmembrane protein putative	-
+TTHERM_00050530	hypothetical protein	-
+TTHERM_00051690	hypothetical protein	-
+TTHERM_000051719	transmembrane protein putative	-
+TTHERM_00052070	hypothetical protein	-
+TTHERM_00122470	hypothetical protein	-
+TTHERM_00122220	hypothetical protein	-
+TTHERM_00575410	hypothetical protein	-
+TTHERM_00575460	transmembrane protein putative	-
+TTHERM_00577210	transmembrane protein putative	-
+TTHERM_01469320	hypothetical protein	-
+TTHERM_001399617	transmembrane protein putative	-
+TTHERM_00171650	hypothetical protein	-
+TTHERM_00171700	hypothetical protein	-
+TTHERM_00185240	hypothetical protein	-
+TTHERM_00185380	hypothetical protein	-
+TTHERM_00185520	cell surface immobilization antigen	-
+TTHERM_00185530	hypothetical protein	-
+TTHERM_00185590	hypothetical protein	-
+TTHERM_00185600	transmembrane protein putative	-
+TTHERM_00185620	hypothetical protein	-
+TTHERM_00094050	hypothetical protein	-
+TTHERM_00094020	hypothetical protein	-
+TTHERM_00090430	hypothetical protein	-
+TTHERM_00090340	hypothetical protein	-
+TTHERM_00090320	hypothetical protein	-
+TTHERM_00090250	hypothetical protein	-
+TTHERM_00089200	hypothetical protein	-
+TTHERM_00086880	hypothetical protein	-
+TTHERM_00086820	transmembrane protein putative	-
+TTHERM_000085199	hypothetical protein	-
+TTHERM_000354798	ion channel inhibitory toxin protein	-
+TTHERM_00355140	transmembrane protein putative	-
+TTHERM_00355340	hypothetical protein	-
+TTHERM_00355400	Aspartyl aminopeptidase	-
+TTHERM_00355480	Aspartyl aminopeptidase	-
+TTHERM_00355490	Aspartyl aminopeptidase	-
+TTHERM_00927330	transmembrane protein putative	-
+TTHERM_00618830	Protein NLRC5	-
+TTHERM_000619879	Protein NLRC5	-
+TTHERM_00620900	Protein NLRC5	-
+TTHERM_00621620	transmembrane protein putative	-
+TTHERM_01012070	transmembrane protein putative	-
+TTHERM_01013120	Serine/threonine-protein kinase ATG1a	-
+TTHERM_000810475	Serine/threonine-protein kinase ATG1a	-
+TTHERM_000810540	transmembrane protein putative	-
+TTHERM_00799210	Protein NLRC3	-
+TTHERM_01407940	Tonsoku-like protein	-
+TTHERM_01434650	hypothetical protein	-
+TTHERM_01122810	hypothetical protein	-
+TTHERM_001120593	transmembrane protein putative	-
+TTHERM_01137232	hypothetical protein	-
+TTHERM_01137220	hypothetical protein	-
+TTHERM_01137180	cell surface immobilization antigen	-
+TTHERM_01135080	cell surface immobilization antigen	-
+TTHERM_01431570	cell surface immobilization antigen	-
+TTHERM_00734030	hypothetical protein	-
+TTHERM_00734070	transmembrane protein putative	-
+TTHERM_00735190	cell surface immobilization antigen	-
+TTHERM_00735360	hypothetical protein	-
+TTHERM_000735439	hypothetical protein	-
+TTHERM_00903900	hypothetical protein	-
+TTHERM_00904050	hypothetical protein	-
+TTHERM_00042740	hypothetical protein	-
+TTHERM_00042700	hypothetical protein	-
+TTHERM_00037730	transmembrane protein putative	-
+TTHERM_00037590	hypothetical protein	-
+TTHERM_000037589	hypothetical protein	-
+TTHERM_00036810	hypothetical protein	-
+TTHERM_00036800	hypothetical protein	-
+TTHERM_00030220	hypothetical protein	-
+TTHERM_00652580	transmembrane protein putative	-
+TTHERM_00653700	transmembrane protein putative	-
+TTHERM_00654000	transmembrane protein putative	-
+TTHERM_00675770	hypothetical protein	-
+TTHERM_00675700	hypothetical protein	-
+TTHERM_00672050	transmembrane protein putative	-
+TTHERM_00602940	transmembrane protein putative	-
+TTHERM_01292190	MHC class II transactivator	-
+TTHERM_01081740	hypothetical protein	-
+TTHERM_00491280	hypothetical protein	-
+TTHERM_00491270	immobilization antigen	-
+TTHERM_00491060	zinc finger C2H2 type family protein putative	-
+TTHERM_00491000	hypothetical protein	-
+TTHERM_00490980	hypothetical protein	-
+TTHERM_00490970	hypothetical protein	-
+TTHERM_00490960	hypothetical protein	-
+TTHERM_00489460	cell surface immobilization antigen	-
+TTHERM_00488380	cell surface immobilization antigen	-
+TTHERM_01808870	transmembrane protein putative	-
+TTHERM_01263970	hypothetical protein	-
+TTHERM_01284790	Uncharacterized protein R554	-
+TTHERM_00861660	hypothetical protein	-
+TTHERM_00861650	hypothetical protein	-
+TTHERM_000957531	transmembrane protein putative	-
+TTHERM_00713000	hypothetical protein	-
+TTHERM_00713430	hypothetical protein	-
+TTHERM_00713540	hypothetical protein	-
+TTHERM_000606961	transmembrane protein putative	-
+TTHERM_00607090	hypothetical protein	-
+TTHERM_00607120	hypothetical protein	-
+TTHERM_00607260	hypothetical protein	-
+TTHERM_00834910	transmembrane protein putative	-
+TTHERM_00835170	transmembrane protein putative	-
+TTHERM_00835210	transmembrane protein putative	-
+TTHERM_000835488	hypothetical protein	-
+TTHERM_000965389	hypothetical protein	-
+TTHERM_000965394	conotoxin protein	-
+TTHERM_000965470	hypothetical protein	-
+TTHERM_01183080	transmembrane protein putative	-
+TTHERM_01182030	transmembrane protein putative	-
+TTHERM_00770830	MHC class II transactivator	-
+TTHERM_00790620	hypothetical protein	-
+TTHERM_00994110	MHC class II transactivator	-
+TTHERM_00994280	MHC class II transactivator	-
+TTHERM_00225670	N-recognin zinc finger protein	-
+TTHERM_00225750	hypothetical protein	-
+TTHERM_00227370	hypothetical protein	-
+TTHERM_000227538	hypothetical protein	-
+TTHERM_00228920	transmembrane protein putative	-
+TTHERM_00229940	transmembrane protein putative	-
+TTHERM_00233020	transmembrane protein putative	-
+TTHERM_00234140	hypothetical protein	-
+TTHERM_00234180	transmembrane protein putative	-
+TTHERM_01281650	Protein CARMIL	-
+TTHERM_00247080	transmembrane protein putative	-
+TTHERM_000248389	hypothetical protein	-
+TTHERM_00101400	hypothetical protein	-
+TTHERM_000099988	transmembrane protein putative	-
+TTHERM_00423340	hypothetical protein	-
+TTHERM_00376190	hypothetical protein	-
+TTHERM_00378420	siah interacting protein amine-terminal protein	-
+TTHERM_000378449	hypothetical protein	-
+TTHERM_00378650	hypothetical protein	-
+TTHERM_00378860	transmembrane protein putative	-
+TTHERM_00378980	hypothetical protein	-
+TTHERM_00382400	transmembrane protein putative	-
+TTHERM_00383520	hypothetical protein	-
+TTHERM_00383580	hypothetical protein	-
+TTHERM_001054129	transmembrane protein putative	-
+TTHERM_001054139	transmembrane protein putative	-
+TTHERM_01018430	hypothetical protein	-
+TTHERM_01018270	hypothetical protein	-
+TTHERM_01040850	kinase domain protein putative	-
+TTHERM_001138247	transmembrane protein putative	-
+TTHERM_00701120	Cyclin-dependent kinase D-3	-
+TTHERM_00701000	cell surface immobilization antigen	-
+TTHERM_00699800	NACHT, LRR and PYD domains-containing protein 12	-
+TTHERM_00699760	transmembrane protein putative	-
+TTHERM_00698720	transmembrane protein putative	-
+TTHERM_01332100	hypothetical protein	-
+TTHERM_00753420	Vacuolar protein sorting-associated protein 13a	-
+TTHERM_00753430	Vacuolar protein sorting-associated protein 13a	-
+TTHERM_000753493	Vacuolar protein sorting-associated protein 13a	-
+TTHERM_000753599	Vacuolar protein sorting-associated protein 13a	-
+TTHERM_00753610	Vacuolar protein sorting-associated protein 13a	-
+TTHERM_00754680	Vacuolar protein sorting-associated protein 13a	-
+TTHERM_001250151	transmembrane protein putative	-
+TTHERM_00360240	hypothetical protein	-
+TTHERM_00361700	Protein NLRC3	-
+TTHERM_00361750	Protein NLRC3	-
+TTHERM_00363180	hypothetical protein	-
+TTHERM_000365339	transmembrane protein putative	-
+TTHERM_00809110	hypothetical protein	-
+TTHERM_00809130	hypothetical protein	-
+TTHERM_00809420	hypothetical protein	-
+TTHERM_01223622	hypothetical protein	-
+TTHERM_00975400	hypothetical protein	-
+TTHERM_01125220	transmembrane protein putative	-
+TTHERM_01354280	hypothetical protein	-
+TTHERM_00977750	hypothetical protein	-
+TTHERM_00024149	transmembrane protein putative	-
+TTHERM_00019610	transmembrane protein putative	-
+TTHERM_00019600	hypothetical protein	-
+TTHERM_00016450	hypothetical protein	-
+TTHERM_00016230	transmembrane protein putative	-
+TTHERM_00016040	hypothetical protein	-
+TTHERM_000013269	transmembrane protein putative	-
+TTHERM_00011539	hypothetical protein	-
+TTHERM_000011529	transmembrane protein putative	-
+TTHERM_000011269	hypothetical protein	-
+TTHERM_00006170	transmembrane protein putative	-
+TTHERM_00001370	hypothetical protein	-
+TTHERM_00384760	hypothetical protein	-
+TTHERM_00387150	transmembrane protein putative	-
+TTHERM_00725960	transmembrane protein putative	-
+TTHERM_00726000	hypothetical protein	-
+TTHERM_00257040	hypothetical protein	-
+TTHERM_00257030	hypothetical protein	-
+TTHERM_00252260	transmembrane protein putative	-
+TTHERM_000251049	hypothetical protein	-
+TTHERM_00249590	hypothetical protein	-
+
+
+```{r}
+genes1 <- names(filt.greedy.med.only[filt.greedy.med.only])
+genes2 <- names(filt.greedy.mad.only[filt.greedy.mad.only])
+to.check <- setdiff(genes2, genes1)
+length(to.check)
+paste(to.check, collapse="\n")
+```
+
+```{r}
+to.check <- setdiff(genes1, genes2)
+length(to.check)
+paste(to.check, collapse="\n")
+```
+
+Both filters give something useful, so I am going to combine them with OR
+above to make the definitive greedy filter.
+
+It looks like it is safe to be greedy in this case, and maybe even better.
+
+
+```{r}
+filtered <- unfiltered.clean[filt.geom.mean, ]
+
+filtered.expr.geom.mean <- apply(filtered, 1, geom.mean.fun)
+# filtered.expr.sd <- apply(filtered, 1, sd)
+filtered.expr.geom.cv <- apply(filtered, 1, geom.cv.fun)
+filtered.expr.maxfold <- apply(filtered, 1, maxfold.fun)
+
+greedy.filtered <- unfiltered.clean[filt.greedy, ]
+
+greedy.filtered.expr.geom.mean <- apply(greedy.filtered, 1, geom.mean.fun)
+# greedy.filtered.expr.sd <- apply(greedy.filtered, 1, sd)
+greedy.filtered.expr.geom.cv <- apply(greedy.filtered, 1, geom.cv.fun)
+greedy.filtered.expr.maxfold <- apply(greedy.filtered, 1, maxfold.fun)
+
+
+```
+
+```{r}
+# sizeGrWindow(12,9)
+hist(log(filtered.expr.geom.mean), main='Log Mean Expr. Hist of geom. mean-filtered expression', breaks=sqrt(length(filtered.expr.geom.mean)))
+```
+
+```{r}
+hist(log(greedy.filtered.expr.geom.mean), main='Log Mean Expr. Hist of greedily filtered expression', breaks=sqrt(length(filtered.expr.geom.mean)))
+```
+
+
+
+```{r}
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(filtered.expr.geom.mean),
+                 log(filtered.expr.geom.cv),
+                 colramp=blues.ramp)
+plot(filtered.expr.geom.mean, filtered.expr.geom.cv, main='Geom.Coef. Var. vs. Geom. Mean Expr. of geom. mean-filtered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(greedy.filtered.expr.geom.mean),
+                 log(greedy.filtered.expr.geom.cv),
+                 colramp=blues.ramp)
+plot(greedy.filtered.expr.geom.mean, greedy.filtered.expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of greedily filtered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+```
+
+If you squint, you can see that there is a rectangular corner of points missing
+in the lower left of the gene cloud, but it looks like the greedy filter left
+a very nice set of genes. The histogram by itself also looks very realistic.
+
+
+Interestingly, I independently arrived at a similar intensity filter as Wei and
+Gorovsky in the 2009 microarray paper 
+(http://doi.org/10.1371/journal.pone.0004429), which they got to by subtracting 
+3x the average negative control fluorescence (99 AU). My geometric mean expression filter 
+is >= 66.6 AU. This gives me confidence that its a reasonable cutoff to use,
+especially since I arrived at it by independent means. 
+
+An alternative approach to this kind of filtering would be to identify genes
+that have significant changes in their expression over the chips. To do this,
+I'll use maSigPro, which is designed to assess changes in gene expresssion from
+microarray data over a timecourse. I'll pretend that all the chips correspond
+to a time course, even though there are actually three different timecourses
+within the dataset.
+```{r}
+microarray.edesign <- read.csv('./microarray_experiment_design_for_maSigPro.csv',
+                              row.names = 1)
+
+microarray.edesign <- subset(microarray.edesign, rownames(microarray.edesign) %in% colnames(unfiltered.clean))
+head(microarray.edesign)
+```
+
+```{r}
+design <- make.design.matrix(microarray.edesign, degree=19)
+```
+
+```{r}
+fit <- p.vector(unfiltered.clean, design, Q = 0.001, MT.adjust = "BH")
+```
+
+```{r}
+fit$i
+de.genes <- rownames(fit$SELEC)
+head(fit$SELEC)
+```
+
+Now, compare what maSigPro selected to the filter
+```{r}
+greedy <- names(filt.greedy[filt.greedy])
+only.masigpro <- setdiff(de.genes, greedy)
+only.greedy <- setdiff(greedy, de.genes)
+length(only.masigpro)
+length(only.greedy)
+```
+It looks like there are some real differences. Let's make some plots:
+
+```{r}
+masigpro.maxfold <- apply(fit$SELEC, 1, maxfold.fun)
+masigpro.geom.mean <- apply(fit$SELEC, 1, geom.mean.fun)
+# masigpro.sd <- apply(fit$SELEC, 1, sd)
+masigpro.geom.cv <- apply(fit$SELEC, 1, geom.cv.fun)
+masigpro.iqr <- apply(fit$SELEC, 1, IQR)
+masigpro.med <- apply(fit$SELEC, 1, median)
+masigpro.mad <- apply(fit$SELEC, 1, mad)
+```
+
+```{r}
+hist(log(greedy.filtered.expr.geom.mean), main='Log Mean Expr. Hist of greedily filtered expression', breaks=sqrt(length(filtered.expr.geom.mean)), ylim=c(0, 260))
+hist(log(masigpro.geom.mean), main='Log Mean Expr. Hist of maSigPro-filtered expression', breaks=sqrt(length(masigpro.geom.mean)), ylim=c(0, 260))
+```
+
+```{r}
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.geom.mean),
+                 log(expr.geom.cv),
+                 colramp=blues.ramp)
+plot(expr.geom.mean, expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. (unfiltered)', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(greedy.filtered.expr.geom.mean),
+                 log(greedy.filtered.expr.geom.cv),
+                 colramp=blues.ramp)
+plot(greedy.filtered.expr.geom.mean, greedy.filtered.expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of greedily filtered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(masigpro.geom.mean),
+                 log(masigpro.geom.cv),
+                 colramp=blues.ramp)
+plot(masigpro.geom.mean, masigpro.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of maSigPro-filtered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+```
+
+```{r}
+length(only.masigpro)
+```
+
+```{r}
+length(only.greedy)
+```
+
+
+```{r}
+all.good.genes <- union(de.genes, greedy)
+length(all.good.genes)
+```
+
+```{r}
+masigpro.filtered <- subset(unfiltered.clean, rownames(unfiltered.clean) %in% de.genes)
+all.good.filtered <- subset(unfiltered.clean, rownames(unfiltered.clean) %in% all.good.genes)
+head(masigpro.filtered)
+head(all.good.filtered)
+```
+
+```{r}
+all.good.maxfold <- apply(all.good.filtered, 1, maxfold.fun)
+all.good.geom.mean <- apply(all.good.filtered, 1, geom.mean.fun)
+# expr.geom.mean <- apply(all.good.filtered, 1, geom.mean.fun)
+# all.good.sd <- apply(all.good.filtered, 1, sd)
+# all.good.cv <- all.good.sd / all.good.mean
+all.good.geom.cv <- apply(all.good.filtered, 1, geom.cv.fun)
+all.good.iqr <- apply(all.good.filtered, 1, IQR)
+all.good.med <- apply(all.good.filtered, 1, median)
+all.good.mad <- apply(all.good.filtered, 1, mad)
+```
+
+
+
+```{r}
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.geom.mean),
+                 log(expr.geom.cv),
+                 colramp=blues.ramp)
+plot(expr.geom.mean, expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. (unfiltered)', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4, 16), ylim=c(0.01,500))
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(greedy.filtered.expr.geom.mean),
+                 log(greedy.filtered.expr.geom.cv),
+                 colramp=blues.ramp)
+plot(greedy.filtered.expr.geom.mean, greedy.filtered.expr.geom.cv, main='Geom. Coef. Var. vs. geom. Mean Expr. of greedily filtered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4, 16), ylim=c(0.01,500))
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(masigpro.geom.mean),
+                 log(masigpro.geom.cv),
+                 colramp=blues.ramp)
+plot(masigpro.geom.mean, masigpro.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of maSigPro-filtered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4, 16), ylim=c(0.01,500))
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(all.good.geom.mean),
+                 log(all.good.geom.cv),
+                 colramp=blues.ramp)
+plot(all.good.geom.mean, all.good.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of "all good" data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4, 16), ylim=c(0.01,500))
+```
+
+```{r}
+hist(log(greedy.filtered.expr.geom.mean), main='Log Geom. Mean Expr. Hist of greedily filtered expression', breaks=sqrt(length(filtered.expr.geom.mean)), ylim=c(0,250))
+hist(log(masigpro.geom.mean), main='Log Geom.Mean Expr. Hist of maSigPro-filtered expression', breaks=sqrt(length(masigpro.geom.mean)), ylim=c(0,250))
+hist(log(all.good.geom.mean), main='Log Geom.Mean Expr. Hist of "all good" expression', breaks=sqrt(length(all.good.geom.mean)), ylim=c(0,250))
+```
+Now, look at all the chips expression histograms
+```{r}
+hist(log(masigpro.filtered), main='Log Expr. Hist of maSigPro-filtered expression', breaks=sqrt(length(masigpro.filtered)), ylim=c(0,250))
+```
+
+```{r}
+hist(log(greedy.filtered), main='Log Expr. Hist of "greedy" expression', breaks=sqrt(length(greedy.filtered)), ylim=c(0,250))
+```
+
+```{r}
+hist(log(all.good.filtered), main='Log Expr. Hist of "all good" expression', breaks=sqrt(length(all.good.filtered)), ylim=c(0,250))
+```
+Comparing the chips' histograms themselves, it looks like actually my greedy
+filter is doing a better job of achieving approximately log-normal distributions
+for the most chips. It looks like being greedy, but not too greedy, is the way
+to go here.
+
+We should verify this formally by trying to fit the chips to a lognormal distribution.
+Use the Kolmogorov-Smirnov test statistic to check which dataset(s) are better.
+```{r}
+
+fit.chip.norm.fun <- function(v) {
+  f <- fitdist(v, 'norm', 'mge', gof='KS')
+  goodness <- gofstat(f)
+  ks <- goodness$ks
+  kstest <- goodness$kstest
+  
+  return(c(ks, kstest))
+}
+
+fit.chip.gamma.fun <- function(v) {
+  f <- fitdist(v, 'gamma', 'mge', gof='KS')
+  goodness <- gofstat(f)
+  ks <- goodness$ks
+  kstest <- goodness$kstest
+  
+  return(c(ks, kstest))
+}
+```
+
+This command prints a ton to the console, so be prepared for that
+```{r}
+unfiltered.fits.lnorm <- apply(log(unfiltered.clean), 2, fit.chip.norm.fun)
+masigpro.fits.lnorm  <- apply(log(masigpro.filtered), 2, fit.chip.norm.fun)
+greedy.fits.lnorm  <- apply(log(greedy.filtered), 2, fit.chip.norm.fun)
+all.good.fits.lnorm  <- apply(log(all.good.filtered), 2, fit.chip.norm.fun)
+```
+
+```{r}
+unfiltered.fits.lgam <- apply(log(unfiltered.clean), 2, fit.chip.gamma.fun)
+masigpro.fits.lgam  <- apply(log(masigpro.filtered), 2, fit.chip.gamma.fun)
+greedy.fits.lgam  <- apply(log(greedy.filtered), 2, fit.chip.gamma.fun)
+all.good.fits.lgam  <- apply(log(all.good.filtered), 2, fit.chip.gamma.fun)
+```
+
+Now, plot the distributions of the KS statistics and check if any of the chips
+now follow the lognormal distribution after filtering.
+```{r}
+fit.ks.df <- data.frame(as.numeric(unfiltered.fits.lnorm[1, ]), as.numeric(masigpro.fits.lnorm[1, ]), as.numeric(greedy.fits.lnorm[1, ]), as.numeric(all.good.fits.lnorm[1, ]))
+fit.kstest.df <- data.frame(unfiltered.fits.lnorm[2, ], masigpro.fits.lnorm[2, ], greedy.fits.lnorm[2, ], all.good.fits.lnorm[2, ])
+boxplot(fit.ks.df, names=c('unfiltered', 'maSigPro', 'Greedy', '"All Good"'))
+fit.kstest.df
+```
+
+Now, plot the distributions of the KS statistics and check if any of the chips
+now follow the log-gamma distribution after filtering.
+```{r}
+fit.ks.df <- data.frame(as.numeric(unfiltered.fits.lgam[1, ]), as.numeric(masigpro.fits.lgam[1, ]), as.numeric(greedy.fits.lgam[1, ]), as.numeric(all.good.fits.lgam[1, ]))
+fit.kstest.df <- data.frame(unfiltered.fits.lgam[2, ], masigpro.fits.lgam[2, ], greedy.fits.lgam[2, ], all.good.fits.lgam[2, ])
+boxplot(fit.ks.df, names=c('unfiltered', 'maSigPro', 'Greedy', '"All Good"'))
+fit.kstest.df
+```
+
+
+It's pretty clear that the greedy filter actually does better than the others,
+even though all the chips are not statistically similar enough to a true log-
+normal or log-gamma distribution (all chips fail to reject the null hypothesis under the
+Kolmogorov-Smirnov test).
+
+We looked in bulk, but it's important to check whether there are systematic
+pair-wise differences between the different filtering approaches and the
+resulting expression distributions in the different chips. Here, for example,
+I'm comparing whether the maSigPro filtering does a better job for each given
+chip than the "all good" filtering, and I see that for some of them this is
+indeed the case.
+```{r}
+masigpro.fits.lnorm[1, ] < all.good.fits.lnorm[1, ]
+```   
+
+Let's look at the proportions of pairwise better-filtered chips
+```{r}
+sum(all.good.fits.lnorm[1, ] < greedy.fits.lnorm[1, ]) / 48
+sum(all.good.fits.lnorm[1, ] < masigpro.fits.lnorm[1, ]) / 48
+sum(masigpro.fits.lnorm[1, ] < greedy.fits.lnorm[1, ]) / 48
+sum(masigpro.fits.lnorm[1, ] < unfiltered.fits.lnorm[1, ]) / 48
+sum(greedy.fits.lnorm[1, ] < unfiltered.fits.lnorm[1, ]) / 48
+sum(all.good.fits.lnorm[1, ] < unfiltered.fits.lnorm[1, ]) / 48
+```
+
+It looks like the greedy filter is uniformly better than all the others. All of
+the chips are more similar to log-normal in the greedy dataset when compared to
+any of the other methods. Check for the log-gamma case:
+
+```{r}
+sum(all.good.fits.lgam[1, ] < greedy.fits.lgam[1, ]) / 48
+sum(all.good.fits.lgam[1, ] < masigpro.fits.lgam[1, ]) / 48
+sum(masigpro.fits.lgam[1, ] < greedy.fits.lgam[1, ]) / 48
+sum(masigpro.fits.lgam[1, ] < unfiltered.fits.lgam[1, ]) / 48
+sum(greedy.fits.lgam[1, ] < unfiltered.fits.lgam[1, ]) / 48
+sum(all.good.fits.lgam[1, ] < unfiltered.fits.lgam[1, ]) / 48
+```
+
+Same here. Go with the greedy filter
+
+```{r}
+filtered <- subset(unfiltered.clean, rownames(unfiltered.clean) %in% greedy)
+filtered.sex <- subset(unfiltered.sex.clean, rownames(unfiltered.sex.clean) %in% greedy)
+filtered.starve <- subset(unfiltered.starve.clean, rownames(unfiltered.starve.clean) %in% greedy)
+filtered.grow <- subset(unfiltered.grow.clean, rownames(unfiltered.grow.clean) %in% greedy)
+filtered.veg <- subset(unfiltered.veg.clean, rownames(unfiltered.veg.clean) %in% greedy)
+
+write.csv(filtered, 'filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+write.csv(filtered.starve, 'filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
+write.csv(filtered.sex, 'filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
+write.csv(filtered.grow, './filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
+write.csv(filtered.veg, './filt_agg_tidy_2021aligned_qc_rma_expression_veg.csv')
+head(filtered)
+```
+
+Now, also make a normalized dataset, where the expression of each gene ranges from zero to one
+
+```{r}
+normalizer <- function(vec, df) {
+  rname <- row.names((vec))
+  v <- as.numeric(vec)
+  n <- (v - min(v)) / (max(v) - min(v))
+  df[rname ,] <- n
+}
+```
+
+Create the normalized dataset
+```{r}
+filtered.norm <- t(apply(filtered, 1, normalizer, filtered))
+colnames(filtered.norm) <- colnames(filtered)
+
+filtered.sex.norm <- t(apply(filtered.sex, 1, normalizer, filtered.sex))
+colnames(filtered.sex.norm) <- colnames(filtered.sex)
+
+filtered.starve.norm <- t(apply(filtered.starve, 1, normalizer, filtered.starve))
+colnames(filtered.starve.norm) <- colnames(filtered.starve)
+
+filtered.grow.norm <- t(apply(filtered.grow, 1, normalizer, filtered.grow))
+colnames(filtered.grow.norm) <- colnames(filtered.grow)
+
+filtered.veg.norm <- t(apply(filtered.veg, 1, normalizer, filtered.veg))
+colnames(filtered.veg.norm) <- colnames(filtered.veg)
+```
+
+Now, check out simple clustering
+```{r}
+sampleTree = hclust(dist(t(filtered)), method = "average")
+sampleTree.norm = hclust(dist(t(filtered.norm)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "filtered", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree.norm, main = "filtered and normalized", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+
+Now, check out simple clustering for starvation case
+```{r}
+sampleTree = hclust(dist(t(filtered.starve)), method = "average")
+sampleTree.norm = hclust(dist(t(filtered.starve.norm)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "starvation filtered", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree.norm, main = " starvation filtered and normalized", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+
+Now, check out simple clustering for sexual case
+```{r}
+sampleTree = hclust(dist(t(filtered.sex)), method = "average")
+sampleTree.norm = hclust(dist(t(filtered.sex.norm)), method = "average")
+```
+
+Plot clustered trees
+```{r}
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "sex filtered", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+
+# sizeGrWindow(12,9)
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree.norm, main = "sex filtered and normalized", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+```
+In general, it looks like the normalization has done its job: the different
+chips are now less different from each other, as evidenced by shorter branch
+lengths and sizes of sub-trees, but the degrees of clustering of chips
+corresponding to the same condition remains basically the same.
+
+Now that the genes have been filtered and normalized, we can save the data
+
+```{r}
+write.csv(filtered.norm, './full_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+write.csv(filtered.sex.norm, './sex_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+write.csv(filtered.starve.norm, './starve_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+write.csv(filtered.grow.norm, './grow_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+write.csv(filtered.veg.norm, './veg_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+```
+
+Now, I want to checkout what happens if I take the log2 of the expression data
+(prior to normalization) to compare to Wei and Jie's analysis:
+
+```{r}
+log2.filtered = log2(filtered)
+
+geom.mean.expr.log2 <- apply(log2.filtered, 1, geom.mean.fun)
+geom.cv.expr.log2 <- apply(log2.filtered, 1, geom.cv.fun)
+# sd.expr.log2 <- apply(log2.filtered, 1, sd)
+# cv.expr.log2 <- sd.expr.log2/mean.expr.log2
+```
+
+```{r}
+# sizeGrWindow(12,9)
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(geom.mean.expr.log2,
+                 geom.cv.expr.log2,
+                 colramp=blues.ramp)
+plot(geom.mean.expr.log2, geom.cv.expr.log2, main='Geom. Coef. Var. vs. Geom. Mean Expr. of log2-transformed greedily filtered data', col=dCol, pch=16, cex=0.1)
+# abline(v=quantile(expr.mean, probs=c(0.20)), lwd=1, col='red')
+# abline(h=quantile(expr.cv, probs=c(0.05)), lwd=1, col='red')
+```
+
+This doesn't look as extreme as it did in my replication of the 2011 analysis,
+but it still looks heteroskedastic and doesn't seem to improve anything about
+the dataset.
