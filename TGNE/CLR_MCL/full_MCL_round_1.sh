@@ -74,37 +74,37 @@ mcl veg_clr_nn3_graph_round_1_11.8.mci -I 3 -scheme 7
 clm info veg_clr_nn3_graph_round_1_11.8.mci out.veg_clr_nn3_graph_round_1_11.8.mci.I{12,14,16,18,20,22,24,26,28,30}
 clm dist --chain out.veg_clr_nn3_graph_round_1_11.8.mci.I{12,14,16,18,20,22,24,26,28,30}
 
-# Here, I see that -I 2 is the way to go: efficiency=0.49937 massfrac=0.28733 areafrac=0.00809
-mcxdump -icl out.veg_clr_nn3_graph_round_1_11.8.mci.I20 -o veg_labeled_MCL_round_1_clusters.txt -tabr veg_clr_nn3_graph_round_1.dict 
+# Here, I see that -I 1.8 is the way to go: efficiency=0.54654 massfrac=0.30571 areafrac=0.00196
+mcxdump -icl out.veg_clr_nn3_graph_round_1_11.8.mci.I18 -o veg_labeled_MCL_round_1_clusters.txt -tabr veg_clr_nn3_graph_round_1.dict 
 
 # Now for the sexual case
 mcx query -imx sex_clr_nn3_graph_round_1.mci -vary-threshold 7/20/130
 
-# Use a cutoff of 15.6
-mcx alter -imx sex_clr_nn3_graph_round_1.mci -tf 'gq(15.6), add(-15.6)' -o sex_clr_nn3_graph_round_1_15.6.mci
+# Use a cutoff of 15.9
+mcx alter -imx sex_clr_nn3_graph_round_1.mci -tf 'gq(15.9), add(-15.9)' -o sex_clr_nn3_graph_round_1_15.9.mci
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 1.2 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 1.2 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 1.4 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 1.4 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 1.6 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 1.6 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 1.8 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 1.8 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 2 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 2 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 2.2 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 2.2 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 2.4 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 2.4 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 2.6 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 2.6 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 2.8 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 2.8 -scheme 7
 
-mcl sex_clr_nn3_graph_round_1_15.6.mci -I 3 -scheme 7
+mcl sex_clr_nn3_graph_round_1_15.9.mci -I 3 -scheme 7
 
-clm info sex_clr_nn3_graph_round_1_15.6.mci out.sex_clr_nn3_graph_round_1_15.6.mci.I{12,14,16,18,20,22,24,26,28,30}
-clm dist --chain out.sex_clr_nn3_graph_round_1_15.6.mci.I{12,14,16,18,20,22,24,26,28,30}
+clm info sex_clr_nn3_graph_round_1_15.9.mci out.sex_clr_nn3_graph_round_1_15.9.mci.I{12,14,16,18,20,22,24,26,28,30}
+clm dist --chain out.sex_clr_nn3_graph_round_1_15.9.mci.I{12,14,16,18,20,22,24,26,28,30}
 
-# Sticking with -I 1.8 again efficiency=0.48125 massfrac=0.37904 areafrac=0.00440
-mcxdump -icl out.sex_clr_nn3_graph_round_1_15.6.mci.I18 -o sex_labeled_MCL_round_1_clusters.txt -tabr sex_clr_nn3_graph_round_1.dict 
+# Sticking with -I 1.8 again efficiency=0.55142 massfrac=0.38185 areafrac=0.00167
+mcxdump -icl out.sex_clr_nn3_graph_round_1_15.9.mci.I18 -o sex_labeled_MCL_round_1_clusters.txt -tabr sex_clr_nn3_graph_round_1.dict 
