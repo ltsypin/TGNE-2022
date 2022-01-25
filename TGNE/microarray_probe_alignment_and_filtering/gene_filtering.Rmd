@@ -2316,7 +2316,7 @@ filtered.starve <- subset(unfiltered.starve.clean, rownames(unfiltered.starve.cl
 filtered.grow <- subset(unfiltered.grow.clean, rownames(unfiltered.grow.clean) %in% greedy)
 filtered.veg <- subset(unfiltered.veg.clean, rownames(unfiltered.veg.clean) %in% greedy)
 
-write.csv(filtered, 'filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+write.csv(filtered, 'filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
 write.csv(filtered.starve, 'filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
 write.csv(filtered.sex, 'filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
 write.csv(filtered.grow, './filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
