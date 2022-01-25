@@ -29,12 +29,12 @@ sex <- read.csv(
 )
 ```
 
-Run CLR. Set the number of nearest neighbors to 5 so that the approach between CLR and Leiden is comparable.
+Run CLR. Set the number of nearest neighbors to 3 so that the approach between CLR and Leiden is comparable.
 ```{r}
-full.mut.info.mat <- knnmi.all(full, k=5)
+full.mut.info.mat <- knnmi.all(full, k=3)
 full.clr.mat <- clr(full.mut.info.mat)
 
-save(full.clr.mat, file='./full_filt_norm_CLR.RData')
+save(full.clr.mat, file='./full_filt_norm_CLR_nn3.RData')
 
 
 # Save the CLR matrices in .ncol graph format for feeding into the MCL algorithm
@@ -42,25 +42,25 @@ full.graph <- graph_from_adjacency_matrix(full.clr.mat,
                                           mode='undirected',
                                           weighted=TRUE
                                           )
-write.graph(full.graph, './full_clr_graph_round_1.ncol', format='ncol')
+write.graph(full.graph, './full_clr_nn3_graph_round_1.ncol', format='ncol')
 
 
-veg.mut.info.mat <- knnmi.all(veg, k=5)
+veg.mut.info.mat <- knnmi.all(veg, k=3)
 veg.clr.mat <- clr(veg.mut.info.mat)
 
-save(veg.clr.mat, file='./veg_filt_norm_CLR.RData')
+save(veg.clr.mat, file='./veg_filt_norm_CLR_nn3.RData')
 
 veg.graph <- graph_from_adjacency_matrix(veg.clr.mat, 
                                           mode='undirected',
                                           weighted=TRUE
                                           )
 
-write.graph(veg.graph, './veg_clr_graph_round_1.ncol', format='ncol')
+write.graph(veg.graph, './veg_clr_nn3_graph_round_1.ncol', format='ncol')
 
-sex.mut.info.mat <- knnmi.all(sex, k=5)
+sex.mut.info.mat <- knnmi.all(sex, k=3)
 sex.clr.mat <- clr(sex.mut.info.mat)
 
-save(sex.clr.mat, file='./sex_filt_norm_CLR.RData')
+save(sex.clr.mat, file='./sex_filt_norm_CLR_nn3.RData')
 
 
 sex.graph <- graph_from_adjacency_matrix(sex.clr.mat,
@@ -68,7 +68,7 @@ sex.graph <- graph_from_adjacency_matrix(sex.clr.mat,
                                           weighted=TRUE
                                           )
 
-write.graph(sex.graph, './sex_clr_graph_round_1.ncol', format='ncol')
+write.graph(sex.graph, './sex_clr_nn3_graph_round_1.ncol', format='ncol')
 
 ```
 
