@@ -5,12 +5,14 @@ output: html_notebook
 
 ## Load libraries and set env
 ```{r}
-setwd("~/Documents/git/TGNE-2022/TGNE/microarray_probe_alignment_and_filtering/")
+setwd("~/git/TGNE-2022/TGNE/microarray_probe_alignment_and_filtering/")
 library(geneplotter)
 library(RColorBrewer)
 library(maSigPro)
 library(actuar)
 library(fitdistrplus)
+library(ggplot2)
+library(Hmisc)
 library(WGCNA)
 options(stringsAsFactors = FALSE)
 allowWGCNAThreads()
@@ -185,7 +187,11 @@ This is much better!
 Visualize histogram of the expression data directly:
 ```{r}
 log.unfiltered.clean = log(unfiltered.clean)
-hist(log.unfiltered.clean, main='Log Expression Hist', breaks=sqrt(length(unfiltered.clean)))
+par(mar = c(1, 1, 1, 1))
+
+hist.data.frame(log.unfiltered.clean, main='Log Expression Hist', breaks=sqrt(length(unfiltered.clean)))
+
+# hist(log.unfiltered.clean, main='Log Expression Hist', breaks=sqrt(length(unfiltered.clean)))
 ```
 
 Now, take a look a some statistics of variation. From the histograms above,
@@ -2197,14 +2203,18 @@ hist(log(all.good.geom.mean), main='Log Geom.Mean Expr. Hist of "all good" expre
 ```
 Now, look at all the chips expression histograms
 ```{r}
-hist(log(masigpro.filtered), main='Log Expr. Hist of maSigPro-filtered expression', breaks=sqrt(length(masigpro.filtered)), ylim=c(0,250))
+par(mar = c(1, 1, 1, 1))
+log.masigpro.filtered = log(masigpro.filtered)
+hist(log.masigpro.filtered, main='Log Expr. Hist of maSigPro-filtered expression', breaks=sqrt(length(log.masigpro.filtered)), ylim=c(0,250))
 ```
 
 ```{r}
+par(mar = c(1, 1, 1, 1))
 hist(log(greedy.filtered), main='Log Expr. Hist of "greedy" expression', breaks=sqrt(length(greedy.filtered)), ylim=c(0,250))
 ```
 
 ```{r}
+par(mar = c(1, 1, 1, 1))
 hist(log(all.good.filtered), main='Log Expr. Hist of "all good" expression', breaks=sqrt(length(all.good.filtered)), ylim=c(0,250))
 ```
 Comparing the chips' histograms themselves, it looks like actually my greedy
@@ -2307,7 +2317,11 @@ sum(greedy.fits.lgam[1, ] < unfiltered.fits.lgam[1, ]) / 48
 sum(all.good.fits.lgam[1, ] < unfiltered.fits.lgam[1, ]) / 48
 ```
 
-Same here. Go with the greedy filter
+Same here. It's really not clear whether to go with the original greedy filter
+or with the "all good" gene set. MaSigPro likely catches genes that have a low
+expression under most conditions, but a high one in some, which leads to the
+more bimodal distributions of expression. As always, it's probably best to 
+compare the two.
 
 ```{r}
 filtered <- subset(unfiltered.clean, rownames(unfiltered.clean) %in% greedy)
@@ -2316,12 +2330,27 @@ filtered.starve <- subset(unfiltered.starve.clean, rownames(unfiltered.starve.cl
 filtered.grow <- subset(unfiltered.grow.clean, rownames(unfiltered.grow.clean) %in% greedy)
 filtered.veg <- subset(unfiltered.veg.clean, rownames(unfiltered.veg.clean) %in% greedy)
 
-write.csv(filtered, 'filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
-write.csv(filtered.starve, 'filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
-write.csv(filtered.sex, 'filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
-write.csv(filtered.grow, './filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
-write.csv(filtered.veg, './filt_agg_tidy_2021aligned_qc_rma_expression_veg.csv')
+write.csv(filtered, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+write.csv(filtered.starve, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
+write.csv(filtered.sex, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
+write.csv(filtered.grow, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
+write.csv(filtered.veg, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_veg.csv')
 head(filtered)
+```
+
+```{r}
+all.good <- subset(unfiltered.clean, rownames(unfiltered.clean) %in% all.good.genes)
+all.good.sex <- subset(unfiltered.sex.clean, rownames(unfiltered.sex.clean) %in% all.good.genes)
+all.good.starve <- subset(unfiltered.starve.clean, rownames(unfiltered.starve.clean) %in% all.good.genes)
+all.good.grow <- subset(unfiltered.grow.clean, rownames(unfiltered.grow.clean) %in% all.good.genes)
+all.good.veg <- subset(unfiltered.veg.clean, rownames(unfiltered.veg.clean) %in% all.good.genes)
+
+write.csv(all.good, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+write.csv(all.good.starve, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
+write.csv(all.good.sex, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
+write.csv(all.good.grow, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
+write.csv(all.good.veg, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_veg.csv')
+head(all.good)
 ```
 
 Now, also make a normalized dataset, where the expression of each gene ranges from zero to one

@@ -6,14 +6,17 @@ output: html_document
 ---
 
 ```{r}
-library(oligo)
-library(pdInfoBuilder)
+library(oligo) # Install with BiocManager
+library(pdInfoBuilder) # Install with BiocManager
 library(ggplot2)
-setwd('~/Documents/git/TGNE-2022/TGNE/microarray_QC/')
+setwd('~/git/TGNE-2022/TGNE/microarray_QC/')
 set.seed(42)
 ```
 
 ```{r}
+# This step should be done with the original .ndf before mapping probes to
+# 2021 gene annotations because we need to track each individual probes
+# (rather than lump them into genes they map to)
 seed <- new("NgsExpressionPDInfoPkgSeed",
               ndfFile='../../raw_data/2007-02-28_Tetrahymena_expr.ndf',
               xysFile='./C0_GSM285570.xys',
@@ -88,7 +91,7 @@ qc.rma.expression <- exprs(qc.rma.corrected)
 write.csv(qc.rma.expression, './QC_probe_rma_values.csv')
 ```
 
-This takes a while to run, but it helps to validate that the NUSE plot points
+This takes a while to run (and you have to hit <return> for every plot), but it helps to validate that the NUSE plot points
 us straight to the chips that should be thrown away.
 ```{r}
 image(expression.feature.set, transfo=rank)
