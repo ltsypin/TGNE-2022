@@ -2331,10 +2331,10 @@ filtered.grow <- subset(unfiltered.grow.clean, rownames(unfiltered.grow.clean) %
 filtered.veg <- subset(unfiltered.veg.clean, rownames(unfiltered.veg.clean) %in% greedy)
 
 write.csv(filtered, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
-write.csv(filtered.starve, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
-write.csv(filtered.sex, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
-write.csv(filtered.grow, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
-write.csv(filtered.veg, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_veg.csv')
+# write.csv(filtered.starve, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
+# write.csv(filtered.sex, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
+# write.csv(filtered.grow, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
+# write.csv(filtered.veg, './greedy_filt_agg_tidy_2021aligned_qc_rma_expression_veg.csv')
 head(filtered)
 ```
 
@@ -2346,10 +2346,10 @@ all.good.grow <- subset(unfiltered.grow.clean, rownames(unfiltered.grow.clean) %
 all.good.veg <- subset(unfiltered.veg.clean, rownames(unfiltered.veg.clean) %in% all.good.genes)
 
 write.csv(all.good, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
-write.csv(all.good.starve, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
-write.csv(all.good.sex, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
-write.csv(all.good.grow, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
-write.csv(all.good.veg, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_veg.csv')
+# write.csv(all.good.starve, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
+# write.csv(all.good.sex, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
+# write.csv(all.good.grow, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
+# write.csv(all.good.veg, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_veg.csv')
 head(all.good)
 ```
 
