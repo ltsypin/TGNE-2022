@@ -47,18 +47,35 @@ raw.expression <- exprs(expression.feature.set)
 boxplot(expression.feature.set, las=2)
 hist(expression.feature.set)
 ```
+This takes a while to run (and you have to hit <return> for every plot), but it helps to validate that the NUSE plot points
+us straight to the chips that should be thrown away.
+```{r}
+# devAskNewPage(ask = FALSE)
+par(ask=FALSE)
+image(expression.feature.set, transfo=rank)
+```
+
 
 ```{r}
 fit <- fitProbeLevelModel(expression.feature.set)
 NUSE(fit, names=xysFiles, las=2, cex=0.001)
 ```
 
-
+Problematic chips have a median NUSE (normalized unscaled standard error) > 1 
+or have a large interquartile range. In general, keeping chips with IQR crossing
+1 so long as they look okay visually.
+Validate against chips that look bad in the plots above.
 ```{r}
-xysFiles[c(6, 20, 21, 27, 37,44, 47, 48, 50, 55, 56, 64)]
+# Bad chips
+xysFiles[c(2, 6, 20, 21, 27, 31, 44, 47, 48, 50, 55, 56, 64)]
 ```
 
-Removing these chips will leave, C2, S12, and c15m (as was initially the case) 
+```{r}
+xysFiles[-c(2, 6, 20, 21, 27, 31, 44, 47, 48, 50, 55, 56, 64)]
+```
+
+
+Removing these chips will leave, C2, S12, S24, and c15m (as was initially the case) 
 without replicates. I think that they should be removed as well, for rigor 
 of the analysis.
 ```{r}
@@ -66,7 +83,7 @@ xysFiles[c(13, 22, 49)]
 ```
 
 ```{r}
-qc.files <- xysFiles[-c(6, 13, 20, 21, 22, 27, 37, 44, 47, 48, 49, 50, 55, 56, 64)]
+qc.files <- xysFiles[-c(2, 6, 13, 20, 21, 22, 27, 31, 44, 47, 48, 49, 50, 55, 56, 64)]
 qc.files
 ```
 
@@ -83,7 +100,7 @@ qc.rma.corrected <- rma(qc.featureset)
 boxplot(qc.rma.corrected, transfo=identity, las=2)
 hist(qc.rma.corrected, transfo=identity)
 ```
-
+What is this one chip that's not like the rest?
 
 
 ```{r}
@@ -91,11 +108,7 @@ qc.rma.expression <- exprs(qc.rma.corrected)
 write.csv(qc.rma.expression, './QC_probe_rma_values.csv')
 ```
 
-This takes a while to run (and you have to hit <return> for every plot), but it helps to validate that the NUSE plot points
-us straight to the chips that should be thrown away.
-```{r}
-image(expression.feature.set, transfo=rank)
-```
+
 
 
 

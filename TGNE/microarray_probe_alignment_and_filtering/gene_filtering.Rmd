@@ -112,9 +112,9 @@ plot(sampleTree, main = "sex unfiltered", sub="", xlab="", cex.lab = 1.5,cex.axi
 Here's we can see that Ron Pearlman's samples for C12 and C14 (GSM656237 and 
 GSM656238) don't quite correspond to Wei Miao's and Marty
 Gorovsky's, but it does not seem appropriate to exclude them from the analysis 
-because the other samples seem well-aligned.
+because Pearlman's other samples seem well-aligned.
 
-Remove Yifan Liu's chips and Ron Pearlman's C15m chip and write to csv
+Remove Yifan Liu's chips and write to csv
 ```{r}
 unfiltered.clean <- subset(unfiltered, 
                         select = -c(S0_GSM647651, 
@@ -2304,9 +2304,9 @@ sum(greedy.fits.lnorm[1, ] < unfiltered.fits.lnorm[1, ]) / 48
 sum(all.good.fits.lnorm[1, ] < unfiltered.fits.lnorm[1, ]) / 48
 ```
 
-It looks like the greedy filter is uniformly better than all the others. All of
-the chips are more similar to log-normal in the greedy dataset when compared to
-any of the other methods. Check for the log-gamma case:
+It looks like the greedy filter is uniformly better than all the others. All but 
+one of the chips are more similar to log-normal in the greedy dataset when 
+compared to any of the other methods. Check for the log-gamma case:
 
 ```{r}
 sum(all.good.fits.lgam[1, ] < greedy.fits.lgam[1, ]) / 48
@@ -2446,11 +2446,11 @@ corresponding to the same condition remains basically the same.
 Now that the genes have been filtered and normalized, we can save the data
 
 ```{r}
-write.csv(filtered.norm, './full_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
-write.csv(filtered.sex.norm, './sex_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
-write.csv(filtered.starve.norm, './starve_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
-write.csv(filtered.grow.norm, './grow_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
-write.csv(filtered.veg.norm, './veg_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+# write.csv(filtered.norm, './full_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+# write.csv(filtered.sex.norm, './sex_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+# write.csv(filtered.starve.norm, './starve_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+# write.csv(filtered.grow.norm, './grow_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
+# write.csv(filtered.veg.norm, './veg_norm_filt_agg_tidy_2021aligned_qc_rma_expression.csv')
 ```
 
 Now, I want to checkout what happens if I take the log2 of the expression data
