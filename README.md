@@ -5,7 +5,8 @@ Brief guide to starting:
 
 1) Build the conda environments for python and R (provided spec files called cdh2 and cdh2_r). 
 Note: for the R environment, will still need to install some packages using BiocManager; there 
-might be some pip packages for the python environment...
+might be some pip packages for the python environment... The spec files seem to have 
+everything, but who knows whether it will be as easy as building environments from them?
 
 You will also need to install hisat2 separately and make sure the PATH works.
 
