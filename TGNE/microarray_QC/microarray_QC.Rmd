@@ -18,7 +18,7 @@ set.seed(42)
 # 2021 gene annotations because we need to track each individual probes
 # (rather than lump them into genes they map to)
 seed <- new("NgsExpressionPDInfoPkgSeed",
-              ndfFile='../../raw_data/2007-02-28_Tetrahymena_expr.ndf',
+              ndfFile='../../new_raw_data/GSE11300/GPL6759.ndf.gz',
               xysFile='./C0_GSM285570.xys',
               author='Lev Tsypin',
               email='ltsypin@gmail.com',
