@@ -1,0 +1,10 @@
+new_raw_data/*
+
+.DS_Store
+
+TGNE/microarray_QC/*.xys
+
+TGNE/microarray_QC/pd.*
+
+TGNE/microarray_QC/*.csv
+
