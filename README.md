@@ -19,11 +19,13 @@ to the microarray QC step
 
 4) Run TGNE/microarray_QC/microarray_QC.Rmd in the appropriate conda environment
 
-5) Return to the mmnicroarray_probe_alignment notebook and go through the rest of it
+5) Return to the microarray_probe_alignment notebook and go through the rest of it
 
 6) Run TGNE/microarray_probe_alignment_and_filtering/gene_filtering.Rmd
 
-7) Run TGNE/embedding/embedding_and_app.ipynb and follow directions for when to run the 
+7) Run TGNE/eggnog/annotation.ipynb
+
+8) Run TGNE/embedding/embedding_and_app.ipynb and follow directions for when to run the 
 TGNE/enrichment/enrichment.ipynb notebook and when to return back to the embedding file
 
 There are a bunch of frayed ends in nearly all of these notebooks, and we can talk about where 
