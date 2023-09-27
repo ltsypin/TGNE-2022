@@ -17,6 +17,10 @@ set.seed(42)
 # This step should be done with the original .ndf before mapping probes to
 # 2021 gene annotations because we need to track each individual probes
 # (rather than lump them into genes they map to)
+conflicting_directory <- './pd.gpl6759.ndf.gz/'
+
+unlink(conflicting_directory, recursive = TRUE)
+
 seed <- new("NgsExpressionPDInfoPkgSeed",
               ndfFile='../../new_raw_data/GSE11300/GPL6759.ndf.gz',
               xysFile='./C0_GSM285570.xys',
