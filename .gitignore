@@ -31,3 +31,5 @@ TGNE/embedding/test_nn3_leiden_label_df_round_1*.csv
 TGNE/enrichment/test_nn3_full_enrichment.csv
 
 TGNE/microarray_probe_alignment_and_filtering/*rma_expression*.csv
+
+*.pkl

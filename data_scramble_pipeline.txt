@@ -16,6 +16,9 @@ TGNE/microarray_QC/microarray_QC.Rmd
 # EXIT THE CONDA ENV
 .denv
 
+# MAP TETRA_ID TO TTHERM_ID
+TGNE/microarray_probe_alignment_and_filtering/tetra_ttherm_mapping.py
+
 # ENTER PYTHON CONDA ENV
 cdh2.env
 
@@ -37,10 +40,8 @@ TGNE/microarray_probe_alignment_and_filtering/gene_filtering.Rmd
 # ENTER PYTHON CONDA ENV
 cdh2.env
 
-
 # SCRAMBLE DATA
 TGNE/microarray_probe_alignment_and_filtering/scramble_data.ipynb
-
 
 # ANNOTATION
 TGNE/eggnog/annotation.ipynb

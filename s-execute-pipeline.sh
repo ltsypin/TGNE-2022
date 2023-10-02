@@ -19,6 +19,11 @@ run_ipynb_cmd() {
 	jupyter-nbconvert --to notebook --ExecutePreprocessor.timeout=-1 --execute $1
 }
 
+run_py_cmd() {
+	echo -e "\n\n\n---PROCESSING ${1}---\n\n\n"
+	python3.10 $1
+}
+
 run_rmd_cmd() {
 	echo -e "\n\n\n---RUNNING ${1}---\n\n\n"
 	Rscript -e "rmarkdown::render('$1')"
@@ -68,6 +73,9 @@ while IFS= read -r f_name; do
             ;;
         "denv")
             run_denv_cmd "$f_name"
+            ;;
+        "py")
+            run_py_cmd "$f_name"
             ;;
         *)
             echo "Unknown extension: $extension for file $f_name"

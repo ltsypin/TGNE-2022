@@ -97,7 +97,17 @@ qc.raw.expression <- exprs(qc.featureset)
 boxplot(qc.featureset, las=2)
 hist(qc.featureset)
 ```
+```{r}
+bad.files = xysFiles[c(2, 6, 20, 21, 27, 31, 44, 47, 48, 50, 55, 56, 64, 13, 22, 49)]
+bad.featureset <- read.xysfiles(bad.files, pkgname = 'pd.gpl6759.ndf.gz')
+# take a look at the chips which DID NOT pass qc
+image(qc.featureset, transfo=rank)
+```
 
+```{r}
+# take a look at the chips which passed qc
+image(qc.featureset, transfo=rank)
+```
 
 ```{r}
 qc.rma.corrected <- rma(qc.featureset)
@@ -124,7 +134,7 @@ ggplot(nuse.df, aes(ind, values)) +
   geom_boxplot() + 
   theme(axis.text.x = element_text(angle=90)) + 
   scale_y_continuous(limits=c(0.95, 1.1)) +
-  geom_hline(yintercept=1, linetype='solid', color='red', size=0.5)
+  geom_hline(yintercept=1, linetype='solid', color='red', linewidth=0.5)
 ```
 
 
