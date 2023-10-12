@@ -2,12 +2,23 @@
 
 set -e
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <pipeline_file>"
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <pipeline_file> [rscript_command]"
+    echo ''
+    echo "The [rscript_command] parameter can be utilized to specify an architecture and a path to Rscript or a path to Rscript."
+    echo "Example [rscript_command] parameter: \"arch -x86_64 /Users/michaelbertagna/anaconda3/envs/cdh2_r.env/lib/R/bin/Rscript\""
     exit 1
 fi
 
 filename="$1"
+rscript_command="${2:-Rscript}"
+
+if [ "$#" -gt 1 ]; then
+    if [ ! -f "${rscript_command##* }" ]; then
+        echo "ERROR: Nonexistent Rscript file path: ${rscript_command##* }"
+        exit 1
+    fi
+fi
 
 if [ ! -e "$filename" ]; then
     echo "ERROR: File not found: $filename"
@@ -26,7 +37,7 @@ run_py_cmd() {
 
 run_rmd_cmd() {
 	echo -e "\n\n\n---RUNNING ${1}---\n\n\n"
-	Rscript -e "rmarkdown::render('$1')"
+	$rscript_command -e "rmarkdown::render('$1')"
 }
 
 run_env_cmd() {

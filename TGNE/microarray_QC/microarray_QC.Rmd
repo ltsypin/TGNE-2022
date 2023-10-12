@@ -9,6 +9,10 @@ output: html_document
 library(oligo) # Install with BiocManager
 library(pdInfoBuilder) # Install with BiocManager
 library(ggplot2)
+
+library(bigmemory)
+library(snow)
+
 setwd('~/git/TGNE-2022/TGNE/microarray_QC/')
 set.seed(42)
 ```
@@ -17,12 +21,12 @@ set.seed(42)
 # This step should be done with the original .ndf before mapping probes to
 # 2021 gene annotations because we need to track each individual probes
 # (rather than lump them into genes they map to)
-conflicting_directory <- './pd.gpl6759.ndf.gz/'
+conflicting_directory <- './pd.filtered.gpl6759.ndf.gz/'
 
 unlink(conflicting_directory, recursive = TRUE)
 
 seed <- new("NgsExpressionPDInfoPkgSeed",
-              ndfFile='../../new_raw_data/GSE11300/GPL6759.ndf.gz',
+              ndfFile='../../new_raw_data/GSE11300/filtered_GPL6759.ndf.gz',
               xysFile='./C0_GSM285570.xys',
               author='Lev Tsypin',
               email='ltsypin@gmail.com',
@@ -34,16 +38,16 @@ makePdInfoPackage(seed, destDir = '.')
 
 
 ```{r}
-install.packages('./pd.gpl6759.ndf.gz/', repos=NULL, type='source')
+install.packages('./pd.filtered.gpl6759.ndf.gz/', repos=NULL, type='source')
 ```
 
 ```{r}
-library(pd.gpl6759.ndf.gz)
+library(pd.filtered.gpl6759.ndf.gz)
 ```
 
 ```{r}
 xysFiles <- list.xysfiles('.')
-expression.feature.set <- read.xysfiles(xysFiles, pkgname = 'pd.gpl6759.ndf.gz')
+expression.feature.set <- read.xysfiles(xysFiles, pkgname = 'pd.filtered.gpl6759.ndf.gz')
 ```
 
 ```{r}
@@ -54,9 +58,9 @@ hist(expression.feature.set)
 This takes a while to run (and you have to hit <return> for every plot), but it helps to validate that the NUSE plot points
 us straight to the chips that should be thrown away.
 ```{r}
-# devAskNewPage(ask = FALSE)
-par(ask=FALSE)
-image(expression.feature.set, transfo=rank)
+# # devAskNewPage(ask = FALSE)
+# par(ask=FALSE)
+# image(expression.feature.set, transfo=rank)
 ```
 
 
@@ -92,25 +96,30 @@ qc.files
 ```
 
 ```{r}
-qc.featureset <- read.xysfiles(qc.files, pkgname = 'pd.gpl6759.ndf.gz')
+qc.featureset <- read.xysfiles(qc.files, pkgname = 'pd.filtered.gpl6759.ndf.gz')
 qc.raw.expression <- exprs(qc.featureset)
 boxplot(qc.featureset, las=2)
 hist(qc.featureset)
 ```
+
+```{r}
+dim(qc.raw.expression)
+```
+
 ```{r}
 bad.files = xysFiles[c(2, 6, 20, 21, 27, 31, 44, 47, 48, 50, 55, 56, 64, 13, 22, 49)]
-bad.featureset <- read.xysfiles(bad.files, pkgname = 'pd.gpl6759.ndf.gz')
+bad.featureset <- read.xysfiles(bad.files, pkgname = 'pd.filtered.gpl6759.ndf.gz')
 # take a look at the chips which DID NOT pass qc
-image(qc.featureset, transfo=rank)
+# image(qc.featureset, transfo=rank)
 ```
 
 ```{r}
 # take a look at the chips which passed qc
-image(qc.featureset, transfo=rank)
+# image(qc.featureset, transfo=rank)
 ```
 
 ```{r}
-qc.rma.corrected <- rma(qc.featureset)
+qc.rma.corrected <- rma(qc.featureset, background=TRUE, normalize=TRUE, subset=NULL)
 boxplot(qc.rma.corrected, transfo=identity, las=2)
 hist(qc.rma.corrected, transfo=identity)
 ```

@@ -53,6 +53,10 @@ head(unfiltered.grow)
 head(unfiltered.veg)
 ```
 
+```{r}
+dim(unfiltered)
+```
+
 Now, check out simple clustering to see if there are any aberrant batch effects
 ```{r}
 sampleTree = hclust(dist(t(unfiltered)), method = "average")
@@ -140,6 +144,10 @@ unfiltered.veg.clean <- subset(unfiltered.veg,
 unfiltered.sex.clean <- unfiltered.sex
 
 unfiltered.grow.clean <- unfiltered.grow
+```
+
+```{r}
+dim(unfiltered.clean)
 ```
 
 Now, check the vegetative clustering again to see what changed.
@@ -2081,11 +2089,12 @@ design <- make.design.matrix(microarray.edesign, degree=19)
 ```
 
 ```{r}
+# DIFFERENCE OCCURING HERE aarch64-apple-darwin20 (64-bit) vs. x86_64-apple-darwin13.4.0 (64-bit)
 fit <- p.vector(unfiltered.clean, design, Q = 0.001, MT.adjust = "BH")
 ```
 
 ```{r}
-fit$i
+fit$i # DIFFERENT
 de.genes <- rownames(fit$SELEC)
 head(fit$SELEC)
 ```
@@ -2093,6 +2102,8 @@ head(fit$SELEC)
 Now, compare what maSigPro selected to the filter
 ```{r}
 greedy <- names(filt.greedy[filt.greedy])
+length(greedy)
+length(de.genes)
 only.masigpro <- setdiff(de.genes, greedy)
 only.greedy <- setdiff(greedy, de.genes)
 length(only.masigpro)
@@ -2479,3 +2490,7 @@ plot(geom.mean.expr.log2, geom.cv.expr.log2, main='Geom. Coef. Var. vs. Geom. Me
 This doesn't look as extreme as it did in my replication of the 2011 analysis,
 but it still looks heteroskedastic and doesn't seem to improve anything about
 the dataset.
+
+```{r}
+sessionInfo()
+```

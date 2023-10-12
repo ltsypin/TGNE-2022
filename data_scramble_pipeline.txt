@@ -53,7 +53,7 @@ TGNE/embedding/embedding_and_app_part1.ipynb
 TGNE/enrichment/enrichment_essential.ipynb
 
 # EMBEDDING PART 2
-TGNE/embedding/embedding_and_app_part2_data_scramble.ipynb
+TGNE/embedding/embedding_and_app_part2.ipynb
 
 # EXIT THE CONDA ENV
 .denv
