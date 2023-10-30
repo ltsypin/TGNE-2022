@@ -1,0 +1,63 @@
+# ENTER PYTHON CONDA ENV
+cdh2.env
+
+# PROBE ALIGNMENT PART 1
+TGNE/microarray_probe_alignment_and_filtering/microarray_probe_alignment_part1.ipynb
+
+# EXIT THE CONDA ENV
+.denv
+
+# ENTER R CONDA ENV
+cdh2_r.env
+
+# QUALITY CONTROL
+TGNE/microarray_QC/microarray_QC.Rmd
+
+# EXIT THE CONDA ENV
+.denv
+
+# MAP TETRA_ID TO TTHERM_ID
+TGNE/microarray_probe_alignment_and_filtering/tetra_ttherm_mapping.py
+
+# ENTER PYTHON CONDA ENV
+cdh2.env
+
+# PROBE ALIGNMENT PART 2
+TGNE/microarray_probe_alignment_and_filtering/microarray_probe_alignment_part2.ipynb
+
+# EXIT THE CONDA ENV
+.denv
+
+# ENTER R CONDA ENV
+cdh2_r.env
+
+# GENE FILTERING
+TGNE/microarray_probe_alignment_and_filtering/gene_filtering.Rmd
+
+# EXIT THE CONDA ENV
+.denv
+
+# ENTER PYTHON CONDA ENV
+cdh2.env
+
+# ANNOTATION
+TGNE/eggnog/annotation.ipynb
+
+# EMBEDDING PART 1 # FIXME
+TGNE/embedding/embedding_and_app_part1_rcl.ipynb
+
+# RCL
+TGNE/embedding/mcl_rcl_setup.ipynb
+
+TGNE/embedding/mcl_rcl/mcl_rcl.sh
+
+TGNE/embedding/mcl_rcl/consensus_cluster_analysis.ipynb
+
+# ENRICHMENT # FIXME
+TGNE/enrichment/enrichment_essential_rcl.ipynb
+
+# EMBEDDING PART 2 # FIXME
+TGNE/embedding/embedding_and_app_part2_rcl.ipynb
+
+# EXIT THE CONDA ENV
+.denv

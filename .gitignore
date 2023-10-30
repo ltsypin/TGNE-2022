@@ -35,3 +35,19 @@ TGNE/microarray_probe_alignment_and_filtering/*rma_expression*.csv
 *.pkl
 
 .RData
+
+TGNE/embedding/mcl_rcl/TAG/*
+
+TGNE/embedding/mcl_rcl_res*.csv
+
+TGNE/embedding/mcl_rcl/mcl_rcl_res*.csv
+
+TGNE/embedding/mcl_rcl/pfx*
+
+TGNE/embedding/mcl_rcl/*.pdf
+
+TGNE/embedding/mcl_rcl/*.mci
+
+TGNE/embedding/mcl_rcl/*.tab
+
+TGNE/embedding/mcl_rcl/*.txt
