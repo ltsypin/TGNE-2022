@@ -35,6 +35,11 @@ run_py_cmd() {
 	python3.10 $1
 }
 
+run_sh_cmd() {
+	echo -e "\n\n\n---PROCESSING ${1}---\n\n\n"
+	bash $1
+}
+
 run_rmd_cmd() {
 	echo -e "\n\n\n---RUNNING ${1}---\n\n\n"
 	$rscript_command -e "rmarkdown::render('$1')"
@@ -50,26 +55,35 @@ run_denv_cmd() {
     conda deactivate
 }
 
+run_cd_cmd() {
+    dir_ext="$1"
+    dir_no_ext="${dir_ext%.*}"
+    echo -e "\n\n\n---CHANGING DIRECTORY TO ${dir_no_ext}---\n\n\n"
+    cd $dir_no_ext
+}
+
 while IFS= read -r f_name; do
     # Skip empty lines and comments
     if [ -z "$f_name" ] || [[ "$f_name" == "#"* ]]; then
         continue
     fi
 
-    # Check for whitespace in the file name
-    if [[ "$f_name" =~ [[:space:]]+$ ]]; then
-        echo "ERROR: File name contains whitespace: $f_name"
-        exit 1
-    fi
+    # # Check for whitespace in the file name
+    # if [[ "$f_name" =~ [[:space:]]+$ ]]; then
+    #     echo "ERROR: File name contains whitespace: $f_name"
+    #     exit 1
+    # fi
 
     # Extract file extension
     extension="${f_name##*.}"
+    # Remove anything after the extension
+    extension="${extension%% *}"
 
-    # Check if the file exists and has the correct extension
-    if [ ! -e "$f_name" ] && [[ "$extension" != "env" ]] && [[ "$extension" != "denv" ]]; then
-        echo "ERROR: File not found: $f_name"
-        exit 1
-    fi
+    # # Check if the file exists and has the correct extension
+    # if [ ! -e "$f_name" ] && [[ "$extension" != "env" ]] && [[ "$extension" != "denv" ]]; then
+    #     echo "ERROR: File not found: $f_name"
+    #     exit 1
+    # fi
 
     # Determine the appropriate action based on the file extension
     case "$extension" in
@@ -87,6 +101,12 @@ while IFS= read -r f_name; do
             ;;
         "py")
             run_py_cmd "$f_name"
+            ;;
+        "sh")
+            run_sh_cmd "$f_name"
+            ;;
+        "cd")
+            run_cd_cmd "$f_name"
             ;;
         *)
             echo "Unknown extension: $extension for file $f_name"
