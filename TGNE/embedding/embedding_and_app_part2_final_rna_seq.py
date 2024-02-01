@@ -56,10 +56,8 @@ root_dir = '~/git/TGNE-2022/TGNE/embedding'
 
 # In[341]:
 
-full_filtered_df = pd.read_csv(os.path.join(root_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv'))
-full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
 
-# full_filtered_df = pd.read_csv('/Users/michaelbertagna/Downloads/kallisto.csv')
+full_filtered_df = pd.read_csv(os.path.join(root_dir, '../../new_raw_data/rna_seq_processed/manual.csv'))
 num_genes = full_filtered_df.shape[0]
 num_genes
 
@@ -1417,6 +1415,11 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_a
              'C14', 
              'C16', 
              'C18']
+    
+    elif phases == 'rna_seq':
+        x = ['000min_A', '000min_B', '030min_A', '030min_B', '060min_A', '060min_B',
+       '090min_A', '090min_B', '120min_A', '120min_B', '150min_A', '150min_B',
+       '180min_A', '180min_B', '210min_A', '210min_B', '240min_A', '240min_B']
         
     else:
         print('Selected phases must be one of full, sex, or veg!')
@@ -1492,49 +1495,54 @@ white\ngainsboro\n#FA002E\n#22FC22\n#221CFA\n#FF3DD6\n#FFDA00\n#00FEFB\n#F48684\
 """.split()
 
 
-# In[71]:
+# In[344]:
 
 
-leiden_label_df_round_1 = pd.read_csv(os.path.join(root_dir, './test_nn3_leiden_label_df_round_1.csv')) # DIFF
+leiden_label_df_round_1 = pd.read_csv(os.path.join(root_dir, './test_nn3_leiden_label_df_round_1.csv'))
 
 
-# In[72]:
+# In[345]:
 
 
 
 
-
-# In[73]:
-
-
-full_filtered_norm_df = normalize_expression_per_gene(full_filtered_df)
+# In[346]:
 
 
-# In[74]:
+len(full_filtered_df)
+
+
+# In[347]:
+
+
+# full_filtered_norm_df = normalize_expression_per_gene(full_filtered_df)
+
+
+# In[348]:
 
 
 leiden_label_df_round_1.head()
 
 
-# In[75]:
+# In[349]:
 
 
-arrange_modules(full_filtered_norm_df, leiden_label_df_round_1, 'leiden', 'full')
+# arrange_modules(full_filtered_norm_df, leiden_label_df_round_1, 'leiden', 'full')
 
 
-# In[76]:
+# In[350]:
 
 
 # arrange_modules(veg_filtered_df, leiden_label_df_round_1, 'leiden', 'veg')
 
 
-# In[77]:
+# In[351]:
 
 
 # arrange_modules(sex_filtered_df, leiden_label_df_round_1, 'leiden', 'sex')
 
 
-# In[78]:
+# In[352]:
 
 
 def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, clust_alg, phase, palette, title, n_neighbors=5, n_components=2, radius=0.02, random_state=42, normalized=True):
@@ -1553,25 +1561,25 @@ def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df,
     return p
 
 
-# In[79]:
+# In[353]:
 
 
-# get_ipython().run_line_magic('pdb', '')
+# %pdb
 
 
-# In[80]:
+# In[354]:
 
 
-leiden_label_df_round_1
+# leiden_label_df_round_1 = arrange_modules(full_filtered_norm_df, leiden_label_df_round_1, 'leiden', 'full') # FIXME
 
 
-# In[81]:
+# In[355]:
 
 
 complete_annot = pd.read_csv(os.path.join(root_dir, '../eggnog/complete_eggnog_annotation.csv'))
 
 
-# In[82]:
+# In[356]:
 
 
 def createDirectories(dirPathString):
@@ -1579,71 +1587,116 @@ def createDirectories(dirPathString):
         os.makedirs(dirPathString)
 
 
-# In[83]:
+# In[357]:
 
 
 createDirectories('./plots/')
 
 
-# In[84]:
-
+# In[358]:
 
 folder = './plots/'
-
 file_name = 'dashboard'
-
 num = 1
-
 file_ext = '.html'
 
-while os.path.exists(f'{folder}{file_name}{str(num)}{file_ext}'):
+# List all files in the folder
+files = os.listdir(folder)
+
+# Check if any file starts with the desired prefix
+while any(file.startswith(f'{file_name}{str(num)}') for file in files):
     num += 1
 
 file_export_path = f'{folder}{file_name}{str(num)}{file_ext}'
 
 
-# In[85]:
+# In[359]:
 
 
-full_filtered_norm_df.shape
+# gene_list_test = ['TTHERM_000013409', 'TTHERM_01321550', 'TTHERM_00011710', 'TTHERM_00321680', 'TTHERM_00355700', 'TTHERM_00938950', 'TTHERM_01372820', 'TTHERM_00013410', 'TTHERM_00390080', 'TTHERM_00516380', 'TTHERM_00038880', 'TTHERM_00059370', 'TTHERM_00473020', 'TTHERM_00497590', 'TTHERM_00558350', 'TTHERM_00052190', 'TTHERM_00392790', 'TTHERM_00410180', 'TTHERM_00685980', 'TTHERM_00445920', 'TTHERM_00471040', 'TTHERM_00140780', 'TTHERM_00145480', 'TTHERM_00321720', 'TTHERM_00628650', 'TTHERM_00526730', 'TTHERM_01156770', 'TTHERM_00312200', 'TTHERM_01332070', 'TTHERM_00318900', 'TTHERM_00340180', 'TTHERM_00592740', 'TTHERM_00440600', 'TTHERM_01321570', 'TTHERM_00537380', 'TTHERM_00585170', 'TTHERM_01197130', 'TTHERM_00554390', 'TTHERM_00649180', 'TTHERM_00691410', ]
+# for gene in gene_list_test:
+#     print((leiden_label_df_round_1.loc[leiden_label_df_round_1['TTHERM_ID'] == gene])['leiden_label_full'].values[0])
 
 
-# In[90]:
+# In[360]:
 
 
-complete_annot.shape
+leiden_label_df_round_1.head()
 
 
-# In[92]:
+# In[364]:
 
 
-complete_annot.head()
+from statistics import mode
+
+# mode_mod = mode(list(leiden_label_df_round_1['leiden_label_full'].values))
+# mode_mod
 
 
-# In[93]:
+# In[365]:
 
 
-full_filtered_norm_df.head()
+# list(leiden_label_df_round_1['leiden_label_full'].values).count(mode_mod)
 
 
-# In[87]:
+# In[362]:
 
 
-leiden_label_df_round_1.shape
+# len(leiden_label_df_round_1['leiden_label_full'].unique())
 
 
-# In[88]:
+# In[337]:
 
+# def generate_color_palette(num):
+#     # Generate a list of distinct colors
+#     palette = sns.color_palette("husl", num)
+#     color_palette = [f"#{int(r * 255):02X}{int(g * 255):02X}{int(b * 255):02X}" for r, g, b in palette]
 
-with open(os.path.expanduser(os.path.join(root_dir, 'colors_2000_1')), 'rb') as file:
-    color_palette_raw = pickle.load(file)
+#     return color_palette
+
+# import colorspacious as cs
+
+# def generate_distinct_colors(num):
+#     distinct_colors = []
+#     hue_spacing = 360.0 / num  # Spread hues evenly in the color wheel
+
+#     for i in range(num):
+#         hue = i * hue_spacing
+#         start_color = {"name": "Jab", "J": 50, "a": 40, "b": hue}
+#         end_color = {"name": "sRGB1"}  # Remove "XYZ100_w" key
+#         color = cs.cspace_convert(start_color, start={"name": "CIELab"}, end=end_color)
+#         color_hex = "#{:02X}{:02X}{:02X}".format(int(color["RGB_r"] * 255), int(color["RGB_g"] * 255), int(color["RGB_b"] * 255))
+#         distinct_colors.append(color_hex)
+
+#     return distinct_colors
+
+# import distinctipy
+
+# number of colours to generate
+# N = max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1
+
+# generate N visually distinct colours
+# color_palette = distinctipy.get_colors(N)
+
+# print(type(color_palette))
+
+# Example usage
+# num_colors = max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1
+# color_palette = generate_distinct_colors(num_colors)
+
+# # Example usage
+# num_colors = max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1
+# color_palette = generate_color_palette(num_colors)
+
+# with open(os.path.expanduser(os.path.join(root_dir, 'colors_2000_1')), 'rb') as file:
+#     color_palette_raw = pickle.load(file)
 
 color_palette = palette65
 
-if len(color_palette_raw) >= max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1:
-    color_palette = color_palette_raw[:max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1]
+# if len(color_palette_raw) >= max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1:
+#     color_palette = color_palette_raw[:max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1]
 
-p = generate_and_save_umap(file_export_path, full_filtered_norm_df, complete_annot, leiden_label_df_round_1, 'leiden', 'full', color_palette, 'Full normalized expression w/ Leiden clustering (round 1) (nn=3)', radius=0.07, normalized=True)
+p = generate_and_save_umap(file_export_path, full_filtered_df, complete_annot, leiden_label_df_round_1, 'leiden', 'rna_seq', color_palette, 'Full normalized expression w/ Leiden clustering (round 1) (nn=3)', radius=0.07, normalized=True)
 # bokeh.io.show(p)
 
 

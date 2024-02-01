@@ -45,13 +45,13 @@ cdh2.env
 TGNE/eggnog/annotation.ipynb
 
 # EMBEDDING PART 1
-TGNE/embedding/embedding_and_app_part1.ipynb
+TGNE/embedding/embedding_and_app_part1_final.ipynb
 
 # ENRICHMENT
-TGNE/enrichment/enrichment_essential.ipynb
+TGNE/enrichment/enrichment_essential_final.ipynb
 
 # EMBEDDING PART 2
-#TGNE/embedding/embedding_and_app_part2.ipynb
+TGNE/embedding/embedding_and_app_part2_final.py
 
 # EXIT THE CONDA ENV
 .denv
