@@ -1,0 +1,37 @@
+---
+title: "clr_for_distances"
+author: "Michael Bertagna"
+date: "2024-02-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("~/git/TGNE-2022/TGNE/clustering_optimization")
+library(minet)
+library(Rgraphviz)
+library(igraph)
+library(reshape2)
+```
+
+IMPORT THE FILTERED DATA AS A DATAFRAME AND TAKE THE TRANSPOSE
+
+```{r}
+data <- read.csv("../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv", header = TRUE, row.names = 1)
+data
+tdata <- t(data)
+```
+
+BUILD THE NETWORK
+
+```{r}
+mim <- build.mim(tdata)
+clr_network <- clr(mim)
+```
+
+```{r}
+write.csv(as.data.frame(clr_network), file = './clr_network_for_distances.csv', row.names = TRUE)
+```

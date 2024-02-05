@@ -12,6 +12,8 @@ library(igraph)
 library(reshape2)
 library(Matrix)
 library(parmigene)
+
+Sys.setenv(OMP_NUM_THREADS = 8)
 ```
 
 IMPORT THE FILTERED DATA AS A DATAFRAME AND TAKE THE TRANSPOSE
