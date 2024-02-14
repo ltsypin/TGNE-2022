@@ -1433,7 +1433,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_a
     hover_data = pd.DataFrame({
                                # 'index':np.arange(len(data)),
                                'ID':merge['TTHERM_ID'].values,
-                               'module':[f'm{int(l):03d}' for l in labels]})
+                               'module':[f'm{int(l):04d}' for l in labels]})
 
     print('MOD', list(hover_data['module'].values)[0])
     
