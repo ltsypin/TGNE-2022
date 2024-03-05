@@ -27,7 +27,9 @@ IMPORT THE FILTERED DATA AS A DATAFRAME AND TAKE THE TRANSPOSE
 ```{r}
 data <- read.csv("../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv", header = TRUE, row.names = 1)
 
-data_knn3 <- knnmi.all(data, k=5)
+nn <- 6
+
+data_knn3 <- knnmi.all(data, k=nn)
 ```
 
 BUILD THE NETWORK
@@ -37,5 +39,5 @@ clr_network <- clr(data_knn3)
 ```
 
 ```{r}
-write.csv(as.data.frame(clr_network), file = './clr_network_for_distances.csv', row.names = TRUE)
+write.csv(as.data.frame(clr_network), file = paste('./clr_network_for_distances_', nn, '.csv', sep = ''), row.names = TRUE)
 ```
