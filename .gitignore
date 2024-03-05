@@ -82,3 +82,8 @@ TGNE/embedding/colors_1000_1
 
 TGNE/embedding/colors_2000_1
 
+*.annotations
+
+TGNE/enrichment/2021/*.csv
+
+*.pyc

@@ -57,7 +57,7 @@ root_dir = '~/git/TGNE-2022/TGNE/embedding'
 # In[341]:
 
 
-full_filtered_df = pd.read_csv(os.path.join(root_dir, '../../new_raw_data/rna_seq_processed/manual.csv'))
+full_filtered_df = pd.read_csv(os.path.join(root_dir, '../../new_raw_data/rna_seq_processed/kallisto.csv'))
 num_genes = full_filtered_df.shape[0]
 num_genes
 
@@ -683,8 +683,8 @@ def interactive(
     #      'C18']
     
     if normalized:
-        hm_min = 0
-        hm_max = 1
+        hm_min = -2.5 # FIXME changed for rna_seq
+        hm_max = 2.5
         
     else:
         hm_min = 2
@@ -717,7 +717,7 @@ def interactive(
     
     if normalized:
         y_axis_label = 'Geometric mean expression of normalized replicates'
-        y_range = (-0.01, 1.01)
+        y_range = (-2.51, 2.51) # FIXME changed for rna_seq
         
     else:
         y_axis_label = 'Geometric mean expression of replicates (log2-scale)'
@@ -1417,9 +1417,8 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_a
              'C18']
     
     elif phases == 'rna_seq':
-        x = ['000min_A', '000min_B', '030min_A', '030min_B', '060min_A', '060min_B',
-       '090min_A', '090min_B', '120min_A', '120min_B', '150min_A', '150min_B',
-       '180min_A', '180min_B', '210min_A', '210min_B', '240min_A', '240min_B']
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min']
         
     else:
         print('Selected phases must be one of full, sex, or veg!')

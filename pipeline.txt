@@ -44,14 +44,27 @@ cdh2.env
 # ANNOTATION
 TGNE/eggnog/annotation.ipynb
 
-# EMBEDDING PART 1
-TGNE/embedding/embedding_and_app_part1_final.ipynb
+# CLUSTERING
+TGNE/embedding/clustering_final.ipynb
 
 # ENRICHMENT
-TGNE/enrichment/enrichment_essential_final.ipynb
+TGNE/enrichment/enrichment_final.ipynb
 
-# EMBEDDING PART 2
-TGNE/embedding/embedding_and_app_part2_final.py
+# APP
+TGNE/embedding/app_final.py
+
+### RNA_SEQ
+
+# CLUSTERING
+TGNE/embedding/clustering_final_rna_seq.ipynb
+
+# ENRICHMENT
+TGNE/enrichment/enrichment_final_rna_seq.ipynb
+
+# APP
+TGNE/embedding/app_final_rna_seq.py
+
+### RNA_SEQ END
 
 # EXIT THE CONDA ENV
 .denv

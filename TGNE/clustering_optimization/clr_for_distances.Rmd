@@ -11,25 +11,29 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 setwd("~/git/TGNE-2022/TGNE/clustering_optimization")
-library(minet)
+library(parmigene)
 library(Rgraphviz)
 library(igraph)
 library(reshape2)
+library(parallel)
+library(bigmemory)
+library(snow)
+detectCores()
+Sys.getenv("OMP_NUM_THREADS")
 ```
 
 IMPORT THE FILTERED DATA AS A DATAFRAME AND TAKE THE TRANSPOSE
 
 ```{r}
 data <- read.csv("../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv", header = TRUE, row.names = 1)
-data
-tdata <- t(data)
+
+data_knn3 <- knnmi.all(data, k=5)
 ```
 
 BUILD THE NETWORK
 
 ```{r}
-mim <- build.mim(tdata)
-clr_network <- clr(mim)
+clr_network <- clr(data_knn3)
 ```
 
 ```{r}

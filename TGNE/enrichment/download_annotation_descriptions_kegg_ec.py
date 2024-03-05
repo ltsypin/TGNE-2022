@@ -101,8 +101,8 @@ ec_df = pd.DataFrame({
 
 print(kegg_df.shape)
 
-kegg_df.to_csv('~/git/TGNE-2022/TGNE/enrichment/new_kegg_annotations.csv', index=False)
+kegg_df.to_csv('~/git/TGNE-2022/TGNE/enrichment/kegg_annotations.csv', index=False)
 
 print(ec_df.shape)
 
-ec_df.to_csv('~/git/TGNE-2022/TGNE/enrichment/new_ec_annotations.csv', index=False)
+ec_df.to_csv('~/git/TGNE-2022/TGNE/enrichment/ec_annotations.csv', index=False)
