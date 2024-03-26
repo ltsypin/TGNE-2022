@@ -84,6 +84,10 @@ TGNE/embedding/colors_2000_1
 
 *.annotations
 
-TGNE/enrichment/2021/*.csv
-
 *.pyc
+
+active_fastas/*
+
+*.gz
+
+TGNE/enrichment/**/*.csv

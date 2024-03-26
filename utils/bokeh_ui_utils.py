@@ -7,11 +7,13 @@ import bokeh
 from bokeh.plotting import show as show_interactive
 from bokeh.plotting import output_file, output_notebook
 from bokeh.layouts import column, row
-from bokeh.models import CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem
+from bokeh.models import CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem, Spinner
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn, Button, HTMLTemplateFormatter
 from bokeh.events import SelectionGeometry
 from bokeh.transform import linear_cmap, jitter
 import umap
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 
 from .microarray_utils import get_geom_mean_expression
 
@@ -401,8 +403,10 @@ def interactive(
         alpha = 1
         data["alpha"] = alpha
     
-    print(list(hover_data['module'].values)[0:10])
-    print(list(hover_data['module'].values)[len(list(hover_data['module'].values))-11:len(list(hover_data['module'].values))-1])
+    # print(list(hover_data['module'].values)[0:10])
+    # print(list(hover_data['module'].values)[len(list(hover_data['module'].values))-11:len(list(hover_data['module'].values))-1])
+
+    # print('RADIUS:', radius)
 
     data_source = bokeh.plotting.ColumnDataSource(data)
     data_source.data['module'] = hover_data['module']
@@ -491,7 +495,6 @@ def interactive(
     hm_cds.data['line_alpha'] = [0.7]*len(hm_df_tidy)
     # hm_cds.data['y_axis'] = ttherm_ids
 
-    print()
     
     hm = heatmap(hm_cds, bokeh.palettes.Inferno256, hm_min, hm_max, x_heatmap_profile, ttherm_ids)
     
@@ -553,6 +556,7 @@ def interactive(
                TableColumn(field="COG_category", title="COG_category", width=160),
                TableColumn(field='EC', title='EC', width=160),
                TableColumn(field='GOs', title='GOs', width=160),
+               TableColumn(field='PFAMs', title='PFAMs', width=160),
                TableColumn(field='KEGG_ko', title='KEGG_ko', width=160),
                TableColumn(field='KEGG_Pathway', title='KEGG_Pathway', width=160),
                TableColumn(field='KEGG_Module', title='KEGG_Module', width=160),
@@ -722,6 +726,7 @@ def interactive(
         d2['COG_category'] = []
         d2['EC'] = []
         d2['GOs'] = []
+        d2['PFAMs'] = []
         d2['KEGG_ko'] = []
         d2['KEGG_Pathway'] = []
         d2['KEGG_Module'] = []
@@ -742,6 +747,7 @@ def interactive(
             d2['COG_category'].push(d1['COG_category'][inds[i]])
             d2['EC'].push(d1['EC'][inds[i]])
             d2['GOs'].push(d1['GOs'][inds[i]])
+            d2['PFAMs'].push(d1['PFAMs'][inds[i]])
             d2['KEGG_ko'].push(d1['KEGG_ko'][inds[i]])
             d2['KEGG_Pathway'].push(d1['KEGG_Pathway'][inds[i]])
             d2['KEGG_Module'].push(d1['KEGG_Module'][inds[i]])
@@ -759,7 +765,7 @@ def interactive(
     data_source.selected.js_on_change('indices', selection_callback, expression_callback, heatmap_callback)
 
     if interactive_text_search:
-        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", width=600)
+        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", width=640)
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -889,11 +895,114 @@ def interactive(
 
             """,
             )
-
+            
             text_input.js_on_change("value", callback, selection_callback, expression_callback, heatmap_callback)
 
+    module_list = list(hover_data['module'].values)
+    sorted_module_list = sorted(module_list)
+    max_label_num_str = (sorted_module_list[len(module_list) - 1]).replace('m', '')
+    max_label_num_len = len(max_label_num_str)
+
+    spinner = Spinner(title="Module #", low=0, high=int(max_label_num_str), step=1, value=0, width=80)
+
+    interactive_text_search_columns_spinner = []
+    if labels is not None:
+        interactive_text_search_columns_spinner.append('module')
+
+    if len(interactive_text_search_columns_spinner) == 0:
+        warn(
+            "interactive_text_search_columns_spinner set to True, but no hover_data or labels provided."
+            "Please provide hover_data or labels to use interactive text search."
+        )
+
+    else:
+        spinner_callback = CustomJS(
+            args=dict(
+                source=data_source,
+                s2=s2,
+                table=table,
+                matching_alpha=interactive_text_search_alpha_contrast,
+                non_matching_alpha=1 - interactive_text_search_alpha_contrast,
+                search_columns=interactive_text_search_columns_spinner,
+                max_label_num_len=max_label_num_len,
+                default_radius=radius,
+                default_alpha=alpha
+            ),
+            code="""
+function zfill(str, width) {
+    const diff = width - str.length;
+    if (diff > 0) {
+        return '0'.repeat(diff) + str;
+    }
+    return str;
+}
+
+var data = source.data;
+var spinner_num = cb_obj.value;
+var spinner_str = "m" + zfill(spinner_num.toString(), max_label_num_len);
+var d2 = s2.data;
+
+console.log(spinner_str);
+
+d2['module'] = [];
+d2['ID'] = [];
+
+var search_columns_dict = {}
+for (var col in search_columns){
+    search_columns_dict[col] = search_columns[col]
+}
+
+// First, clear the data table and selection
+data['alpha'] = [];
+data['radius'] = [];
+source.selected.indices = [];
+
+s2.change.emit();
+table.change.emit();
+
+// Run search
+if (spinner_str.length > 0) {
+    // Loop over rows and check if search term is present in any column
+    for (var i = 0; i < data.x.length; i++) {
+        var string_match = false;
+        for (var col in search_columns_dict) {
+            if (String(data[search_columns_dict[col]][i]) == (spinner_str)) {
+                string_match = true;
+                break; // Exit the loop if match is found in any column
+            }
+        }
+        if (string_match) {
+            data['alpha'][i] = matching_alpha;
+            data['radius'][i] = 1;
+            d2['module'].push(data['module'][i]);
+            d2['ID'].push(data['ID'][i]);
+
+            // So that these points are actually considered selected
+            source.selected.indices.push(i);
+        } else {
+            data['alpha'][i] = non_matching_alpha;
+            data['radius'][i] = 0.01;
+        }
+    }
+} else {
+    // Loop over rows and set default alpha and radius values
+    for (var i = 0; i < data.x.length; i++) {
+        data['alpha'][i] = default_alpha;
+        data['radius'][i] = default_radius;
+    }
+}
+
+source.change.emit();
+s2.change.emit();
+table.change.emit();
+        """,
+        )
+        
+        spinner.js_on_change("value", spinner_callback, selection_callback, expression_callback, heatmap_callback)
+
+
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    button1 = Button(label="Download Annotation Table", button_type="success", width=550)
+    button1 = Button(label="Download Annotation Table", button_type="success", width=400)
     button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
@@ -921,7 +1030,7 @@ def interactive(
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
     enrich_p = plot_enrichment(enrich_cds)
     
-    button2 = Button(label="Download Functional Enrichment Data", button_type="success", width=450)
+    button2 = Button(label="Download Functional Enrichment Data", button_type="success", width=400)
     button2.js_on_click(
         CustomJS(
             args=dict(source_data=enrich_cds),
@@ -945,7 +1054,7 @@ def interactive(
     
     
     if interactive_text_search:
-        plot = column(row(column(plot, expr_fig), hm, enrich_p), row(text_input, button1, button2), table)
+        plot = column(row(column(plot, expr_fig), hm, enrich_p), row(spinner, text_input, button1, button2), table)
     else:
         plot = column(row(column(plot, expr_fig), hm, enrich_p), row(button1, button2), table)
 
@@ -963,8 +1072,8 @@ def get_centroid(module_df):
 
 def get_module_centroid_df(expr_df, cluster_label_df):
 
-    print(expr_df.columns)
-    print(cluster_label_df.columns)
+    # print(expr_df.columns)
+    # print(cluster_label_df.columns)
     
     merge = expr_df.merge(cluster_label_df, on='TTHERM_ID')
     
@@ -1054,6 +1163,10 @@ def arrange_modules(expr_df, cluster_label_df, phases):
 
     elif phases == 'rna_seq':
         x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min', '210min', '240min']
+        
+    elif phases == 'rna_seq_single_cycle':
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
        '180min']
         
     else:
@@ -1078,7 +1191,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     
     
     reassigned_df['label'] = reassigned_df['label'].map(sorter_index)
-    print(len(reassigned_df))
+    # print(len(reassigned_df))
     
     arranged_dfs = []
     
@@ -1127,14 +1240,14 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     
     embedding_df['TTHERM_ID'] = expression_df['TTHERM_ID'].values
 
-    print(list(label_df['label'].values)[0:10])
+    # print(list(label_df['label'].values)[0:10])
     
     merge_unsorted = expression_df.merge(embedding_df, on='TTHERM_ID')
 
     merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
 
-    if list(label_df['TTHERM_ID'].values) == list(merge_all['TTHERM_ID'].values):
-        print('MERGING SUCCESS!!!')
+    # if list(label_df['TTHERM_ID'].values) == list(merge_all['TTHERM_ID'].values):
+    #     print('MERGING SUCCESS!!!')
     
     # merge_all_sorted = merge_all.sort_values(by='label')  # FIXME maybe
 
@@ -1144,18 +1257,20 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
 
     merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
 
-    if list(labels) == list(sorted(labels)):
-        print('SORTED!')
+    # labels = merge['label'].values
 
-    if len(merge) != len(label_df):
-        print('LENGTH DIFFERENT', len(merge), len(label_df))
-    else:
-        print('LENGTH SAME!')
+    # if list(labels) == list(sorted(labels)):
+    #     print('SORTED!')
 
-    if list(merge['TTHERM_ID'].values) != list(label_df['TTHERM_ID'].values):
-        print('ORDER DIFFERENT')
-    else:
-        print('SAME ORDER!')
+    # if len(merge) != len(label_df):
+    #     print('LENGTH DIFFERENT', len(merge), len(label_df))
+    # else:
+    #     print('LENGTH SAME!')
+
+    # if list(merge['TTHERM_ID'].values) != list(label_df['TTHERM_ID'].values):
+    #     print('ORDER DIFFERENT')
+    # else:
+    #     print('SAME ORDER!')
     
     
     # merge = merge.reindex(new_index)
@@ -1222,6 +1337,10 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
         
     elif phases == 'rna_seq':
         x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min', '210min', '240min']
+        
+    elif phases == 'rna_seq_single_cycle':
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
        '180min']
         
     else:
@@ -1242,7 +1361,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
                                'ID':merge['TTHERM_ID'].values,
                                'module':[f'm{int(l):04d}' for l in labels]})
 
-    print('MOD', list(hover_data['module'].values)[0])
+    # print('MOD', list(hover_data['module'].values)[0])
     
 #     palette = [palette[l] for l in sorted(label_df[label_key].unique())]
     
@@ -1255,7 +1374,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
                     labels=labels, 
                     color_key=palette, 
 #                     color_key_cmap='Paired',
-                    background='black', 
+                    background='white', 
                     radius=radius,
                     alpha=0.7,
 #                     width=600, 
@@ -1270,7 +1389,12 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     return p
 
 
-def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, radius=0.02, random_state=42, expr_min=0, expr_max=1):
+# ((range of x values)^2 * (range of y values)^2)^(0.5) * (const) = (optimal radius value)
+def compute_2d_embedding_point_radius(embedding_df):
+    return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / 339.30587926495537
+
+
+def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1):
     
     data = expression_df[list(expression_df.columns)[1:]].values
     
@@ -1278,9 +1402,52 @@ def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df,
     embedding = _get_umap_embedding(umap_mapper)
     
     umap_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
+
+    radius = compute_2d_embedding_point_radius(umap_df)
     
     bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
     p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max)
+    bokeh.plotting.save(p)
+    print(outfile_name)
+    return p
+
+def generate_and_save_pca(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1):
+    
+    data = expression_df[list(expression_df.columns)[1:]].values
+
+    pca = PCA(n_components=n_components)
+    principal_components = pca.fit_transform(data)    
+
+    pca_df = pd.DataFrame({
+        'x': principal_components[:, 0],
+        'y': principal_components[:, 1]
+    })
+
+    radius = compute_2d_embedding_point_radius(pca_df)
+    
+    bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
+    p = plot_embedding(expression_df, pca_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max)
+    bokeh.plotting.save(p)
+    print(outfile_name)
+    return p
+
+def generate_and_save_tsne(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1):
+    
+    data = expression_df[list(expression_df.columns)[1:]].values
+
+    # tsne = TSNE(n_components=n_components, perplexity=30.0, n_iter=1000)
+    tsne = TSNE(n_components=n_components, perplexity=50.0, n_iter=5000, n_jobs=-1)
+    tsne_components = tsne.fit_transform(data)
+
+    tsne_df = pd.DataFrame({
+        'x': tsne_components[:, 0],
+        'y': tsne_components[:, 1]
+    })
+
+    radius = compute_2d_embedding_point_radius(tsne_df)
+    
+    bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
+    p = plot_embedding(expression_df, tsne_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max)
     bokeh.plotting.save(p)
     print(outfile_name)
     return p

@@ -3,8 +3,9 @@ import os
 import pandas as pd
 import numpy as np
 import scipy.stats as st
-import tqdm
+# import tqdm
 import sys
+import pickle
 from multiprocessing import Pool
 
 # ENRICHMENT_ESSENTIAL_FINAL
@@ -12,15 +13,10 @@ from multiprocessing import Pool
 main_dir = '../TGNE/'
 
 complete_annotation = pd.read_csv(os.path.join(main_dir, 'eggnog/complete_eggnog_annotation.csv'))
-go_df = pd.read_csv(os.path.join(main_dir, 'enrichment/go_annotations.csv'))
-kegg_df = pd.read_csv(os.path.join(main_dir, 'enrichment/kegg_annotations.csv'))
-ec_df = pd.read_csv(os.path.join(main_dir, 'enrichment/ec_annotations.csv'))
+go_df = pd.read_csv(os.path.join(main_dir, '../active_fastas/go_annotations.csv'))
+kegg_df = pd.read_csv(os.path.join(main_dir, '../active_fastas/kegg_annotations.csv'))
+ec_df = pd.read_csv(os.path.join(main_dir, '../active_fastas/ec_annotations.csv'))
 
-csv_path = sys.argv[1]
-
-outfile = sys.argv[2]
-
-lldf = pd.read_csv(csv_path)
 background_annotation = complete_annotation
 term_columns=['COG_category', 'GOs', 'KEGG_ko', 'EC', 'PFAMs']
 
@@ -155,6 +151,9 @@ def get_EC_info(term):
     return ec_df['EC_description'].loc[ec_df['EC'] == term].values[0]
         
 # ENRICHMENT_ESSENTIAL_FINAL END
+def init_pool(data):
+    global lldf
+    lldf = data
 
 def process_module(m):
     term_dfs = []
@@ -200,13 +199,18 @@ def process_module(m):
     return module_df
 
 if __name__ == '__main__':
+    
+    data_bytes = sys.stdin.buffer.read()
+    lldf = pickle.loads(data_bytes)
+    
+    # Process data in parallel
+    with Pool(initializer=init_pool, initargs=(lldf,)) as pool:
+        # module_dfs = list(tqdm.tqdm(pool.imap(process_module, sorted(lldf['label'].unique())), total=len(lldf['label'].unique())))
+        module_dfs = list(pool.imap(process_module, sorted(lldf['label'].unique())))
 
-    with Pool() as pool:
-        module_dfs = list(tqdm.tqdm(pool.imap(process_module, sorted(lldf['label'].unique())), total=len(lldf['label'].unique())))
 
+    # Concatenate results
     all_enrichment_df = pd.concat(module_dfs)
 
-    all_enrichment_df.to_csv(outfile, index=False)
-
-
-
+    output_bytes = pickle.dumps(all_enrichment_df)
+    sys.stdout.buffer.write(output_bytes)

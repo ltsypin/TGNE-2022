@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 import numpy as np
 from sklearn.metrics import silhouette_score, pairwise_distances
@@ -134,6 +135,7 @@ def format_partition_for_enrichment(df, partition):
     edf['label'] = partition
     return edf
 
+import pickle
 
 def compute_enrichment(df, partition=None):
     edf = df
@@ -141,23 +143,12 @@ def compute_enrichment(df, partition=None):
     if partition is not None:
         edf = format_partition_for_enrichment(df, partition)
 
-    temp_scan_file = os.path.join(file_dir, 'temp_scan_partition.csv')
+    data_bytes = pickle.dumps(edf)
 
-    temp_enrich_file = os.path.join(file_dir, 'temp_scan_enrich.csv')
+    process = subprocess.Popen([sys.executable, 'fast_enrichment_analysis.py'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=file_dir)
+    stdout, _ = process.communicate(data_bytes)
 
-    edf.to_csv(temp_scan_file, index=False)
-
-    print(file_dir)
-
-    process = subprocess.run(['python3', 'fast_enrichment_analysis.py', temp_scan_file, temp_enrich_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=file_dir)
-    if not process.returncode == 0:
-        raise(RuntimeError(f"Subprocess returned an error. Return code: {process.returncode}\nError output: {process.stderr.decode('utf-8')}"))
-
-    cedf = pd.read_csv(temp_enrich_file)
-    
-    remove_file(temp_scan_file)
-
-    remove_file(temp_enrich_file)
+    cedf = pickle.loads(stdout)
 
     return cedf
 
