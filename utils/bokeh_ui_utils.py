@@ -57,6 +57,7 @@ def plot_enrichment(enrich_column_data_source):
         x_axis_type='log',
         tooltips=hover,
         # background_fill_color='black'
+        sizing_mode='stretch_both'
     )
     
     # cds = bokeh.models.ColumnDataSource(enrich_df)
@@ -162,7 +163,7 @@ def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors,
         tooltips=lt_tooltip,
         title=s_z,
         toolbar_location='right',
-        
+        sizing_mode='stretch_both'
     )
     
     p.rect(
@@ -366,8 +367,8 @@ def interactive(
                 #     "Color key must have enough colors for the number of labels"
                 # )
                 
-                print('Color key has fewer colors than labels. Making all white')
-                data['color'] = ['white']*len(labels)
+                print('Color key has fewer colors than labels. Making all red')
+                data['color'] = ['red']*len(labels)
             else:
 
                 new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
@@ -422,7 +423,8 @@ def interactive(
         tooltips=tooltips,
         tools="tap,box_select,pan,wheel_zoom,box_zoom,reset,save",
         background_fill_color=background,
-        title=title
+        title=title,
+        sizing_mode='stretch_both'
 #             x_range=(np.floor(min(points[:,0])), np.ceil(max(points[:,0]))), # Get axes
 #             y_range=(np.floor(min(points[:,1])), np.ceil(max(points[:,1])))
     )
@@ -523,7 +525,8 @@ def interactive(
                                      # x_axis_label='Phase or condition',
                                      y_axis_label=y_axis_label,
                                      x_range=x_heatmap_profile, 
-                                     y_range=y_range
+                                     y_range=y_range,
+                                     sizing_mode='stretch_both'
                                     )
 
     expr_fig.multi_line('expr_xs', 
@@ -578,6 +581,7 @@ def interactive(
                       sortable=True,
                       index_width=10,
                       fit_columns=False,
+                      sizing_mode='stretch_both'
                      )
     
     heatmap_callback = CustomJS(
@@ -600,7 +604,6 @@ def interactive(
         
         var selected_ttherm_ids = [];
         
-        //Careful here! Number is hardcoded to match the number of genes in dataset
         var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
         
         if (inds.length == 0) {
@@ -765,7 +768,7 @@ def interactive(
     data_source.selected.js_on_change('indices', selection_callback, expression_callback, heatmap_callback)
 
     if interactive_text_search:
-        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", width=640)
+        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", width=640, sizing_mode='stretch_both')
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -903,7 +906,7 @@ def interactive(
     max_label_num_str = (sorted_module_list[len(module_list) - 1]).replace('m', '')
     max_label_num_len = len(max_label_num_str)
 
-    spinner = Spinner(title="Module #", low=0, high=int(max_label_num_str), step=1, value=0, width=80)
+    spinner = Spinner(title="Module #", low=0, high=int(max_label_num_str), step=1, value=0, width=80, sizing_mode='stretch_both')
 
     interactive_text_search_columns_spinner = []
     if labels is not None:
@@ -1002,7 +1005,7 @@ table.change.emit();
 
 
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    button1 = Button(label="Download Annotation Table", button_type="success", width=400)
+    button1 = Button(label="Download Annotation Table", button_type="success", width=400, sizing_mode='stretch_both')
     button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
@@ -1030,7 +1033,7 @@ table.change.emit();
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
     enrich_p = plot_enrichment(enrich_cds)
     
-    button2 = Button(label="Download Functional Enrichment Data", button_type="success", width=400)
+    button2 = Button(label="Download Functional Enrichment Data", button_type="success", width=400, sizing_mode='stretch_both')
     button2.js_on_click(
         CustomJS(
             args=dict(source_data=enrich_cds),
@@ -1054,7 +1057,7 @@ table.change.emit();
     
     
     if interactive_text_search:
-        plot = column(row(column(plot, expr_fig), hm, enrich_p), row(spinner, text_input, button1, button2), table)
+        plot = column(row(column(plot, expr_fig, sizing_mode='stretch_height'), hm, enrich_p, sizing_mode='stretch_width'), row(spinner, text_input, button1, button2, sizing_mode='scale_width'), table, sizing_mode='stretch_both')
     else:
         plot = column(row(column(plot, expr_fig), hm, enrich_p), row(button1, button2), table)
 

@@ -5,8 +5,10 @@ import re
 import pandas as pd
 from multiprocessing import Pool
 import numpy as np
+import os
 import time
 
+file_dir = os.path.dirname(os.path.abspath(__file__))
 
 def get_GO_info(go_term):
 
@@ -59,7 +61,7 @@ def process_go_chunk(annotation_df):
 
 if __name__ == '__main__':
 
-    complete_annotation_df = pd.read_csv('~/git/TGNE-2022/TGNE/eggnog/complete_eggnog_annotation.csv')
+    complete_annotation_df = pd.read_csv(os.path.join(file_dir, '../../active_fastas/annotations.csv'))
 
     go_terms = []
 
@@ -81,4 +83,4 @@ if __name__ == '__main__':
 
     print(go_result_df.shape)
 
-    go_result_df.to_csv('~/git/TGNE-2022/TGNE/enrichment/go_annotations.csv', index=False)
+    go_result_df.to_csv(os.path.join(file_dir, './go_annotations.csv'), index=False)

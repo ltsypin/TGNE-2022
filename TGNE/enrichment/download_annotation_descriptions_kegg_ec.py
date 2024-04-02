@@ -3,8 +3,10 @@ import re
 import pandas as pd
 import time
 import numpy as np
+import os
 from bs4 import BeautifulSoup
 
+file_dir = os.path.dirname(os.path.abspath(__file__))
 
 def get_KEGG_info(term):
     try:
@@ -38,7 +40,7 @@ def get_EC_info(term):
 
 if __name__ == '__main__':
 
-    complete_annotation_df = pd.read_csv('~/git/TGNE-2022/TGNE/eggnog/complete_eggnog_annotation.csv')
+    complete_annotation_df = pd.read_csv(os.path.join(file_dir, '../../active_fastas/annotations.csv'))
 
     kegg_terms = []
 
@@ -101,8 +103,8 @@ ec_df = pd.DataFrame({
 
 print(kegg_df.shape)
 
-kegg_df.to_csv('~/git/TGNE-2022/TGNE/enrichment/kegg_annotations.csv', index=False)
+kegg_df.to_csv(os.path.join(file_dir, './kegg_annotations.csv'), index=False)
 
 print(ec_df.shape)
 
-ec_df.to_csv('~/git/TGNE-2022/TGNE/enrichment/ec_annotations.csv', index=False)
+ec_df.to_csv(os.path.join(file_dir, './ec_annotations.csv'), index=False)

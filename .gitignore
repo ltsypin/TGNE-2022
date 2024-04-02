@@ -62,11 +62,11 @@ TGNE/embedding/mcl_rcl/*.txt
 
 archived_pipelines/*
 
-TGNE/clustering_optimization/*.csv
+TGNE/clustering_optimization/**/*.csv
 
 *.db
 
-TGNE/embedding/same_cluster_TTHERMS
+TGNE/embedding/same_cluster_TTHERMS.txt
 
 *.mci
 

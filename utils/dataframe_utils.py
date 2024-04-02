@@ -1,8 +1,19 @@
 import pandas as pd
 import numpy as np
 import sqlite3
+import scipy.stats as st
 
 # dataframe_utils
+
+def get_hypercube_sample(dimensions, samples):
+    sampler = st.qmc.LatinHypercube(d=dimensions)
+    # sampler = st.qmc.Sobol(d=dimensions)
+
+    hypercube_sample = sampler.random(n=samples)
+
+    # print(st.qmc.discrepancy(hypercube_sample, workers=-1))
+
+    return pd.DataFrame(hypercube_sample)
 
 def shuffle_row(row):
     shuffled_row = row.values.copy()
