@@ -59,15 +59,21 @@ expression_data_path = os.path.join(file_dir, '../../new_raw_data/rna_seq_proces
 # metrics = sys.argv[1:]
 # metrics = ['manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
 # metrics = ['clr', 'manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
-metrics = ['cosine']
+# metrics = ['cosine']
+metrics = [sys.argv[1]]
+
 
 # scan_nns = np.arange(2, 13, 1)
-scan_nns = [8]
+# scan_nns = [8]
+scan_nns = [int(sys.argv[2])]
+
 
 # scan_rps = np.arange(0.005, 1.1, 0.005)
 # scan_rps = np.arange(0.1, 1.1, 0.1)
 # scan_rps = [0.030, 0.035]
-scan_rps = [0.030]
+# scan_rps = [0.030]
+scan_rps = np.arange(0.005, 1.1, 0.005)
+
 
 partition_type = 'EXP'
 # partition_type = 'NC'
