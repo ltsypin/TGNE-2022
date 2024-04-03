@@ -1,0 +1,44 @@
+### DB DOWNLOAD COMMANDS
+
+download_eggnog_data.py --data_dir /project2/apturkew/ -P -H -d 2759 --dbname '2759'
+
+Download main annotation database? [y,n] y
+Downloading "eggnog.db" at /project2/apturkew...
+
+cd /project2/apturkew && wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O eggnog.db.gz http://eggnogdb.embl.de/download/emapperdb-5.0.2/eggnog.db.gz && echo Decompressing... && gunzip eggnog.db.gz
+
+Download taxa database? [y,n] y
+Downloading "eggnog.taxa.db" at /project2/apturkew...
+
+cd /project2/apturkew && wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O eggnog.taxa.tar.gz http://eggnogdb.embl.de/download/emapperdb-5.0.2/eggnog.taxa.tar.gz && echo Decompressing... && tar -zxf eggnog.taxa.tar.gz && rm eggnog.taxa.tar.gz
+
+Download diamond database (~4GB after decompression)? [y,n] n
+Skipping
+Skipping novel families diamond and annotation databases (or already present). Use -F and -f to force download
+
+Download pfam database (~3GB after decompression)? [y,n] y
+Downloading Pfam files " at /project2/apturkew...
+
+cd /project2/apturkew && wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O pfam.tar.gz http://eggnogdb.embl.de/download/emapperdb-5.0.2/pfam.tar.gz && echo Decompressing... && tar -zxf pfam.tar.gz && rm pfam.tar.gz
+
+Skipping MMseqs2 database (or already present). Use -M and -f to force download
+
+Download HMMER database of tax ID 2759? [y,n] y
+Downloading HMMER database of tax ID 2759 as "2759" to /project2/apturkew/hmmer/2759
+Note that this can take a long time for large taxonomic levels
+
+cd /project2/apturkew/hmmer/2759; echo Downloading HMMs... && wget -N -nH --user-agent=Mozilla/5.0 --relative -r --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off http://eggnog5.embl.de/download/eggnog_5.0/per_tax_level/2759//2759_hmms.tar.gz && echo Decompressing HMMs... && tar zxf 2759_hmms.tar.gz && echo 2759/* | xargs mv -t ./ && rm -r 2759 && rm 2759_hmms.tar.gz; numf=$(find ./ | grep -c ".hmm$"); curr=0; cat /dev/null > 2759.hmm_tmp; for file in $(find ./ | grep ".hmm$"); do curr=$((curr+1)); echo "merging HMMs... ${file} (${curr}/${numf})"; cat "${file}" | sed -e "s/.faa.final_tree.fa//" -e "s/.faa.final_tree//" >> 2759.hmm_tmp; rm "${file}"; done; mv 2759.hmm_tmp 2759.hmm; (if [ -f 2759.hmm.h3i ]; then rm 2759.hmm.h3*; fi) && echo "hmmpress-ing HMMs... " && /home/bertagna/bin/hmmer-3.4/src/hmmpress 2759.hmm && echo "generating idmap file... " && cat 2759.hmm | grep "^NAME" | sed -e "s/^NAME *//" | awk '{print NR" "$0}' > 2759.hmm.idmap && echo "removing single OG hmm files... " && echo ./*hmm | xargs rm;
+
+cd /project2/apturkew/hmmer/2759; echo Downloading FASTAs... && wget -N -nH --user-agent=Mozilla/5.0 --relative -r --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off http://eggnog5.embl.de/download/eggnog_5.0/per_tax_level/2759//2759_raw_algs.tar && echo Decompressing FASTAs... && tar xf 2759_raw_algs.tar && echo 2759/* | xargs mv -t ./ && rm -r 2759 && rm 2759_raw_algs.tar; numf=$(find ./ | grep -c ".faa.gz$"); curr=0; for file in $(find ./ | grep ".faa.gz$"); do curr=$((curr+1)); echo "processing FASTAs...  ${file} (${curr}/${numf})"; outf=$(echo "$file" | sed "s/\.raw_alg\.faa\.gz/\.fa/"); zcat "$file" | awk '/^>/{print; next}{gsub("-", ""); print}' > "$outf" && rm "$file"; done
+
+Finished.
+
+
+### EGGNOG MAPPER COMMANDS
+
+#### LOAD THE DB INTO MEMORY FIRST
+emapper.py --data_dir /project2/apturkew/michael/eggnog_data -m hmmer -d 2759 -i ./Tthermophila_MAC_protein_2021.fasta -o Ttherm2021MAC_eggnog_hmmer_default_evalue --cpu 0 --tax_scope Eukaryota --target_taxa 2759 --report_orthologs --report_no_hits --go_evidence non-electronic --pfam_realign realign --dbtype hmmdb --dbmem
+
+#### DO NOT LOAD THE DB INTO MEMORY FIRST
+emapper.py --data_dir /project2/apturkew/michael/eggnog_data -m hmmer -d 2759 -i ./Tthermophila_MAC_protein_2021.fasta -o Ttherm2021MAC_eggnog_hmmer_default_evalue --cpu 0 --tax_scope Eukaryota --target_taxa 2759 --report_orthologs --report_no_hits --go_evidence non-electronic --pfam_realign realign --dbtype hmmdb
+

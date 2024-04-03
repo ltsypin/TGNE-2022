@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # First, make sure that everything is install and paths are set as described
 # here: https://github.com/eggnogdb/eggnog-mapper/wiki/eggNOG-mapper-v2.1.5-to-v2.1.6
 

@@ -1,0 +1,42 @@
+---
+title: "Gene Filtering for new and improved 2021 TGN"
+output: html_notebook
+---
+
+## Load libraries and set env
+```{r}
+setwd("~/git/TGNE-2022/TGNE/microarray_probe_alignment_and_filtering/")
+library(geneplotter)
+print("geneplotter:")
+print(packageVersion("geneplotter"))
+
+library(RColorBrewer)
+print("RColorBrewer:")
+print(packageVersion("RColorBrewer"))
+
+library(maSigPro)
+print("maSigPro:")
+print(packageVersion("maSigPro"))
+
+library(actuar)
+print("actuar:")
+print(packageVersion("actuar"))
+
+library(fitdistrplus)
+print("fitdistrplus:")
+print(packageVersion("fitdistrplus"))
+
+library(ggplot2)
+print("ggplot2:")
+print(packageVersion("ggplot2"))
+
+library(Hmisc)
+print("Hmisc:")
+print(packageVersion("Hmisc"))
+
+library(WGCNA)
+print("WGCNA:")
+print(packageVersion("WGCNA"))
+
+sessionInfo()
+```
