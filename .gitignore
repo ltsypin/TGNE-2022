@@ -91,3 +91,4 @@ active_fastas/*
 *.gz
 
 TGNE/enrichment/**/*.csv
+*.zip
