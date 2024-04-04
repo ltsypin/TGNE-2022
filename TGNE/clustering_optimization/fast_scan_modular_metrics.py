@@ -53,38 +53,37 @@ p_minkowski = None
 # expression_dataset = 'rna_seq'
 # expression_data_path = os.path.join(file_dir, '../../new_raw_data/rna_seq_processed/kallisto.csv')
 
-expression_dataset = 'microarray'
-expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+# expression_dataset = 'microarray'
+# expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
 
-# manually curated metrics + metrics refered to in the documentation
-all_doc_metrics = ['angular', 'clr'] + ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'] + ['nan_euclidean'] + ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
-# manually curated metrics + metrics refered to in metric parameter ValueError (sklearn documentation is likely not updated)
-all_metrics = ['angular', 'clr'] + ['euclidean', 'l2', 'l1', 'manhattan', 'cityblock', 'braycurtis', 'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'hamming', 'jaccard', 'mahalanobis', 'matching', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule', 'wminkowski', 'nan_euclidean', 'haversine']
-# metrics that covert data to boolean (essentially destroying all information for our data) (20 clusters are always produced with the same exact size)
-boolean_metrics = [
-'dice',
-'jaccard',
-'rogerstanimoto',
-'russellrao',
-'sokalmichener',
-'sokalsneath',
-'yule',
-]
-metrics = ['clr', 'manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
-# metrics = [sys.argv[1]]
-metrics = [m for m in all_metrics if m not in metrics + boolean_metrics and m[: len('minkowski')] != 'minkowski']
+# # manually curated metrics + metrics refered to in the documentation
+# all_doc_metrics = ['angular', 'clr'] + ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'] + ['nan_euclidean'] + ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
+# # manually curated metrics + metrics refered to in metric parameter ValueError (sklearn documentation is likely not updated)
+# all_metrics = ['angular', 'clr'] + ['euclidean', 'l2', 'l1', 'manhattan', 'cityblock', 'braycurtis', 'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'hamming', 'jaccard', 'mahalanobis', 'matching', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule', 'wminkowski', 'nan_euclidean', 'haversine']
+# # metrics that covert data to boolean (essentially destroying all information for our data) (20 clusters are always produced with the same exact size)
+# boolean_metrics = [
+# 'dice',
+# 'jaccard',
+# 'rogerstanimoto',
+# 'russellrao',
+# 'sokalmichener',
+# 'sokalsneath',
+# 'yule',
+# ]
+# metrics = ['clr', 'manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
+# metrics = [m for m in all_metrics if m not in metrics + boolean_metrics and m[: len('minkowski')] != 'minkowski']
+metrics = [sys.argv[1]]
 
 
 # scan_nns = np.arange(2, 13, 1)
-scan_nns = [3]
-# scan_nns = [int(sys.argv[2])]
+# scan_nns = [3]
+scan_nns = [int(sys.argv[2])]
 
 
-# scan_rps = np.arange(0.005, 1.1, 0.005)
 # scan_rps = np.arange(0.1, 1.1, 0.1)
 # scan_rps = [0.030, 0.035]
-scan_rps = [0.030]
-# scan_rps = np.arange(0.005, 1.1, 0.005)
+# scan_rps = [0.030]
+scan_rps = np.arange(0.005, 1.1, 0.005)
 
 
 partition_type = 'EXP'

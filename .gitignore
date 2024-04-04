@@ -92,3 +92,4 @@ active_fastas/*
 
 TGNE/enrichment/**/*.csv
 *.zip
+*.sbatch
