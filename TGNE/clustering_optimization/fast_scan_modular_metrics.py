@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 import sys
 import os
+import warnings
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -49,26 +50,36 @@ p_minkowski = None
 # PARAMETERS
 ################################################################################
 
-expression_dataset = 'rna_seq'
-expression_data_path = os.path.join(file_dir, '../../new_raw_data/rna_seq_processed/kallisto.csv')
+# expression_dataset = 'rna_seq'
+# expression_data_path = os.path.join(file_dir, '../../new_raw_data/rna_seq_processed/kallisto.csv')
 
-# expression_dataset = 'microarray'
-# expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+expression_dataset = 'microarray'
+expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
 
-
-# metrics = sys.argv[1:]
-# metrics = ['manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
+# # manually curated metrics + metrics refered to in the documentation
+# all_doc_metrics = ['angular', 'clr'] + ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'] + ['nan_euclidean'] + ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
+# # manually curated metrics + metrics refered to in metric parameter ValueError (sklearn documentation is likely not updated)
+# all_metrics = ['angular', 'clr'] + ['euclidean', 'l2', 'l1', 'manhattan', 'cityblock', 'braycurtis', 'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'hamming', 'jaccard', 'mahalanobis', 'matching', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule', 'wminkowski', 'nan_euclidean', 'haversine']
+# # metrics that covert data to boolean (essentially destroying all information for our data) (20 clusters are always produced with the same exact size)
+# boolean_metrics = [
+# 'dice',
+# 'jaccard',
+# 'rogerstanimoto',
+# 'russellrao',
+# 'sokalmichener',
+# 'sokalsneath',
+# 'yule',
+# ]
 # metrics = ['clr', 'manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
-# metrics = ['cosine']
+# metrics = [m for m in all_metrics if m not in metrics + boolean_metrics and m[: len('minkowski')] != 'minkowski']
 metrics = [sys.argv[1]]
 
 
 # scan_nns = np.arange(2, 13, 1)
-# scan_nns = [8]
+# scan_nns = [3]
 scan_nns = [int(sys.argv[2])]
 
 
-# scan_rps = np.arange(0.005, 1.1, 0.005)
 # scan_rps = np.arange(0.1, 1.1, 0.1)
 # scan_rps = [0.030, 0.035]
 # scan_rps = [0.030]
@@ -121,7 +132,12 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
             p_minkowski = float(metric_p_split[1])
 
         if metric != 'clr':
-            distance_matrix = clustering_utils.compute_pairwise_distance_matrix(raw_data, metric, n_jobs, p_minkowski)
+            try:
+                distance_matrix = clustering_utils.compute_pairwise_distance_matrix(raw_data, metric, n_jobs, p_minkowski)
+            except ValueError as e:
+                warnings.warn(f'The distance metric {metric_p} resulted in the following error:\n{e}')
+                continue
+
             nn_idxs, nn_dists = clustering_utils.compute_nns(raw_data, max(scan_nns), metric, random_state, n_jobs, p_minkowski, distance_matrix)
 
         for idx, nn in enumerate(scan_nns):     
@@ -202,10 +218,13 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
 
                 'datetime': curr_datetime
                 }
-
-                output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
                 
-                file_utils.write_to_csv(output_file, cluster_stats, list(cluster_stats.keys()))
+                try:
+                    output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
+                    file_utils.write_to_csv(output_file, cluster_stats, list(cluster_stats.keys()))
+                except Exception as e:
+                    output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
+                    file_utils.write_to_csv(output_file, cluster_stats, list(cluster_stats.keys()))
 
 if os.path.exists(output_file):
     print(f'SCAN RESULTS WRITTEN TO: {output_file}')

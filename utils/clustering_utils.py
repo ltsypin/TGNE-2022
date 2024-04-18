@@ -57,8 +57,17 @@ def compute_pairwise_distance_matrix(data_arr, metric, n_jobs=-1, p_minkowski=1)
 
     if metric == 'minkowski':
         pair_dists = pairwise_distances(data_arr, metric=metric, n_jobs=n_jobs, p=p_minkowski)
-    else:
-        pair_dists = pairwise_distances(data_arr, metric=metric, n_jobs=n_jobs)
+        return pair_dists
+    
+    if metric == 'angular':
+        pair_dists = pairwise_distances(data_arr, metric='cosine', n_jobs=n_jobs)
+        angular_pair_dists = (2 * np.arccos(1 - pair_dists)) / np.pi
+        np.fill_diagonal(angular_pair_dists, 0)
+        return angular_pair_dists
+
+    pair_dists = pairwise_distances(data_arr, metric=metric, n_jobs=n_jobs)
+
+    np.fill_diagonal(pair_dists, 0)
     
     return pair_dists
 
