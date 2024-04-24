@@ -57,7 +57,8 @@ def plot_enrichment(enrich_column_data_source):
         x_axis_type='log',
         tooltips=hover,
         # background_fill_color='black'
-        sizing_mode='stretch_both'
+        sizing_mode='stretch_both',
+        output_backend="webgl"
     )
     
     # cds = bokeh.models.ColumnDataSource(enrich_df)
@@ -163,7 +164,8 @@ def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors,
         tooltips=lt_tooltip,
         title=s_z,
         toolbar_location='right',
-        sizing_mode='stretch_both'
+        sizing_mode='stretch_both',
+        output_backend="webgl"
     )
     
     p.rect(
@@ -368,7 +370,7 @@ def interactive(
                 # )
                 
                 print('Color key has fewer colors than labels. Making all red')
-                data['color'] = ['red']*len(labels)
+                data['color'] = ['green']*len(labels)
             else:
 
                 new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
@@ -424,7 +426,8 @@ def interactive(
         tools="tap,box_select,pan,wheel_zoom,box_zoom,reset,save",
         background_fill_color=background,
         title=title,
-        sizing_mode='stretch_both'
+        sizing_mode='stretch_both',
+        output_backend="webgl"
 #             x_range=(np.floor(min(points[:,0])), np.ceil(max(points[:,0]))), # Get axes
 #             y_range=(np.floor(min(points[:,1])), np.ceil(max(points[:,1])))
     )
@@ -526,7 +529,8 @@ def interactive(
                                      y_axis_label=y_axis_label,
                                      x_range=x_heatmap_profile, 
                                      y_range=y_range,
-                                     sizing_mode='stretch_both'
+                                     sizing_mode='stretch_both',
+                                     output_backend="webgl"
                                     )
 
     expr_fig.multi_line('expr_xs', 
@@ -1397,11 +1401,11 @@ def compute_2d_embedding_point_radius(embedding_df):
     return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / 339.30587926495537
 
 
-def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1):
+def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean'):
     
     data = expression_df[list(expression_df.columns)[1:]].values
     
-    umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors).fit(data)
+    umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
     embedding = _get_umap_embedding(umap_mapper)
     
     umap_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))

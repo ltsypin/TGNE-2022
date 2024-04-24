@@ -8,6 +8,7 @@ main_dir = '../TGNE/'
 go_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/go_annotations.csv'))
 kegg_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/kegg_annotations.csv'))
 ec_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/ec_annotations.csv'))
+pfam_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/pfam_annotations.csv'))
 
 
 def get_GO_info(go_term):
@@ -25,6 +26,9 @@ def get_KEGG_info(term):
 
 def get_EC_info(term):
     return ec_df['EC_description'].loc[ec_df['EC'] == term].values[0]
+
+def get_PFAM_info(term):
+    return pfam_df['PFAMs_description'].loc[pfam_df['PFAMs'] == term].values[0]
 
 # As of 2020 https://www.ncbi.nlm.nih.gov/research/cog/
 COG_dict = {

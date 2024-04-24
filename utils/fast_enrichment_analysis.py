@@ -138,7 +138,7 @@ def process_module(m):
 
         elif tc == 'PFAMs':
             for t in terms:
-                info.append('-')
+                info.append(annotation_info.get_PFAM_info(t))
                 
         term_df = pd.DataFrame({'module': [m]*len(terms),
                                 'term': terms,
