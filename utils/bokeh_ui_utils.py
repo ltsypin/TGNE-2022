@@ -7,7 +7,7 @@ import bokeh
 from bokeh.plotting import show as show_interactive
 from bokeh.plotting import output_file, output_notebook
 from bokeh.layouts import column, row
-from bokeh.models import CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem, Spinner
+from bokeh.models import Div, ColumnDataSource, CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem, Spinner
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn, Button, HTMLTemplateFormatter
 from bokeh.events import SelectionGeometry
 from bokeh.transform import linear_cmap, jitter
@@ -31,7 +31,7 @@ def _get_umap_embedding(umap_object):
     else:
         raise ValueError("Could not find embedding attribute of umap_object")
         
-def plot_enrichment(enrich_column_data_source):
+def plot_enrichment(enrich_column_data_source, plot_sizing_mode='stretch_both'):
     
     # pdb.set_trace()
     
@@ -48,8 +48,6 @@ def plot_enrichment(enrich_column_data_source):
     ]
     
     p = bokeh.plotting.figure(
-        height=1000,
-        width=400,
         # y_range=y_range,
         title='Functional term enrichment in modules',
         x_axis_label='fold-change',
@@ -57,7 +55,7 @@ def plot_enrichment(enrich_column_data_source):
         x_axis_type='log',
         tooltips=hover,
         # background_fill_color='black'
-        sizing_mode='stretch_both',
+        sizing_mode=plot_sizing_mode,
         output_backend="webgl"
     )
     
@@ -83,7 +81,7 @@ def plot_enrichment(enrich_column_data_source):
     
     return p
 
-def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors, y_axis_factors, s_z="normalized_expression", index_name='TTHERM_ID', col_name='phase'):
+def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors, y_axis_factors, s_z="normalized_expression", index_name='TTHERM_ID', col_name='phase', plot_sizing_mode='stretch_both'):
     # adapted from https://gitlab.com/biotransistor/bokehheat/-/blob/master/bokehheat/heat.py
     """
     input:
@@ -157,14 +155,12 @@ def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors,
     p = bokeh.plotting.figure(
         y_range=y_axis_factors,
         x_range=x_axis_factors,
-        width=400,
-        height=1000,
         tools = "box_zoom,hover,pan,reset,wheel_zoom,save",  # have to be set hardcoded
         active_drag = "box_zoom",  # have to be set hardcoded
         tooltips=lt_tooltip,
         title=s_z,
         toolbar_location='right',
-        sizing_mode='stretch_both',
+        sizing_mode=plot_sizing_mode,
         output_backend="webgl"
     )
     
@@ -216,7 +212,10 @@ def interactive(
     interactive_text_search_alpha_contrast=0.999,
     alpha=None,
     expr_min = 0,
-    expr_max = 1
+    expr_max = 1,
+    plot_sizing_mode='stretch_both',
+    table_sizing_mode = 'stretch_both',
+    search_sizing_mode = 'stretch_both'
 ):
     """Create an interactive bokeh plot of a UMAP embedding.
     While static plots are useful, sometimes a plot that
@@ -420,13 +419,11 @@ def interactive(
     # print(data_source.data['ID'][:5])
 
     plot = bokeh.plotting.figure(
-        width=800,
-        height=500,
         tooltips=tooltips,
         tools="tap,box_select,pan,wheel_zoom,box_zoom,reset,save",
         background_fill_color=background,
         title=title,
-        sizing_mode='stretch_both',
+        sizing_mode=plot_sizing_mode,
         output_backend="webgl"
 #             x_range=(np.floor(min(points[:,0])), np.ceil(max(points[:,0]))), # Get axes
 #             y_range=(np.floor(min(points[:,1])), np.ceil(max(points[:,1])))
@@ -501,7 +498,7 @@ def interactive(
     # hm_cds.data['y_axis'] = ttherm_ids
 
     
-    hm = heatmap(hm_cds, bokeh.palettes.Inferno256, hm_min, hm_max, x_heatmap_profile, ttherm_ids)
+    hm = heatmap(hm_cds, bokeh.palettes.Inferno256, hm_min, hm_max, x_heatmap_profile, ttherm_ids, plot_sizing_mode=plot_sizing_mode)
     
     
 
@@ -522,14 +519,13 @@ def interactive(
     #     y_axis_label = 'Geometric mean expression of replicates (log2-scale)'
     #     y_range = (3.9, 16.1)
     
-    expr_fig = bokeh.plotting.figure(width=800, 
-                                     height=500,
+    expr_fig = bokeh.plotting.figure(
                                      background_fill_color=background,
                                      # x_axis_label='Phase or condition',
                                      y_axis_label=y_axis_label,
                                      x_range=x_heatmap_profile, 
                                      y_range=y_range,
-                                     sizing_mode='stretch_both',
+                                     sizing_mode=plot_sizing_mode,
                                      output_backend="webgl"
                                     )
 
@@ -554,38 +550,36 @@ def interactive(
     # For data table
     s2 = bokeh.plotting.ColumnDataSource(data=dict(ID=[]))
 
-    columns = [TableColumn(field="ID",  title="TTHERM_ID", width=160, formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>')),
-               TableColumn(field="module",  title="Module", width=160),
-               TableColumn(field='TGD2021_description', title='TGD2021_description', width=160),
-               TableColumn(field="Description", title="eggNOG_description", width=160),
-               TableColumn(field="Preferred_name", title="eggNOG_preferred_name", width=160),
-               TableColumn(field="max_annot_lvl", title="max_annot_lvl", width=160),
-               TableColumn(field="COG_category", title="COG_category", width=160),
-               TableColumn(field='EC', title='EC', width=160),
-               TableColumn(field='GOs', title='GOs', width=160),
-               TableColumn(field='PFAMs', title='PFAMs', width=160),
-               TableColumn(field='KEGG_ko', title='KEGG_ko', width=160),
-               TableColumn(field='KEGG_Pathway', title='KEGG_Pathway', width=160),
-               TableColumn(field='KEGG_Module', title='KEGG_Module', width=160),
-               TableColumn(field='KEGG_Reaction', title='KEGG_Reaction', width=160),
-               TableColumn(field='KEGG_rclass', title='KEGG_rclass', width=160),
-               TableColumn(field='BRITE', title='BRITE', width=160),
-               TableColumn(field='KEGG_TC', title='KEGG_TC', width=160),
-               TableColumn(field='CAZy', title='CAZy', width=160),
-               TableColumn(field='BiGG_Reaction', title='BiGG_Reaction', width=160),
+    columns = [TableColumn(field="ID",  title="TTHERM_ID", formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>')),
+               TableColumn(field="module",  title="Module"),
+               TableColumn(field='TGD2021_description', title='TGD2021_description'),
+               TableColumn(field="Description", title="eggNOG_description"),
+               TableColumn(field="Preferred_name", title="eggNOG_preferred_name"),
+               TableColumn(field="max_annot_lvl", title="max_annot_lvl"),
+               TableColumn(field="COG_category", title="COG_category"),
+               TableColumn(field='EC', title='EC'),
+               TableColumn(field='GOs', title='GOs'),
+               TableColumn(field='PFAMs', title='PFAMs'),
+               TableColumn(field='KEGG_ko', title='KEGG_ko'),
+               TableColumn(field='KEGG_Pathway', title='KEGG_Pathway'),
+               TableColumn(field='KEGG_Module', title='KEGG_Module'),
+               TableColumn(field='KEGG_Reaction', title='KEGG_Reaction'),
+               TableColumn(field='KEGG_rclass', title='KEGG_rclass'),
+               TableColumn(field='BRITE', title='BRITE'),
+               TableColumn(field='KEGG_TC', title='KEGG_TC'),
+               TableColumn(field='CAZy', title='CAZy'),
+               TableColumn(field='BiGG_Reaction', title='BiGG_Reaction'),
 #                    TableColumn(field="x",  title="x"),
 #                    TableColumn(field="y",  title="y")
               ]
     table = DataTable(source=s2, 
                       columns=columns, 
-                      width=1600, 
-                      height=500,
                       editable=True,
                       selectable=True,
                       sortable=True,
-                      index_width=10,
+                    #   index_width=10,
                       fit_columns=False,
-                      sizing_mode='stretch_both'
+                      sizing_mode=table_sizing_mode
                      )
     
     heatmap_callback = CustomJS(
@@ -772,7 +766,7 @@ def interactive(
     data_source.selected.js_on_change('indices', selection_callback, expression_callback, heatmap_callback)
 
     if interactive_text_search:
-        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", width=640, sizing_mode='stretch_both')
+        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", sizing_mode=search_sizing_mode)
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -910,7 +904,7 @@ def interactive(
     max_label_num_str = (sorted_module_list[len(module_list) - 1]).replace('m', '')
     max_label_num_len = len(max_label_num_str)
 
-    spinner = Spinner(title="Module #", low=0, high=int(max_label_num_str), step=1, value=0, width=80, sizing_mode='stretch_both')
+    spinner = Spinner(title="", low=0, high=int(max_label_num_str), step=1, value=0, sizing_mode=search_sizing_mode)
 
     interactive_text_search_columns_spinner = []
     if labels is not None:
@@ -1009,8 +1003,8 @@ table.change.emit();
 
 
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    button1 = Button(label="Download Annotation Table", button_type="success", width=400, sizing_mode='stretch_both')
-    button1.js_on_click(
+    download_button1 = Button(label="D", button_type="success")
+    download_button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
             code="""
@@ -1035,10 +1029,10 @@ table.change.emit();
     enrich_df['color'] = colors
     
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
-    enrich_p = plot_enrichment(enrich_cds)
+    enrich_p = plot_enrichment(enrich_cds, plot_sizing_mode=plot_sizing_mode)
     
-    button2 = Button(label="Download Functional Enrichment Data", button_type="success", width=400, sizing_mode='stretch_both')
-    button2.js_on_click(
+    download_button2 = Button(label="D", button_type="success")
+    download_button2.js_on_click(
         CustomJS(
             args=dict(source_data=enrich_cds),
             code="""
@@ -1061,9 +1055,54 @@ table.change.emit();
     
     
     if interactive_text_search:
-        plot = column(row(column(plot, expr_fig, sizing_mode='stretch_height'), hm, enrich_p, sizing_mode='stretch_width'), row(spinner, text_input, button1, button2, sizing_mode='scale_width'), table, sizing_mode='stretch_both')
+
+
+        # FIXME: IMPLEMENT
+        text_search2 = TextInput(value="ENRICHMENT TERM SEARCH (UNDER CONSTRUCTION)", sizing_mode='stretch_width')
+
+        # FIXME: IMPLEMENT
+        data_module_stats = {'Module': [1, 2, 3, 4],
+                            'Stats': ['A', 'B', 'C', 'D']}
+        source_module_stats = ColumnDataSource(data=data_module_stats)
+        columns_module_stats = [TableColumn(field="Module", title="Module"),
+                                TableColumn(field="Stats", title="Stats")]
+        module_stats_table = DataTable(source=source_module_stats, columns=columns_module_stats)
+
+
+        spinner_text_html = """
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <p style="text-align: center;">MODULE #:</p>
+        </div>
+        """
+        spinner_custom_text = Div(text=spinner_text_html)
+
+        cola_sizing_mode = 'stretch_width'
+        colb_sizing_mode = 'stretch_width'
+
+        col1a = column(row(text_input, sizing_mode='stretch_width'), hm, height=800)
+        col1a.sizing_mode = cola_sizing_mode
+        col2a = column(row(text_search2, download_button1, sizing_mode='stretch_width'), enrich_p, height=800)
+        col2a.sizing_mode = cola_sizing_mode
+        col3a = column(row(spinner_custom_text, spinner, download_button2, sizing_mode='stretch_width'), plot, expr_fig, height=800)
+        col3a.sizing_mode = cola_sizing_mode
+
+        col1b = column(module_stats_table, height=800, max_width=450)
+        col1b.sizing_mode = colb_sizing_mode
+        col2b = column(table, height=800, max_width=100000)
+        col2b.sizing_mode = colb_sizing_mode
+
+        rows_sizing_mode = 'stretch_width'
+
+        rowa = row(row(col1a, col2a, sizing_mode=rows_sizing_mode), col3a)
+        rowa.sizing_mode = rows_sizing_mode
+        rowb = row(col1b, col2b)
+        rowb.sizing_mode = rows_sizing_mode
+
+        plot = column(rowa, rowb)
+        plot.sizing_mode = 'stretch_width'
+
     else:
-        plot = column(row(column(plot, expr_fig), hm, enrich_p), row(button1, button2), table)
+        plot = column(row(column(plot, expr_fig), hm, enrich_p), row(download_button1, download_button2), table)
 
     return plot
 

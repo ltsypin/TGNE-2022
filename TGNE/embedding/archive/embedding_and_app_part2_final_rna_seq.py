@@ -57,7 +57,7 @@ root_dir = '~/git/TGNE-2022/TGNE/embedding'
 # In[341]:
 
 
-full_filtered_df = pd.read_csv(os.path.join(root_dir, '../../new_raw_data/rna_seq_processed/kallisto.csv'))
+full_filtered_df = pd.read_csv(os.path.join(root_dir, '../../active_fastas/rna_seq.csv'))
 num_genes = full_filtered_df.shape[0]
 num_genes
 

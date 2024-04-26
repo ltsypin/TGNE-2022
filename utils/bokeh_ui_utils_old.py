@@ -1,237 +1,26 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# ## Import all packages
-
-# In[340]:
-
-
+import os
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pickle
-# import pdb
-
+import scipy.spatial
+import scipy.cluster.hierarchy
 import bokeh
 from bokeh.plotting import show as show_interactive
 from bokeh.plotting import output_file, output_notebook
 from bokeh.layouts import column, row
-from bokeh.models import CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem
+from bokeh.models import CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem, Spinner
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn, Button, HTMLTemplateFormatter
 from bokeh.events import SelectionGeometry
 from bokeh.transform import linear_cmap, jitter
-from matplotlib.pyplot import show as show_static
-# from clustergrammer2 import net, Network, CGM2
-
-import igraph as ig
-import leidenalg as la
-from sklearn.preprocessing import StandardScaler
-
-import scipy.stats as st
-import scipy.spatial
-import scipy.cluster.hierarchy
-
-# import glob
-# import json
-# import re
-# import copy
-
-# import requests
-# import bs4
-# import tqdm
-import os
-
-from Bio import SeqIO
-
 import umap
-# import pymde
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 
-# import torch
+from .microarray_utils import get_geom_mean_expression
 
-# bokeh.io.output_notebook()
+# bokeh_ui_utils
 
-root_dir = '~/git/TGNE-2022/TGNE/embedding'
-
-
-# In[341]:
-
-full_filtered_df = pd.read_csv(os.path.join(root_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv'))
-full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
-
-# full_filtered_df = pd.read_csv('../../active_fastas/rna_seq.csv')
-num_genes = full_filtered_df.shape[0]
-num_genes
-
-
-# In[342]:
-
-
-def get_geom_mean_expression(expression_df):
-    """
-    
-    Function to take an expression dataframe from the microarrays and collapse it into the means of
-    all replicate chips.
-    """
-    # C2 and S12 got removed during quality control
-    x = [
-        'Ll', 
-        'Lm', 
-        'Lh', 
-        'S0', 
-        'S3', 
-        'S6', 
-        'S9', 
-        # 'S12', 
-        'S15', 
-        'S24', 
-        'C0', 
-        # 'C2', 
-        'C4', 
-        'C6', 
-        'C8', 
-        'C10', 
-        'C12', 
-        'C14', 
-        'C16', 
-        'C18']
-    
-    # cols = expression_df.columns[1:]
-    # x = [c for c in x if c in cols]
-    
-    condition_expr_dict = {c.split("_")[0]: [] for c in expression_df.columns[1:]}
-    
-    for c in list(expression_df.columns)[1:]:
-        
-        cond = c.split('_')[0]
-        if cond in condition_expr_dict.keys():
-            expr_list = condition_expr_dict.get(cond, [])
-
-            # Need to avoid true zeros
-            expr_list.append(expression_df[c].values)
-            condition_expr_dict[cond] = expr_list
-        
-    condition_mean_dict = {c: (st.mstats.gmean(np.array(condition_expr_dict[c]) + 1, 0) - 1) for c in condition_expr_dict.keys() if c in x}
-    
-    mean_expr_df = pd.DataFrame(condition_mean_dict)
-    mean_expr_df['TTHERM_ID'] = expression_df['TTHERM_ID'].values
-    cols = list(mean_expr_df.columns)
-    reorder = cols[-1:] + cols[:-1]
-    mean_expr_df = mean_expr_df[reorder]
-    
-    return mean_expr_df
-
-def normalizer(array):
-    """
-    Normalizes the values of an array to range from zero to one
-    """
-    
-    a = np.array(array)
-    
-    normalized = (array - np.min(array)) / (np.max(array) - np.min(array))
-    
-    return normalized
-
-def normalize_expression_per_gene(expression_df):
-    """
-    Function to normalize all gene expression to range from zero to one.
-    """
-    if 'TTHERM_ID' in expression_df.columns:
-        ttids = expression_df['TTHERM_ID'].values
-        data = expression_df[list(expression_df.columns)[1:]]
-        
-        norm_expression_df = data.apply(lambda row: normalizer(row), axis=1)
-        norm_expression_df['TTHERM_ID'] = ttids
-        
-        columns = norm_expression_df.columns.tolist()
-        
-        rearrangment = columns[-1:] + columns[:-1]
-        
-        norm_expression_df = norm_expression_df[rearrangment]
-        
-    else:
-        norm_expression_df = expression_df.apply(lambda row: normalizer(row), axis=1)
-    
-    return norm_expression_df
-    
-
-
-def run_leiden(df, n_components=2, n_neighbors=3, random_state=42, metric='manhattan', return_dists=True):
-    """
-    Function to compute the simplicial sets for coexpression using UMAP and to then apply
-    the Leiden algorithm to cluster the resulting graph.
-    
-    Parameters:
-    -----------
-    df : pandas dataframe
-        the expression data
-    n_components : int (default 2)
-        the number of dimensions onto which the data should be projected
-    n_neighbors : int (default 15)
-        a parameter for the UMAP algorithm. I think it has to do with balancing
-        local vs. global topology in the data
-    random_state : float (default 42)
-        Constraining this parameter makes the output reproducible
-    metric : str (default "euclidean")
-        The distance function
-    return_dists : Bool (default True)
-        Whether the function should return the computed distances
-        
-    Returns:
-    --------
-    leiden_modules : np array
-        An array of ints, each corresponding to the module (or cluster) to which a gene belongs,
-        listed in ortder of the input dataframe
-    """
-    
-    data = df[list(df.columns)[1:]].values
-    
-#     mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors).fit(data)
-    
-    result, sigmas, rhos, dists = umap.umap_.fuzzy_simplicial_set(data, n_neighbors, random_state, metric, return_dists=return_dists)
-    
-    sources, targets = result.nonzero()
-    edge_list = zip(sources, targets)
-    weights = result.data
-    
-    g = ig.Graph(edges=edge_list, edge_attrs={'weight': weights})
-    
-    partition = la.find_partition(g, la.ModularityVertexPartition, seed=random_state, weights='weight')
-    leiden_modules = np.array(partition.membership)
-    
-    return leiden_modules, dists
-
-def build_leiden_label_df(data_df, phases, random_state=42, n_neighbors=3, metric='manhattan', lldf=None):
-    """
-    Function to build a dataframe of genes labeled according to their UMAP/Leiden modules
-    
-    Parameters:
-    -----------
-    data_df : pandas DataFrame
-        The expression data
-    phases : str ('full', 'veg', or 'sex')
-        The physiological phases for which expression data is being provided
-    lldf : pandas DataFrame (default None)
-        Another leiden label df (lldf) to which to add a column
-        
-    Returns:
-    --------
-    lldf : pandas DataFrame
-        Leiden Label DataFrame. Gene IDs and their corresponding UMAP/Leiden module
-        computed for a specific physiological regime (full set (full), vegetative only
-        (veg), or sexual only (sex))
-    """
-    
-    if type(lldf) == type(None):
-        lldf = pd.DataFrame.from_dict({'TTHERM_ID': []})
-    
-    leiden_modules, dists = run_leiden(data_df, random_state=random_state, n_neighbors=n_neighbors, metric=metric)
-    lldf['TTHERM_ID'] = data_df['TTHERM_ID'].values
-    
-    lldf[f'leiden_label_{phases}'] = leiden_modules
-    
-    return lldf, dists
-
+file_dir = os.path.dirname(os.path.abspath(__file__))
+main_dir = '../TGNE/'
 
 # The two functions below are taken and adapted from the UMAP package
 def _get_umap_embedding(umap_object):
@@ -268,6 +57,8 @@ def plot_enrichment(enrich_column_data_source):
         x_axis_type='log',
         tooltips=hover,
         # background_fill_color='black'
+        sizing_mode='stretch_both',
+        output_backend="webgl"
     )
     
     # cds = bokeh.models.ColumnDataSource(enrich_df)
@@ -373,7 +164,8 @@ def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors,
         tooltips=lt_tooltip,
         title=s_z,
         toolbar_location='right',
-        
+        sizing_mode='stretch_both',
+        output_backend="webgl"
     )
     
     p.rect(
@@ -402,6 +194,7 @@ def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors,
         
 def interactive(
     embedding_df,
+    num_genes,
     x,
     # mean_expression_df,
     title=None,
@@ -422,7 +215,8 @@ def interactive(
     interactive_text_search_columns=None,
     interactive_text_search_alpha_contrast=0.999,
     alpha=None,
-    normalized=True
+    expr_min = 0,
+    expr_max = 1
 ):
     """Create an interactive bokeh plot of a UMAP embedding.
     While static plots are useful, sometimes a plot that
@@ -575,8 +369,8 @@ def interactive(
                 #     "Color key must have enough colors for the number of labels"
                 # )
                 
-                print('Color key has fewer colors than labels. Making all white')
-                data['color'] = ['white']*len(labels)
+                print('Color key has fewer colors than labels. Making all red')
+                data['color'] = ['green']*len(labels)
             else:
 
                 new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
@@ -612,8 +406,10 @@ def interactive(
         alpha = 1
         data["alpha"] = alpha
     
-    print(list(hover_data['module'].values)[0:10])
-    print(list(hover_data['module'].values)[len(list(hover_data['module'].values))-11:len(list(hover_data['module'].values))-1])
+    # print(list(hover_data['module'].values)[0:10])
+    # print(list(hover_data['module'].values)[len(list(hover_data['module'].values))-11:len(list(hover_data['module'].values))-1])
+
+    # print('RADIUS:', radius)
 
     data_source = bokeh.plotting.ColumnDataSource(data)
     data_source.data['module'] = hover_data['module']
@@ -629,7 +425,9 @@ def interactive(
         tooltips=tooltips,
         tools="tap,box_select,pan,wheel_zoom,box_zoom,reset,save",
         background_fill_color=background,
-        title=title
+        title=title,
+        sizing_mode='stretch_both',
+        output_backend="webgl"
 #             x_range=(np.floor(min(points[:,0])), np.ceil(max(points[:,0]))), # Get axes
 #             y_range=(np.floor(min(points[:,1])), np.ceil(max(points[:,1])))
     )
@@ -684,13 +482,13 @@ def interactive(
     #      'C16', 
     #      'C18']
     
-    if normalized:
-        hm_min = 0
-        hm_max = 1
+    # if normalized:
+    hm_min = expr_min
+    hm_max = expr_max
         
-    else:
-        hm_min = 2
-        hm_max = 16
+    # else:
+    #     hm_min = 2
+    #     hm_max = 16
     
     # For companion heatmap plot
     ttherm_ids = embedding_df['TTHERM_ID'].values
@@ -702,7 +500,6 @@ def interactive(
     hm_cds.data['line_alpha'] = [0.7]*len(hm_df_tidy)
     # hm_cds.data['y_axis'] = ttherm_ids
 
-    print()
     
     hm = heatmap(hm_cds, bokeh.palettes.Inferno256, hm_min, hm_max, x_heatmap_profile, ttherm_ids)
     
@@ -717,13 +514,13 @@ def interactive(
         alpha=[0],
         color=['black']))
     
-    if normalized:
-        y_axis_label = 'Geometric mean expression of normalized replicates'
-        y_range = (-0.01, 1.01)
+    # if normalized:
+    y_axis_label = 'Geometric mean expression of normalized replicates'
+    y_range = (expr_min - 0.01, expr_max + 0.01)
         
-    else:
-        y_axis_label = 'Geometric mean expression of replicates (log2-scale)'
-        y_range = (3.9, 16.1)
+    # else:
+    #     y_axis_label = 'Geometric mean expression of replicates (log2-scale)'
+    #     y_range = (3.9, 16.1)
     
     expr_fig = bokeh.plotting.figure(width=800, 
                                      height=500,
@@ -731,7 +528,9 @@ def interactive(
                                      # x_axis_label='Phase or condition',
                                      y_axis_label=y_axis_label,
                                      x_range=x_heatmap_profile, 
-                                     y_range=y_range
+                                     y_range=y_range,
+                                     sizing_mode='stretch_both',
+                                     output_backend="webgl"
                                     )
 
     expr_fig.multi_line('expr_xs', 
@@ -764,6 +563,7 @@ def interactive(
                TableColumn(field="COG_category", title="COG_category", width=160),
                TableColumn(field='EC', title='EC', width=160),
                TableColumn(field='GOs', title='GOs', width=160),
+               TableColumn(field='PFAMs', title='PFAMs', width=160),
                TableColumn(field='KEGG_ko', title='KEGG_ko', width=160),
                TableColumn(field='KEGG_Pathway', title='KEGG_Pathway', width=160),
                TableColumn(field='KEGG_Module', title='KEGG_Module', width=160),
@@ -785,6 +585,7 @@ def interactive(
                       sortable=True,
                       index_width=10,
                       fit_columns=False,
+                      sizing_mode='stretch_both'
                      )
     
     heatmap_callback = CustomJS(
@@ -807,7 +608,6 @@ def interactive(
         
         var selected_ttherm_ids = [];
         
-        //Careful here! Number is hardcoded to match the number of genes in dataset
         var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
         
         if (inds.length == 0) {
@@ -933,6 +733,7 @@ def interactive(
         d2['COG_category'] = []
         d2['EC'] = []
         d2['GOs'] = []
+        d2['PFAMs'] = []
         d2['KEGG_ko'] = []
         d2['KEGG_Pathway'] = []
         d2['KEGG_Module'] = []
@@ -953,6 +754,7 @@ def interactive(
             d2['COG_category'].push(d1['COG_category'][inds[i]])
             d2['EC'].push(d1['EC'][inds[i]])
             d2['GOs'].push(d1['GOs'][inds[i]])
+            d2['PFAMs'].push(d1['PFAMs'][inds[i]])
             d2['KEGG_ko'].push(d1['KEGG_ko'][inds[i]])
             d2['KEGG_Pathway'].push(d1['KEGG_Pathway'][inds[i]])
             d2['KEGG_Module'].push(d1['KEGG_Module'][inds[i]])
@@ -970,7 +772,7 @@ def interactive(
     data_source.selected.js_on_change('indices', selection_callback, expression_callback, heatmap_callback)
 
     if interactive_text_search:
-        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", width=600)
+        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", width=640, sizing_mode='stretch_both')
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -1100,11 +902,114 @@ def interactive(
 
             """,
             )
-
+            
             text_input.js_on_change("value", callback, selection_callback, expression_callback, heatmap_callback)
 
+    module_list = list(hover_data['module'].values)
+    sorted_module_list = sorted(module_list)
+    max_label_num_str = (sorted_module_list[len(module_list) - 1]).replace('m', '')
+    max_label_num_len = len(max_label_num_str)
+
+    spinner = Spinner(title="Module #", low=0, high=int(max_label_num_str), step=1, value=0, width=80, sizing_mode='stretch_both')
+
+    interactive_text_search_columns_spinner = []
+    if labels is not None:
+        interactive_text_search_columns_spinner.append('module')
+
+    if len(interactive_text_search_columns_spinner) == 0:
+        warn(
+            "interactive_text_search_columns_spinner set to True, but no hover_data or labels provided."
+            "Please provide hover_data or labels to use interactive text search."
+        )
+
+    else:
+        spinner_callback = CustomJS(
+            args=dict(
+                source=data_source,
+                s2=s2,
+                table=table,
+                matching_alpha=interactive_text_search_alpha_contrast,
+                non_matching_alpha=1 - interactive_text_search_alpha_contrast,
+                search_columns=interactive_text_search_columns_spinner,
+                max_label_num_len=max_label_num_len,
+                default_radius=radius,
+                default_alpha=alpha
+            ),
+            code="""
+function zfill(str, width) {
+    const diff = width - str.length;
+    if (diff > 0) {
+        return '0'.repeat(diff) + str;
+    }
+    return str;
+}
+
+var data = source.data;
+var spinner_num = cb_obj.value;
+var spinner_str = "m" + zfill(spinner_num.toString(), max_label_num_len);
+var d2 = s2.data;
+
+console.log(spinner_str);
+
+d2['module'] = [];
+d2['ID'] = [];
+
+var search_columns_dict = {}
+for (var col in search_columns){
+    search_columns_dict[col] = search_columns[col]
+}
+
+// First, clear the data table and selection
+data['alpha'] = [];
+data['radius'] = [];
+source.selected.indices = [];
+
+s2.change.emit();
+table.change.emit();
+
+// Run search
+if (spinner_str.length > 0) {
+    // Loop over rows and check if search term is present in any column
+    for (var i = 0; i < data.x.length; i++) {
+        var string_match = false;
+        for (var col in search_columns_dict) {
+            if (String(data[search_columns_dict[col]][i]) == (spinner_str)) {
+                string_match = true;
+                break; // Exit the loop if match is found in any column
+            }
+        }
+        if (string_match) {
+            data['alpha'][i] = matching_alpha;
+            data['radius'][i] = 1;
+            d2['module'].push(data['module'][i]);
+            d2['ID'].push(data['ID'][i]);
+
+            // So that these points are actually considered selected
+            source.selected.indices.push(i);
+        } else {
+            data['alpha'][i] = non_matching_alpha;
+            data['radius'][i] = 0.01;
+        }
+    }
+} else {
+    // Loop over rows and set default alpha and radius values
+    for (var i = 0; i < data.x.length; i++) {
+        data['alpha'][i] = default_alpha;
+        data['radius'][i] = default_radius;
+    }
+}
+
+source.change.emit();
+s2.change.emit();
+table.change.emit();
+        """,
+        )
+        
+        spinner.js_on_change("value", spinner_callback, selection_callback, expression_callback, heatmap_callback)
+
+
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    button1 = Button(label="Download Annotation Table", button_type="success", width=550)
+    button1 = Button(label="Download Annotation Table", button_type="success", width=400, sizing_mode='stretch_both')
     button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
@@ -1125,14 +1030,14 @@ def interactive(
             """))        
     
     # NEED TO STOP HARDCODING THIS FILE
-    enrich_df = pd.read_csv(os.path.join(root_dir, '../enrichment/test_nn3_full_enrichment.csv'))
+    enrich_df = pd.read_csv(os.path.join(file_dir, main_dir, 'enrichment/test_nn3_full_enrichment.csv'))
     colors = [color_key[int(m) % len(color_key)] for m in enrich_df['module'].values]
     enrich_df['color'] = colors
     
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
     enrich_p = plot_enrichment(enrich_cds)
     
-    button2 = Button(label="Download Functional Enrichment Data", button_type="success", width=450)
+    button2 = Button(label="Download Functional Enrichment Data", button_type="success", width=400, sizing_mode='stretch_both')
     button2.js_on_click(
         CustomJS(
             args=dict(source_data=enrich_cds),
@@ -1156,7 +1061,7 @@ def interactive(
     
     
     if interactive_text_search:
-        plot = column(row(column(plot, expr_fig), hm, enrich_p), row(text_input, button1, button2), table)
+        plot = column(row(column(plot, expr_fig, sizing_mode='stretch_height'), hm, enrich_p, sizing_mode='stretch_width'), row(spinner, text_input, button1, button2, sizing_mode='scale_width'), table, sizing_mode='stretch_both')
     else:
         plot = column(row(column(plot, expr_fig), hm, enrich_p), row(button1, button2), table)
 
@@ -1172,11 +1077,14 @@ def get_centroid(module_df):
     
     return centroid
 
-def get_module_centroid_df(expr_df, cluster_label_df, alg, phases):
+def get_module_centroid_df(expr_df, cluster_label_df):
+
+    # print(expr_df.columns)
+    # print(cluster_label_df.columns)
     
     merge = expr_df.merge(cluster_label_df, on='TTHERM_ID')
     
-    grouped = merge.groupby(f'{alg}_label_{phases}')
+    grouped = merge.groupby('label')
     
     centroid_rows = []
     
@@ -1193,11 +1101,11 @@ def get_module_centroid_df(expr_df, cluster_label_df, alg, phases):
         
     return centroid_df
 
-def get_all_module_centroids(expr_df, cluster_label_df, alg, phases):
+def get_all_module_centroids(expr_df, cluster_label_df):
     
     merge = expr_df.merge(cluster_label_df, on='TTHERM_ID')
     
-    grouped = merge.groupby(f'{alg}_label_{phases}')
+    grouped = merge.groupby('label')
     
     module_centroid_list = []
     
@@ -1208,7 +1116,7 @@ def get_all_module_centroids(expr_df, cluster_label_df, alg, phases):
         
     return module_centroid_list
 
-def arrange_modules(expr_df, cluster_label_df, alg, phases):
+def arrange_modules(expr_df, cluster_label_df, phases):
     
     if phases == 'full':
         
@@ -1259,10 +1167,21 @@ def arrange_modules(expr_df, cluster_label_df, alg, phases):
              'C14', 
              'C16', 
              'C18']
+
+    elif phases == 'rna_seq':
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min', '210min', '240min']
+        
+    elif phases == 'rna_seq_single_cycle':
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min']
+        
+    else:
+        raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
         
     cols = ['TTHERM_ID'] + [c for c in expr_df.columns if c.split('_')[0] in x]
     
-    module_centroid_df = get_module_centroid_df(expr_df[cols], cluster_label_df, alg, phases)
+    module_centroid_df = get_module_centroid_df(expr_df[cols], cluster_label_df)
     
     linkage = scipy.cluster.hierarchy.linkage(module_centroid_df, method='average', metric='correlation', optimal_ordering=True)
     r_cophcorre, ar_copdist = scipy.cluster.hierarchy.cophenet(linkage, scipy.spatial.distance.pdist(module_centroid_df, metric='correlation'))
@@ -1278,14 +1197,14 @@ def arrange_modules(expr_df, cluster_label_df, alg, phases):
     
     
     
-    reassigned_df[f'{alg}_label_{phases}'] = reassigned_df[f'{alg}_label_{phases}'].map(sorter_index)
-    print(len(reassigned_df))
+    reassigned_df['label'] = reassigned_df['label'].map(sorter_index)
+    # print(len(reassigned_df))
     
     arranged_dfs = []
     
     for cat in cat_sorted:
         
-        mini_df = reassigned_df.loc[reassigned_df[f'{alg}_label_{phases}'] == cat]
+        mini_df = reassigned_df.loc[reassigned_df['label'] == cat]
         # gene_count += len(mini_df)
 
         arranged_dfs.append(mini_df)
@@ -1302,7 +1221,8 @@ def arrange_modules(expr_df, cluster_label_df, alg, phases):
     
     return arranged_df
 
-def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_alg, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, normalized=True):
+
+def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1):
     
     """
     Function to plot the UMAP of expression data.
@@ -1311,49 +1231,53 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_a
     """
     
     # get new index for clustered heatmap
-    # label_df_unsorted = arrange_modules(expression_df, label_df, clust_alg, phases) # FIXME maybe
+    # label_df_unsorted = arrange_modules(expression_df, label_df, phases) # FIXME maybe
     
     # Weirdly, the heatmap looks better-arranged when I just sort by the modules, as
     # given by the hierarchical clustering done by arrange_modules(), than if
     # I stay with the order they were given automatically
-    # label_df = label_df_unsorted.sort_values(by=[f'{clust_alg}_label_{phases}', 'TTHERM_ID'], ascending=False)
+    # label_df = label_df_unsorted.sort_values(by=['label', 'TTHERM_ID'], ascending=False)
     # new_index = label_df.index
 
-    # sorted_label_df = label_df.sort_values(by=f'{clust_alg}_label_{phases}') # FIXME maybe
+    # sorted_label_df = label_df.sort_values(by='label') # FIXME maybe
         
     # data = expression_df[list(expression_df.columns)[1:]].values
+
+    num_genes = len(expression_df['TTHERM_ID'].values)
     
     embedding_df['TTHERM_ID'] = expression_df['TTHERM_ID'].values
 
-    print(list(label_df[f'{clust_alg}_label_{phases}'].values)[0:10])
+    # print(list(label_df['label'].values)[0:10])
     
     merge_unsorted = expression_df.merge(embedding_df, on='TTHERM_ID')
 
     merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
 
-    if list(label_df['TTHERM_ID'].values) == list(merge_all['TTHERM_ID'].values):
-        print('MERGING SUCCESS!!!')
+    # if list(label_df['TTHERM_ID'].values) == list(merge_all['TTHERM_ID'].values):
+    #     print('MERGING SUCCESS!!!')
     
-    # merge_all_sorted = merge_all.sort_values(by=f'{clust_alg}_label_{phases}')  # FIXME maybe
+    # merge_all_sorted = merge_all.sort_values(by='label')  # FIXME maybe
 
     merge_all_sorted = merge_all
 
-    labels = merge_all_sorted[f'{clust_alg}_label_{phases}'].values
+    labels = merge_all_sorted['label'].values
 
     merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
 
-    if list(labels) == list(sorted(labels)):
-        print('SORTED!')
+    # labels = merge['label'].values
 
-    if len(merge) != len(label_df):
-        print('LENGTH DIFFERENT', len(merge), len(label_df))
-    else:
-        print('LENGTH SAME!')
+    # if list(labels) == list(sorted(labels)):
+    #     print('SORTED!')
 
-    if list(merge['TTHERM_ID'].values) != list(label_df['TTHERM_ID'].values):
-        print('ORDER DIFFERENT')
-    else:
-        print('SAME ORDER!')
+    # if len(merge) != len(label_df):
+    #     print('LENGTH DIFFERENT', len(merge), len(label_df))
+    # else:
+    #     print('LENGTH SAME!')
+
+    # if list(merge['TTHERM_ID'].values) != list(label_df['TTHERM_ID'].values):
+    #     print('ORDER DIFFERENT')
+    # else:
+    #     print('SAME ORDER!')
     
     
     # merge = merge.reindex(new_index)
@@ -1418,9 +1342,16 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_a
              'C16', 
              'C18']
         
+    elif phases == 'rna_seq':
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min', '210min', '240min']
+        
+    elif phases == 'rna_seq_single_cycle':
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min']
+        
     else:
-        print('Selected phases must be one of full, sex, or veg!')
-        return
+        raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
 
     xs = [x for ttid in ttherm_ids]
     ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
@@ -1435,13 +1366,14 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_a
     hover_data = pd.DataFrame({
                                # 'index':np.arange(len(data)),
                                'ID':merge['TTHERM_ID'].values,
-                               'module':[f'm{int(l):03d}' for l in labels]})
+                               'module':[f'm{int(l):04d}' for l in labels]})
 
-    print('MOD', list(hover_data['module'].values)[0])
+    # print('MOD', list(hover_data['module'].values)[0])
     
 #     palette = [palette[l] for l in sorted(label_df[label_key].unique())]
     
     p = interactive(merge,
+                    num_genes,
                     x,
                     # mean_expression_df,
                     title=title,
@@ -1449,13 +1381,14 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_a
                     labels=labels, 
                     color_key=palette, 
 #                     color_key_cmap='Paired',
-                    background='black', 
+                    background='white', 
                     radius=radius,
                     alpha=0.7,
 #                     width=600, 
 #                     height=500,
                     interactive_text_search=True,
-                    normalized=normalized
+                    expr_min=expr_min,
+                    expr_max=expr_max
                    )
     
     #p.children[1].title = title
@@ -1463,188 +1396,65 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, clust_a
     return p
 
 
-
-# In[343]:
-
-
-palette45 = """
-#51635F\n#FF1C16\n#16FC26\n#403DFC\n#FE0DCE\n#F9AA00\n#00FFD5\n#22BFFE\n#BB3551\n#E6FE97\n#ECADFF\n#FFBFBD\n#CF00F5\n#0D8B00\n#D7FEFF\n#8D7200\n#F76C00\n#AD3288\n#5C5AB8\n#FC0080\n#B8FF16\n#00AAB4\n#FBE11C\n#9AAAD9\n#8BBB8C\n#934B47\n#6EFE99\n#9C6D91\n#FB9778\n#9D32AF\n#D40087\n#FFDC9D\n#FF8DB6\n#A96AFC\n#FDDDFB\n#168CF7\n#FD6CF9\n#F64553\n#4D6A00\n#FAFEDB\n#A7977D\n#0DFBFF\n#86B80D\n#FD8AE4\n#B7B126
-""".split()
-
-palette32 = """
-white\n#F91622\n#16FC0D\n#5138FB\n#FD00CF\n#FDD51C\n#16FDD7\n#FC8B8E\n#16BFFF\n#DF9BFD\n#669C2A\n#FEE7C4\n#F31685\n#DF16FD\n#C1F1FE\n#A23D7E\n#D5FD0D\n#8C5A0D\n#FC790D\n#4F5CBC\n#FFCBEF\n#168D72\n#68FA93\n#C4FDC9\n#F7A449\n#16789B\n#AD0DAB\n#C4262E\n#0DF1FF\n#EFF994\n#B6C1FE\n#8F22CD
-""".split()
-
-palette35 = """
-#585F6A\n#FE1626\n#00FB0D\n#2E40FC\n#FD0DCE\n#FCD200\n#F7868C\n#16FFDC\n#22BEFB\n#D28EF6\n#609000\n#FFE7C9\n#F51683\n#FF730D\n#CAFE16\n#AA3586\n#BEEEFD\n#BD00FA\n#895D22\n#FEC7F0\n#495AA1\n#73F995\n#229270\n#ED963B\n#F6FE97\n#C5FFD0\n#C50DC8\n#6993FF\n#C22A35\n#16ECFC\n#AA707E\n#7A3BCB\n#7C845C\n#358FAA\n#BDBAF6
-""".split()
-
-palette38 = """
-#636265\n#F60D16\n#00F90D\n#3540FB\n#FD0DD0\n#FDDB0D\n#00FFE2\n#FA8884\n#2ABEFE\n#E5A3FF\n#518F00\n#FEFDD5\n#D51CFF\n#ED007F\n#A33879\n#96731C\n#C8FB16\n#C0ECFE\n#FBC1DA\n#5658BA\n#F96900\n#F69F1C\n#58FA9C\n#008E72\n#BA22B9\n#167D97\n#794D8A\n#CEFE9C\n#BB222E\n#954D45\n#00DCEF\n#FD66B0\n#B2FDD3\n#FDBD9F\n#A9B4F1\n#B371FE\n#849566\n#2A8EFF
-""".split()
-
-palette64 = """
-white\n#FA002E\n#22FC22\n#221CFA\n#FF3DD6\n#FFDA00\n#00FEFB\n#F48684\n#CEB4FE\n#FFFFE5\n#0D933D\n#CC00F8\n#800D5D\n#F10084\n#22267A\n#0DADFF\n#CBFD71\n#9A761C\n#F96C00\n#6399A6\n#FFBCDA\n#8D0DA3\n#F79F26\n#00FFBF\n#A37CFB\n#F68EEB\n#720D0D\n#F163AA\n#7E926A\n#826386\n#B41C32\n#9BEBCE\n#E2DB83\n#56D4FA\n#E6E2FB\n#925D58\n#F7C3A7\n#62E970\n#220DBD\n#5583BB\n#7EA01C\n#CDFDB6\n#FD00FB\n#B30D97\n#F5FF00\n#DD77FD\n#4282FC\n#BBA6A4\n#0D8068\n#AB5F26\n#F7C26E\n#9EFE00\n#9B2EFD\n#C56887\n#FD3D68\n#ABF2FD\n#835FAC\n#FF16B1\n#325371\n#CA16CA\n#D26322\n#AFCFFE\n#91A1FA\nfloralwhite
-""".split()
-
-palette65 = """
-white\ngainsboro\n#FA002E\n#22FC22\n#221CFA\n#FF3DD6\n#FFDA00\n#00FEFB\n#F48684\n#CEB4FE\n#FFFFE5\n#0D933D\n#CC00F8\n#800D5D\n#F10084\n#22267A\n#0DADFF\n#CBFD71\n#9A761C\n#F96C00\n#6399A6\n#FFBCDA\n#8D0DA3\n#F79F26\n#00FFBF\n#A37CFB\n#F68EEB\n#720D0D\n#F163AA\n#7E926A\n#826386\n#B41C32\n#9BEBCE\n#E2DB83\n#56D4FA\n#E6E2FB\n#925D58\n#F7C3A7\n#62E970\n#220DBD\n#5583BB\n#7EA01C\n#CDFDB6\n#FD00FB\n#B30D97\n#F5FF00\n#DD77FD\n#4282FC\n#BBA6A4\n#0D8068\n#AB5F26\n#F7C26E\n#9EFE00\n#9B2EFD\n#C56887\n#FD3D68\n#ABF2FD\n#835FAC\n#FF16B1\n#325371\n#CA16CA\n#D26322\n#AFCFFE\n#91A1FA\nfloralwhite
-""".split()
+# ((range of x values)^2 * (range of y values)^2)^(0.5) * (const) = (optimal radius value)
+def compute_2d_embedding_point_radius(embedding_df):
+    return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / 339.30587926495537
 
 
-# In[71]:
-
-
-leiden_label_df_round_1 = pd.read_csv(os.path.join(root_dir, './test_nn3_leiden_label_df_round_1.csv')) # DIFF
-
-
-# In[72]:
-
-
-
-
-
-# In[73]:
-
-
-full_filtered_norm_df = normalize_expression_per_gene(full_filtered_df)
-
-
-# In[74]:
-
-
-leiden_label_df_round_1.head()
-
-
-# In[75]:
-
-
-arrange_modules(full_filtered_norm_df, leiden_label_df_round_1, 'leiden', 'full')
-
-
-# In[76]:
-
-
-# arrange_modules(veg_filtered_df, leiden_label_df_round_1, 'leiden', 'veg')
-
-
-# In[77]:
-
-
-# arrange_modules(sex_filtered_df, leiden_label_df_round_1, 'leiden', 'sex')
-
-
-# In[78]:
-
-
-def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, clust_alg, phase, palette, title, n_neighbors=5, n_components=2, radius=0.02, random_state=42, normalized=True):
+def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean'):
     
     data = expression_df[list(expression_df.columns)[1:]].values
     
-    umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors).fit(data)
+    umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
     embedding = _get_umap_embedding(umap_mapper)
     
     umap_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
+
+    radius = compute_2d_embedding_point_radius(umap_df)
     
     bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
-    p = plot_embedding(expression_df, umap_df, annotation_df, label_df, clust_alg, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, normalized=normalized)
+    p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max)
     bokeh.plotting.save(p)
     print(outfile_name)
     return p
 
+def generate_and_save_pca(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1):
+    
+    data = expression_df[list(expression_df.columns)[1:]].values
 
-# In[79]:
+    pca = PCA(n_components=n_components)
+    principal_components = pca.fit_transform(data)    
 
+    pca_df = pd.DataFrame({
+        'x': principal_components[:, 0],
+        'y': principal_components[:, 1]
+    })
 
-# get_ipython().run_line_magic('pdb', '')
+    radius = compute_2d_embedding_point_radius(pca_df)
+    
+    bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
+    p = plot_embedding(expression_df, pca_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max)
+    bokeh.plotting.save(p)
+    print(outfile_name)
+    return p
 
+def generate_and_save_tsne(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1):
+    
+    data = expression_df[list(expression_df.columns)[1:]].values
 
-# In[80]:
+    # tsne = TSNE(n_components=n_components, perplexity=30.0, n_iter=1000)
+    tsne = TSNE(n_components=n_components, perplexity=50.0, n_iter=5000, n_jobs=-1)
+    tsne_components = tsne.fit_transform(data)
 
+    tsne_df = pd.DataFrame({
+        'x': tsne_components[:, 0],
+        'y': tsne_components[:, 1]
+    })
 
-leiden_label_df_round_1
-
-
-# In[81]:
-
-
-complete_annot = pd.read_csv(os.path.join(root_dir, '../eggnog/complete_eggnog_annotation.csv'))
-
-
-# In[82]:
-
-
-def createDirectories(dirPathString):
-    if not os.path.exists(dirPathString):
-        os.makedirs(dirPathString)
-
-
-# In[83]:
-
-
-createDirectories('./plots/')
-
-
-# In[84]:
-
-
-folder = './plots/'
-
-file_name = 'dashboard'
-
-num = 1
-
-file_ext = '.html'
-
-while os.path.exists(f'{folder}{file_name}{str(num)}{file_ext}'):
-    num += 1
-
-file_export_path = f'{folder}{file_name}{str(num)}{file_ext}'
-
-
-# In[85]:
-
-
-full_filtered_norm_df.shape
-
-
-# In[90]:
-
-
-complete_annot.shape
-
-
-# In[92]:
-
-
-complete_annot.head()
-
-
-# In[93]:
-
-
-full_filtered_norm_df.head()
-
-
-# In[87]:
-
-
-leiden_label_df_round_1.shape
-
-
-# In[88]:
-
-
-with open(os.path.expanduser(os.path.join(root_dir, 'colors_2000_1')), 'rb') as file:
-    color_palette_raw = pickle.load(file)
-
-color_palette = palette65
-
-if len(color_palette_raw) >= max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1:
-    color_palette = color_palette_raw[:max(leiden_label_df_round_1['leiden_label_full'].unique()) + 1]
-
-p = generate_and_save_umap(file_export_path, full_filtered_norm_df, complete_annot, leiden_label_df_round_1, 'leiden', 'full', color_palette, 'Full normalized expression w/ Leiden clustering (round 1) (nn=3)', radius=0.07, normalized=True)
-# bokeh.io.show(p)
-
-
-# Stop here for now
+    radius = compute_2d_embedding_point_radius(tsne_df)
+    
+    bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
+    p = plot_embedding(expression_df, tsne_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max)
+    bokeh.plotting.save(p)
+    print(outfile_name)
+    return p
