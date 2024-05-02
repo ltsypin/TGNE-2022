@@ -208,8 +208,8 @@ def interactive(
     radius=None, # My contribution
 #     subset_points=None,
     interactive_text_search=False,
-    interactive_text_search_columns=None,
-    interactive_text_search_alpha_contrast=0.999,
+    interactive_text_search_columns=['TTHERM_ID', 'YF_ID'],
+    interactive_text_search_alpha_contrast=0.9999,
     alpha=None,
     expr_min = 0,
     expr_max = 1,
@@ -368,7 +368,7 @@ def interactive(
                 #     "Color key must have enough colors for the number of labels"
                 # )
                 
-                print('Color key has fewer colors than labels. Making all red')
+                print('Color key has fewer colors than labels. Making all green')
                 data['color'] = ['green']*len(labels)
             else:
 
@@ -551,6 +551,7 @@ def interactive(
     s2 = bokeh.plotting.ColumnDataSource(data=dict(ID=[]))
 
     columns = [TableColumn(field="ID",  title="TTHERM_ID", formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>')),
+               TableColumn(field="YF_ID", title="YF_ID")
                TableColumn(field="module",  title="Module"),
                TableColumn(field='TGD2021_description', title='TGD2021_description'),
                TableColumn(field="Description", title="eggNOG_description"),
@@ -574,7 +575,7 @@ def interactive(
               ]
     table = DataTable(source=s2, 
                       columns=columns, 
-                      editable=True,
+                      editable=False,
                       selectable=True,
                       sortable=True,
                     #   index_width=10,
@@ -720,6 +721,7 @@ def interactive(
 
         d2['module'] = []
         d2['ID'] = []
+        d2['YF_ID'] = []
         d2['TGD2021_description'] = []
         d2['Description'] = []
         d2['Preferred_name'] = []
@@ -741,6 +743,7 @@ def interactive(
         for (var i = 0; i < inds.length; i++) {
             d2['module'].push(d1['module'][inds[i]])
             d2['ID'].push(d1['ID'][inds[i]])
+            d2['YF_ID'].push(d1['YF_ID'][inds[i]])
             d2['TGD2021_description'].push(d1['TGD2021_description'][inds[i]])
             d2['Description'].push(d1['Description'][inds[i]])
             d2['Preferred_name'].push(d1['Preferred_name'][inds[i]])
@@ -805,6 +808,7 @@ def interactive(
 
                 d2['module'] = []
                 d2['ID'] = []
+                d2['YF_ID'] = []
 
                 // d3['xs'] = []
                 // d3['ys'] = []
@@ -841,6 +845,7 @@ def interactive(
                             data['radius'][i] = 1
                             d2['module'].push(data['module'][i])
                             d2['ID'].push(data['ID'][i])
+                            d2['YF_ID'].push(data['YF_ID'][i])
 
                             // d3['xs'].push(ref_expr['xs'][i])
                             // d3['ys'].push(ref_expr['ys'][i])
@@ -875,6 +880,7 @@ def interactive(
                             data['radius'][i] = default_radius
                             d2['module'].push()
                             d2['ID'].push()
+                            d2['YF_ID'].push()
 
                             // d3['xs'].push()
                             // d3['ys'].push()
