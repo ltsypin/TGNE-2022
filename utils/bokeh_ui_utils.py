@@ -208,7 +208,7 @@ def interactive(
     radius=None, # My contribution
 #     subset_points=None,
     interactive_text_search=False,
-    interactive_text_search_columns=['TTHERM_ID', 'YF_ID'],
+    interactive_text_search_columns=['TTHERM_ID', 'YF_ID', 'PFAMs'],
     interactive_text_search_alpha_contrast=0.9999,
     alpha=None,
     expr_min = 0,
