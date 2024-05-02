@@ -552,7 +552,7 @@ def interactive(
     s2 = bokeh.plotting.ColumnDataSource(data=dict(ID=[]))
 
     columns = [TableColumn(field="ID",  title="TTHERM_ID", formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>')),
-               TableColumn(field="YF_ID", title="YF_ID")
+               TableColumn(field="YF_ID", title="YF_ID"),
                TableColumn(field="module",  title="Module"),
                TableColumn(field='TGD2021_description', title='TGD2021_description'),
                TableColumn(field="Description", title="eggNOG_description"),
