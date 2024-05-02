@@ -8,23 +8,36 @@ main_dir = '../TGNE/'
 go_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/go_annotations.csv'))
 kegg_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/kegg_annotations.csv'))
 ec_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/ec_annotations.csv'))
+pfam_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/pfam_annotations.csv'))
 
 
 def get_GO_info(go_term):
+    try:
+        name = go_df['GOs_description'].loc[go_df['GOs'] == go_term].values[0]
+        definition = go_df['GOs_definition'].loc[go_df['GOs'] == go_term].values[0]
+        obsolete = go_df['GOs_obsolete'].loc[go_df['GOs'] == go_term].values[0]
+        
+        return name, definition, obsolete
+    except:
+        raise ValueError(f'THE GO TERM {go_term} DOES NOT HAVE A DESCRIPTION ENTRY.')
     
-    name = go_df['GOs_description'].loc[go_df['GOs'] == go_term].values[0]
-    
-    definition = go_df['GOs_definition'].loc[go_df['GOs'] == go_term].values[0]
-    
-    obsolete = go_df['GOs_obsolete'].loc[go_df['GOs'] == go_term].values[0]
-    
-    return name, definition, obsolete
-
 def get_KEGG_info(term):
-    return kegg_df['KEGG_ko_description'].loc[kegg_df['KEGG_ko'] == term].values[0]
-
+    try:
+        return kegg_df['KEGG_ko_description'].loc[kegg_df['KEGG_ko'] == term].values[0]
+    except:
+        raise ValueError(f'THE KEGG TERM {term} DOES NOT HAVE A DESCRIPTION ENTRY.')
+    
 def get_EC_info(term):
-    return ec_df['EC_description'].loc[ec_df['EC'] == term].values[0]
+    try:
+        return ec_df['EC_description'].loc[ec_df['EC'] == term].values[0]
+    except:
+        raise ValueError(f'THE EC TERM {term} DOES NOT HAVE A DESCRIPTION ENTRY.')
+
+def get_PFAM_info(term):
+    try:
+        return pfam_df['PFAMs_description'].loc[pfam_df['PFAMs'] == term].values[0]
+    except:
+        raise ValueError(f'THE PFAM TERM {term} DOES NOT HAVE A DESCRIPTION ENTRY.')
 
 # As of 2020 https://www.ncbi.nlm.nih.gov/research/cog/
 COG_dict = {

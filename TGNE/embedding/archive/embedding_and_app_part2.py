@@ -59,7 +59,7 @@ root_dir = '~/git/TGNE-2022/TGNE/embedding'
 full_filtered_df = pd.read_csv(os.path.join(root_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv'))
 full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
 
-# full_filtered_df = pd.read_csv('/Users/michaelbertagna/Downloads/kallisto.csv')
+# full_filtered_df = pd.read_csv('../../active_fastas/rna_seq.csv')
 num_genes = full_filtered_df.shape[0]
 num_genes
 

@@ -50,11 +50,11 @@ p_minkowski = None
 # PARAMETERS
 ################################################################################
 
-# expression_dataset = 'rna_seq'
-# expression_data_path = os.path.join(file_dir, '../../new_raw_data/rna_seq_processed/kallisto.csv')
+expression_dataset = 'rna_seq'
+expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
 
-expression_dataset = 'microarray'
-expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+# expression_dataset = 'microarray'
+# expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
 
 # # manually curated metrics + metrics refered to in the documentation
 # all_doc_metrics = ['angular', 'clr'] + ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'] + ['nan_euclidean'] + ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
