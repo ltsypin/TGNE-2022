@@ -413,6 +413,7 @@ def interactive(
     data_source = bokeh.plotting.ColumnDataSource(data)
     data_source.data['module'] = hover_data['module']
     data_source.data['ID'] = hover_data['ID']
+    data_source.data['YF_ID'] = hover_data['YF_ID']
     data_source.data['radius'] = np.ones_like(hover_data['ID']) * radius
     data_source.data['alpha'] = np.ones_like(hover_data['ID']) * alpha
     
