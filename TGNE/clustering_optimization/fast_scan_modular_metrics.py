@@ -11,37 +11,6 @@ file_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(file_dir, '../../'))
 from utils import file_utils, microarray_utils, clustering_utils, dataframe_utils
 
-
-def min_max_scale_2d_arr(arr: np.array):
-
-    flat_arr = arr.flatten()
-
-    non_inf_mask = flat_arr != float('inf')
-
-    max_val = max(flat_arr[non_inf_mask])
-    min_val = min(flat_arr)
-
-    scaled_arr = (arr - min_val) / (max_val - min_val)
-
-    return scaled_arr
-
-
-def get_clr_dist_arr(nn: str):
-    clr_df = pd.read_csv(os.path.join(file_dir, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
-    clr_df.rename(columns={'Unnamed: 0':'TTHERM_ID'}, inplace=True)
-
-    zscore_arr = clr_df.loc[:,clr_df.columns[1:]].to_numpy()
-
-    info = np.finfo(np.float64)
-    smallest_float = info.eps
-
-    scaled_zscore_arr = min_max_scale_2d_arr(zscore_arr)
-    clr_dist_arr = np.sqrt(2 * (1 - scaled_zscore_arr)) + smallest_float
-
-    np.fill_diagonal(clr_dist_arr, 0)
-
-    return clr_dist_arr
-
 # SCAN START
 curr_datetime = str(datetime.now())
 
@@ -50,11 +19,11 @@ p_minkowski = None
 # PARAMETERS
 ################################################################################
 
-expression_dataset = 'rna_seq'
-expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
+# expression_dataset = 'rna_seq'
+# expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
 
-# expression_dataset = 'microarray'
-# expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+expression_dataset = 'microarray'
+expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
 
 # # manually curated metrics + metrics refered to in the documentation
 # all_doc_metrics = ['angular', 'clr'] + ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'] + ['nan_euclidean'] + ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
@@ -72,18 +41,19 @@ expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
 # ]
 # metrics = ['clr', 'manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
 # metrics = [m for m in all_metrics if m not in metrics + boolean_metrics and m[: len('minkowski')] != 'minkowski']
-metrics = [sys.argv[1]]
+metrics = ['manhattan']
+# metrics = [sys.argv[1]]
 
 
-# scan_nns = np.arange(2, 13, 1)
+scan_nns = np.arange(3, 6, 1)
 # scan_nns = [3]
-scan_nns = [int(sys.argv[2])]
+# scan_nns = [int(sys.argv[2])]
 
 
-# scan_rps = np.arange(0.1, 1.1, 0.1)
+# scan_rps = np.arange(0.05, 0.5, 0.05)
 # scan_rps = [0.030, 0.035]
 # scan_rps = [0.030]
-scan_rps = np.arange(0.005, 1.1, 0.005)
+scan_rps = np.arange(0.005, 0.07, 0.005)
 
 
 partition_type = 'EXP'
@@ -92,6 +62,20 @@ partition_type = 'EXP'
 
 num_iterations = 1
 # num_iterations = 10
+
+mucocyst_cluster = [
+'YF00036312.t1',
+'YF00012829.t1',
+'YF00000889.t1',
+'TTHERM_00527180',
+'TTHERM_00335830',
+'YF00012830.t1',
+'YF00009126.t1',
+'YF00005954.t1',
+'YF00005804.t1',
+'TTHERM_01055600',
+'TTHERM_00624720',
+] # TTHERM_00630470: mucocyst gene with drastically different expression profile
 
 ################################################################################
 
@@ -145,7 +129,7 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
             print('NNs: ', nn)
 
             if metric == 'clr':
-                distance_matrix = get_clr_dist_arr(int(nn))
+                distance_matrix = clustering_utils.get_clr_dist_arr(int(nn))
                 nn_idxs, nn_dists = clustering_utils.compute_nns(raw_data, max(scan_nns), metric, random_state, n_jobs, p_minkowski, distance_matrix)
 
             scan_dict[nn] = {}
@@ -190,6 +174,11 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                 enriched_cluster_sizes = clustering_utils.compute_enriched_cluster_sizes(communities, enrichment_df)
                 scan_dict[nn][rp]['enriched_cluster_sizes'] = enriched_cluster_sizes
 
+                max_fraction_same_cluster_mucocysts = clustering_utils.fraction_max_same_cluster_genes(
+                    mucocyst_cluster, clustering_utils.format_partition_for_enrichment(
+                        full_filtered_norm_df, partition), 
+                    print_mode=True)
+
                 cluster_stats = {
                 'partition_type': partition_type,
 
@@ -215,6 +204,8 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                 'median_enriched_cluster_size': clustering_utils.compute_cluster_size_median(enriched_cluster_sizes),
                 'sd_enriched_cluster_size': clustering_utils.compute_cluster_size_sd(enriched_cluster_sizes),
                 'nenriched_cluster_genes': num_enriched_cluster_genes,
+
+                'max_fraction_same_cluster_mucocysts': max_fraction_same_cluster_mucocysts,
 
                 'datetime': curr_datetime
                 }

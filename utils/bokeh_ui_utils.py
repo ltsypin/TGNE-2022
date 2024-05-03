@@ -1010,7 +1010,7 @@ table.change.emit();
 
 
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    download_button1 = Button(label="D", button_type="success")
+    download_button1 = Button(label="⬇️", button_type="success")
     download_button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
@@ -1038,7 +1038,7 @@ table.change.emit();
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
     enrich_p = plot_enrichment(enrich_cds, plot_sizing_mode=plot_sizing_mode)
     
-    download_button2 = Button(label="D", button_type="success")
+    download_button2 = Button(label="⬇️", button_type="success")
     download_button2.js_on_click(
         CustomJS(
             args=dict(source_data=enrich_cds),
