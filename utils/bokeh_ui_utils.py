@@ -401,10 +401,11 @@ def interactive(
         tooltips = None
 
     if alpha is not None:
-        data["alpha"] = alpha
+        pass
+        # data["alpha"] = alpha
     else:
         alpha = 1
-        data["alpha"] = alpha
+        # data["alpha"] = alpha
     
     # print(list(hover_data['module'].values)[0:10])
     # print(list(hover_data['module'].values)[len(list(hover_data['module'].values))-11:len(list(hover_data['module'].values))-1])
@@ -417,6 +418,7 @@ def interactive(
     # data_source.data['YF_ID'] = hover_data['YF_ID']
     data_source.data['radius'] = np.ones_like(hover_data['ID']) * radius
     data_source.data['alpha'] = np.ones_like(hover_data['ID']) * alpha
+    data_source.data['line_alpha'] = np.ones_like(hover_data['ID']) * alpha
     
     # print(data_source.data['ID'][:5])
 
@@ -440,7 +442,8 @@ def interactive(
             color=colors,
             size=point_size,
             alpha="alpha",
-            line_color='black'
+            line_color='black',
+            line_alpha='line_alpha'
         )
 
     elif radius is not None:
@@ -451,7 +454,8 @@ def interactive(
             color=colors,
             radius=radius,
             alpha="alpha",
-            line_color='black'
+            line_color='black',
+            line_alpha='alpha'
         )
 
     plot.grid.visible = False
@@ -722,6 +726,9 @@ def interactive(
 
         var inds = s1.selected.indices;
 
+        d1['alpha'] = Array(d1['ID'].length).fill(0.2)
+        d1['line_alpha'] = Array(d1['ID'].length).fill(0.2)
+
         d2['module'] = []
         d2['ID'] = []
         // d2['YF_ID'] = []
@@ -764,7 +771,12 @@ def interactive(
             d2['KEGG_TC'].push(d1['KEGG_TC'][inds[i]])
             d2['CAZy'].push(d1['CAZy'][inds[i]])
             d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][inds[i]])
+
+            d1['alpha'].push(0.9)
+            d1['line_alpha'].push(0.9)
         }
+
+        s1.change.emit();
         s2.change.emit();
         table.change.emit();
     """)
@@ -844,9 +856,10 @@ def interactive(
                             }
                         }
                         if (string_match){
-                            data['alpha'][i] = matching_alpha
+                            data['alpha'][i] = 0.9
+                            data['line_alpha'][i] = 0.9
                             data['radius'][i] = 1
-                            d2['module'].push(data['module'][i])
+                            // d2['module'].push(data['module'][i])
                             d2['ID'].push(data['ID'][i])
                             // d2['YF_ID'].push(data['YF_ID'][i])
 
@@ -857,8 +870,9 @@ def interactive(
                             source.selected.indices.push(i)
 
                         }else{
-                            data['alpha'][i] = non_matching_alpha
-                            data['radius'][i] = 0.01
+                            data['alpha'][i] = 0.2
+                            data['line_alpha'][i] = 0.2
+                            // data['radius'][i] = 0.01
                         }
                     }
                     source.change.emit();
@@ -889,8 +903,9 @@ def interactive(
                             // d3['ys'].push()
 
                         }else{
-                            data['alpha'][i] = non_matching_alpha
-                            data['radius'][i] = 0.01
+                            data['alpha'][i] = 0.2
+                            data['line_alpha'][i] = 0.2
+                            // data['radius'][i] = 0.01
                         }
                     }
                     source.change.emit();
@@ -982,16 +997,18 @@ if (spinner_str.length > 0) {
             }
         }
         if (string_match) {
-            data['alpha'][i] = matching_alpha;
-            data['radius'][i] = 1;
+            data['alpha'][i] = 0.9;
+            data['line_alpha'][i] = 0.9;
+            // data['radius'][i] = 1;
             d2['module'].push(data['module'][i]);
             d2['ID'].push(data['ID'][i]);
 
             // So that these points are actually considered selected
             source.selected.indices.push(i);
         } else {
-            data['alpha'][i] = non_matching_alpha;
-            data['radius'][i] = 0.01;
+            data['alpha'][i] = 0.2;
+            data['line_alpha][i] = 0.2;
+            // data['radius'][i] = 0.01;
         }
     }
 } else {
