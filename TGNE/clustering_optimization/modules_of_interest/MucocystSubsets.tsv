@@ -1,0 +1,32 @@
+#GRL6 (TTHERM_00321730) should be separate																	
+TTHERM_ID	module	TGD2021_description	eggNOG_description	eggNOG_preferred_name	max_annot_lvl	COG_category	GOs	EC	KEGG_ko	KEGG_Pathway	KEGG_Module	KEGG_Reaction	KEGG_rclass	BRITE	KEGG_TC	CAZy	BiGG_Reaction
+YF00012830.t1	m1714	-	Beta/Gamma crystallin	-	5878|Ciliophora	S	-	-	-	-	-	-	-	-	-	-	-
+YF00009126.t1	m1714	-	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+YF00005954.t1	m1714	-	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+YF00005804.t1	m1714	-	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_01055600	m1714	GRL8 Ndc1 protein	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00624720	m1714	GRL4 granule lattice protein	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+YF00036312.t1	m1713	-	-	-	33208|Metazoa	-	-	-	-	-	-	-	-	-	-	-	-
+YF00012829.t1	m1713	-	Beta/Gamma crystallin	-	5878|Ciliophora	S	-	-	-	-	-	-	-	-	-	-	-
+YF00000889.t1	m1713	-	Beta/Gamma crystallin	-	5878|Ciliophora	S	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00527180	m1713	GRL1 hypothetical protein	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00335830	m1713	hypothetical protein	-	-	2759|Eukaryota	-	-	-	-	-	-	-	-	-	-	-	-
+YF00036977.t1	m1703	-	-	-	5878|Ciliophora	-	-	-	ko:K18626	-	-	-	-	"ko00000,ko04812"	-	-	-
+YF00035206.t1	m1703	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
+YF00022768.t1	m1703	-	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+YF00014528.t1	m1703	-	-	-	2759|Eukaryota	-	-	-	-	-	-	-	-	-	-	-	-
+YF00007638.t1	m1703	-	hydrogen-translocating pyrophosphatase activity	-	5878|Ciliophora	C	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00685980	m1703	hypothetical protein	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00649180	m1703	splicing factor subunit 3 putative	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00632940	m1703	transmembrane protein putative	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00558350	m1703	IGR1 hypothetical protein	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00554330	m1703	cyclic nucleotide-binding domain protein	-	-	33208|Metazoa	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00516380	m1703	CCF6 carboxy-terminal crystallin fold protein 7p putative	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00497590	m1703	transmembrane protein putative	-	-	33154|Opisthokonta	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00473020	m1703	GRL2 hypothetical protein	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00471040	m1703	CCF8 Putative 8-oxo-dGTP diphosphatase	-	-	5878|Ciliophora	-	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00445920	m1703	CTH4 papain family cysteine protease	polysaccharide binding. It is involved in the biological process described with	TINAGL1	33208|Metazoa	G	"GO:0000166,GO:0003674,GO:0003824,GO:0004175,GO:0004197,GO:0005198,GO:0005201,GO:0005488,GO:0005515,GO:0005575,GO:0005576,GO:0005604,GO:0005615,GO:0005622,GO:0005623,GO:0005737,GO:0006508,GO:0006807,GO:0006810,GO:0007155,GO:0008104,GO:0008150,GO:0008152,GO:0008233,GO:0008234,GO:0009966,GO:0009967,GO:0010646,GO:0010647,GO:0016192,GO:0016197,GO:0016787,GO:0017147,GO:0019538,GO:0022610,GO:0023051,GO:0023056,GO:0030111,GO:0030177,GO:0030312,GO:0031012,GO:0033036,GO:0035592,GO:0035593,GO:0036094,GO:0042600,GO:0043170,GO:0043236,GO:0044238,GO:0044421,GO:0044424,GO:0044464,GO:0045184,GO:0046907,GO:0048518,GO:0048522,GO:0048583,GO:0048584,GO:0050789,GO:0050794,GO:0050840,GO:0051179,GO:0051234,GO:0051641,GO:0051649,GO:0060828,GO:0062023,GO:0065007,GO:0070011,GO:0071692,GO:0071704,GO:0071944,GO:0090263,GO:0097159,GO:0140096,GO:1901265,GO:1901363,GO:1901564"	-	-	-	-	-	-	-	-	-	-
+TTHERM_00390080	m1703	folate/biopterin transporter	BT1 family	-	5878|Ciliophora	S	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00059370	m1703	proton-translocating inorganic pyrophosphatase	hydrogen-translocating pyrophosphatase activity	-	5878|Ciliophora	C	-	-	-	-	-	-	-	-	-	-	-
+TTHERM_00052190	m1703	CTH1 eukaryotic aspartyl protease	aspartic-type endopeptidase activity	-	2759|Eukaryota	M	-	"3.4.23.1,3.4.23.25,3.4.23.4,3.4.23.5"	"ko:K01378,ko:K01379,ko:K01381,ko:K06002"	"ko04071,ko04138,ko04140,ko04142,ko04210,ko04915,ko04974,ko05152,map04071,map04138,map04140,map04142,map04210,map04915,map04974,map05152"	-	-	-	"ko00000,ko00001,ko01000,ko01002,ko04147"	-	-	-
+TTHERM_00321730	m1027	GRL6 hypothetical protein	Structural protein that crystallize inside the trichocyst matrix	-	5878|Ciliophora	S	"GO:0005575,GO:0005576,GO:0043226,GO:0043228,GO:0043230,GO:0043264,GO:0044421,GO:0055039"	-	-	-	-	-	-	-	-	-	-

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ~/.zshrc
+
 set -e
 
 if [ "$#" -lt 1 ]; then

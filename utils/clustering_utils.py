@@ -18,6 +18,7 @@ from .dataframe_utils import get_hypercube_sample, shuffle_rows
 from .microarray_utils import normalize_expression_per_gene
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
+main_dir = '../TGNE/'
 
 # clustering_utils
 
@@ -35,9 +36,8 @@ def min_max_scale_2d_arr(arr: np.array):
 
     return scaled_arr
 
-
-def get_clr_dist_arr(nn: str):
-    clr_df = pd.read_csv(os.path.join(file_dir, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
+def get_clr_dist_arr(nn: str, folder: str):
+    clr_df = pd.read_csv(os.path.join(file_dir, main_dir, 'clustering_optimization', folder, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
     clr_df.rename(columns={'Unnamed: 0':'TTHERM_ID'}, inplace=True)
 
     zscore_arr = clr_df.loc[:,clr_df.columns[1:]].to_numpy()
@@ -52,8 +52,8 @@ def get_clr_dist_arr(nn: str):
 
     return clr_dist_arr
 
-def get_clr_dist_arr_lev(nn: str):
-    clr_df = pd.read_csv(os.path.join(file_dir, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
+def get_clr_dist_arr_lev(nn: str, folder: str):
+    clr_df = pd.read_csv(os.path.join(file_dir, main_dir, 'clustering_optimization', folder, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
     clr_df.rename(columns={'Unnamed: 0':'TTHERM_ID'}, inplace=True)
 
     zscore_arr = clr_df.loc[:,clr_df.columns[1:]].to_numpy()
@@ -552,6 +552,8 @@ def fraction_max_same_cluster_genes(gene_list: list, label_df: pd.DataFrame, fra
             target_ids.append(gene)
 
     gene_cluster_assignments = label_df.loc[label_df['TTHERM_ID'].isin(target_ids)]
+
+    print('UTILS: ', len(target_ids)) #FIXME
 
     fraction = 0
 
