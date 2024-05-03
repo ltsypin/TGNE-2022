@@ -6,10 +6,6 @@ TGNE/microarray_QC/pd.*
 
 TGNE/microarray_QC/*.csv
 
-*-checkpoint.ipynb
-
-*.nbconvert.ipynb
-
 *.Rhistory
 
 *.ht2
@@ -92,8 +88,6 @@ TGNE/enrichment/**/*.csv
 *.zip
 *.sbatch
 *.numbers
-TGNE/embedding/layout_playground.ipynb
-webgl_test.ipynb
 
 
 TGNE/clustering_optimization/clr_for_distances_??nn.Rmd
@@ -103,3 +97,10 @@ TGNE/clustering_optimization/clr_for_distances_??nn.Rmd
 new_raw_data/*
 
 !new_raw_data/**/*.ipynb
+
+TGNE/embedding/layout_playground.ipynb
+webgl_test.ipynb
+
+*-checkpoint.ipynb
+
+*.nbconvert.ipynb
