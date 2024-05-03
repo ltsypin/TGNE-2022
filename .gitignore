@@ -1,5 +1,3 @@
-new_raw_data/*
-
 .DS_Store
 
 TGNE/microarray_QC/*.xys
@@ -99,3 +97,9 @@ webgl_test.ipynb
 
 
 TGNE/clustering_optimization/clr_for_distances_??nn.Rmd
+
+/curated_clusters/*
+
+new_raw_data/*
+
+!new_raw_data/**/*.ipynb
