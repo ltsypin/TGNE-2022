@@ -52,6 +52,32 @@ def get_clr_dist_arr(nn: str):
 
     return clr_dist_arr
 
+def get_clr_dist_arr_lev(nn: str):
+    clr_df = pd.read_csv(os.path.join(file_dir, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
+    clr_df.rename(columns={'Unnamed: 0':'TTHERM_ID'}, inplace=True)
+
+    zscore_arr = clr_df.loc[:,clr_df.columns[1:]].to_numpy()
+
+    info = np.finfo(np.float64)
+    smallest_float = info.eps
+
+    # 1 / zscore for all zscores != zero
+    # scale values linearly 0 to 1
+    # assign 1s to idxs where original zscores == zero
+    zero_zscore_idxs = np.where(zscore_arr == 0)
+    inverse_zscore_arr = 1 / zscore_arr
+
+    scaled_inverse_zscore_arr = min_max_scale_2d_arr(inverse_zscore_arr)
+
+    for idx in range(len(zero_zscore_idxs[0])):
+        scaled_inverse_zscore_arr[zero_zscore_idxs[0][idx]][zero_zscore_idxs[1][idx]] = 1
+    
+    scaled_inverse_zscore_arr = scaled_inverse_zscore_arr + smallest_float
+
+    np.fill_diagonal(scaled_inverse_zscore_arr, 0) # diagonal must be zeros for dist matrix
+
+    return scaled_inverse_zscore_arr
+
 
 def compute_pairwise_distance_matrix(data_arr, metric, n_jobs=-1, p_minkowski=1):
 
@@ -447,3 +473,103 @@ def get_gene_module_assignments(all_gene_labels: list, gene_list: list, parition
         gene_module_assignments[module_num].append(gene)
 
     return gene_module_assignments
+
+
+# def multi_fraction_max_same_cluster_genes(gene_list_dict: dict, label_df: pd.DataFrame, fraction_threshold=0, print_mode=False):
+#     for name, gene_list in gene_list_dict.items():
+#         print('GENE_LIST:', name)
+#         fraction_max_same_cluster_genes(gene_list, label_df, fraction_threshold=fraction_threshold, print_mode=print_mode)
+#         print()
+#         print()
+#         print()
+
+# def fraction_max_same_cluster_genes(gene_list: list, label_df: pd.DataFrame, fraction_threshold=0, print_mode=True):
+
+#     df_y_to_ttherm = pd.read_csv(os.path.join(file_dir, '../new_raw_data/tgd2024/yf_ttherm_mapping_feb2024.csv'))
+#     dict_ttherm_to_y = {ttherm: yf for yf, ttherm in zip(df_y_to_ttherm['yf2024'].values, df_y_to_ttherm['ttherm2021'].values)}
+    
+#     target_ids = []
+
+#     for gene in gene_list:
+#         if gene in dict_ttherm_to_y:
+#             target_ids.append(f'{dict_ttherm_to_y[gene]}.t1')
+
+#         # ACCOUNT FOR TRANSLATE YF TO TTHERM BEING ENABLED
+#         if gene in label_df['TTHERM_ID'].values:
+#             target_ids.append(gene)
+
+#     gene_cluster_assignments = label_df.loc[label_df['TTHERM_ID'].isin(target_ids)]
+
+#     fraction = 0
+#     gene_cluster_assignments_mode_only_len = 0
+#     gene_cluster_assignments_len = 0
+
+#     if gene_cluster_assignments_len > 0:
+#         cluster_assignment_mode = gene_cluster_assignments['label'].mode()[0]
+#         gene_cluster_assignments_mode_only = gene_cluster_assignments.loc[gene_cluster_assignments['label'] == cluster_assignment_mode]
+
+#         gene_cluster_assignments_mode_only_len = gene_cluster_assignments_mode_only.shape[0]
+#         gene_cluster_assignments_len = gene_cluster_assignments.shape[0]
+
+#         fraction = gene_cluster_assignments_mode_only_len/gene_cluster_assignments_len
+
+#     print(fraction_threshold, '>', fraction)
+
+#     if fraction_threshold > fraction:
+#         return None
+
+#     if print_mode:
+#         print(gene_cluster_assignments_mode_only_len, '/', gene_cluster_assignments_len, '=',
+#                 fraction
+#                 )
+#         print(gene_cluster_assignments_mode_only)
+#         print(','.join(list(gene_cluster_assignments_mode_only['TTHERM_ID'].values)))
+
+#     return fraction
+
+
+def multi_fraction_max_same_cluster_genes(gene_list_dict: dict, label_df: pd.DataFrame, fraction_threshold=0, print_mode=False):
+    for name, gene_list in gene_list_dict.items():
+        print('GENE_LIST:', name)
+        fraction_max_same_cluster_genes(gene_list, label_df, print_mode=print_mode)
+        print()
+        print()
+        print()
+
+def fraction_max_same_cluster_genes(gene_list: list, label_df: pd.DataFrame, fraction_threshold=0, print_mode=True):
+
+    df_y_to_ttherm = pd.read_csv(os.path.join(file_dir, '../new_raw_data/tgd2024/yf_ttherm_mapping_feb2024.csv'))
+    dict_ttherm_to_y = {ttherm: yf for yf, ttherm in zip(df_y_to_ttherm['yf2024'].values, df_y_to_ttherm['ttherm2021'].values)}
+    
+    target_ids = []
+
+    for gene in gene_list:
+        if gene in dict_ttherm_to_y:
+            target_ids.append(f'{dict_ttherm_to_y[gene]}.t1')
+
+        # ACCOUNT FOR TRANSLATE YF TO TTHERM BEING ENABLED
+        if gene in label_df['TTHERM_ID'].values:
+            target_ids.append(gene)
+
+    gene_cluster_assignments = label_df.loc[label_df['TTHERM_ID'].isin(target_ids)]
+
+    fraction = 0
+
+    if gene_cluster_assignments.shape[0] > 0:
+        cluster_assignment_mode = gene_cluster_assignments['label'].mode()[0]
+        gene_cluster_assignments_mode_only = gene_cluster_assignments.loc[gene_cluster_assignments['label'] == cluster_assignment_mode]
+
+        fraction = gene_cluster_assignments_mode_only.shape[0]/gene_cluster_assignments.shape[0]
+
+        if print_mode:
+            print(gene_cluster_assignments_mode_only.shape[0], '/', gene_cluster_assignments.shape[0], '=',
+                    fraction
+                    )
+            print(gene_cluster_assignments_mode_only)
+            print(','.join(list(gene_cluster_assignments_mode_only['TTHERM_ID'].values)))
+
+    else:
+        if print_mode:
+            print(gene_cluster_assignments)
+
+    return fraction

@@ -119,10 +119,7 @@ def process_module(m):
         if tc == 'GOs':
             for t in terms:
                 name, definition, obsolete = annotation_info.get_GO_info(t)
-                if obsolete:
-                    info.append(f'{name.capitalize()}: {definition} (obsolete)')
-                else:
-                    info.append(f'{name.capitalize()}: {definition}')
+                info.append(f'{name.capitalize()}: {definition}')
                     
         elif tc == 'COG_category':
             for t in terms:
@@ -160,7 +157,6 @@ if __name__ == '__main__':
     with Pool(initializer=init_pool, initargs=(lldf,)) as pool:
         # module_dfs = list(tqdm.tqdm(pool.imap(process_module, sorted(lldf['label'].unique())), total=len(lldf['label'].unique())))
         module_dfs = list(pool.imap(process_module, sorted(lldf['label'].unique())))
-
 
     # Concatenate results
     all_enrichment_df = pd.concat(module_dfs)

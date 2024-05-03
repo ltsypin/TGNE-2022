@@ -66,6 +66,8 @@ us straight to the chips that should be thrown away.
 
 ```{r}
 fit <- fitProbeLevelModel(expression.feature.set)
+```
+```{r}
 NUSE(fit, names=xysFiles, las=2, cex=0.001)
 ```
 
