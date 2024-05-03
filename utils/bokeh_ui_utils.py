@@ -207,8 +207,8 @@ def interactive(
     point_size=None,
     radius=None, # My contribution
 #     subset_points=None,
-    interactive_text_search=True,
-    interactive_text_search_columns=['TTHERM_ID', 'PFAMs', 'eggNOG_description', 'TGD2021_description', 'GOs', 'KEGG_ko'],
+    interactive_text_search=False,
+    interactive_text_search_columns=['TTHERM_ID', 'PFAMs'],
     interactive_text_search_alpha_contrast=0.9999,
     alpha=None,
     expr_min = 0,
