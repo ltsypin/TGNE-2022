@@ -208,7 +208,7 @@ def interactive(
     radius=None, # My contribution
 #     subset_points=None,
     interactive_text_search=False,
-    interactive_text_search_columns=['TTHERM_ID', 'PFAMs', 'Description', 'TGD2021_description'],
+    interactive_text_search_columns=['TTHERM_ID', 'PFAMs', 'Description', 'TGD2021_description', 'module'],
     interactive_text_search_alpha_contrast=0.9999,
     alpha=None,
     expr_min = 0,
@@ -1017,9 +1017,9 @@ table.change.emit();
             code="""
             var inds = source_data.selected.indices;
             var data = source_data.data;
-            var out = "TTHERM_ID\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\tKEGG_TC\tCAZy\tBiGG_Reaction\\n";
+            var out = "TTHERM_ID\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tPFAMs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\tKEGG_TC\tCAZy\tBiGG_Reaction\\n";
             for (var i = 0; i < inds.length; i++) {
-                out += data['ID'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\t" + data['KEGG_TC'][inds[i]] + "\t" + data['CAZy'][inds[i]] + "\t" + data['BiGG_Reaction'][inds[i]] + "\\n";
+                out += data['ID'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" data['PFAMs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\t" + data['KEGG_TC'][inds[i]] + "\t" + data['CAZy'][inds[i]] + "\t" + data['BiGG_Reaction'][inds[i]] + "\\n";
             }
             var file = new Blob([out], {type: 'text/plain'});
             var elem = window.document.createElement('a');
