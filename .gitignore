@@ -94,13 +94,33 @@ TGNE/clustering_optimization/clr_for_distances_??nn.Rmd
 
 /curated_clusters/*
 
-new_raw_data/*
-
-!new_raw_data/**/*.ipynb
-
 TGNE/embedding/layout_playground.ipynb
 webgl_test.ipynb
 
 *-checkpoint.ipynb
 
 *.nbconvert.ipynb
+
+
+new_raw_data/**/*.txt
+
+new_raw_data/**/*.tar
+
+new_raw_data/**/*.out
+
+new_raw_data/**/*.json
+
+new_raw_data/**/*.csv
+
+new_raw_data/**/*.tsv
+
+new_raw_data/**/*.h5
+
+new_raw_data/**/*.xls
+
+new_raw_data/**/*.log
+
+new_raw_data/**/*.gff3
+
+new_raw_data/**/*.fasta
+
