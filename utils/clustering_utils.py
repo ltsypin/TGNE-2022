@@ -52,6 +52,32 @@ def get_clr_dist_arr(nn: str):
 
     return clr_dist_arr
 
+def get_clr_dist_arr_lev(nn: str):
+    clr_df = pd.read_csv(os.path.join(file_dir, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
+    clr_df.rename(columns={'Unnamed: 0':'TTHERM_ID'}, inplace=True)
+
+    zscore_arr = clr_df.loc[:,clr_df.columns[1:]].to_numpy()
+
+    info = np.finfo(np.float64)
+    smallest_float = info.eps
+
+    # 1 / zscore for all zscores != zero
+    # scale values linearly 0 to 1
+    # assign 1s to idxs where original zscores == zero
+    zero_zscore_idxs = np.where(zscore_arr == 0)
+    inverse_zscore_arr = 1 / zscore_arr
+
+    scaled_inverse_zscore_arr = min_max_scale_2d_arr(inverse_zscore_arr)
+
+    for idx in range(len(zero_zscore_idxs[0])):
+        scaled_inverse_zscore_arr[zero_zscore_idxs[0][idx]][zero_zscore_idxs[1][idx]] = 1
+    
+    scaled_inverse_zscore_arr = scaled_inverse_zscore_arr + smallest_float
+
+    np.fill_diagonal(scaled_inverse_zscore_arr, 0) # diagonal must be zeros for dist matrix
+
+    return scaled_inverse_zscore_arr
+
 
 def compute_pairwise_distance_matrix(data_arr, metric, n_jobs=-1, p_minkowski=1):
 
