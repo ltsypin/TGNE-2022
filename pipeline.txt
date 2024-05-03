@@ -47,20 +47,19 @@ cdh2.env
 # ANNOTATION
 TGNE/eggnog/annotation.ipynb
 
-## CLUSTERING
-#TGNE/embedding/clustering_final.ipynb
-#
-## ENRICHMENT
-#TGNE/enrichment/enrichment_final.ipynb
-#
-#
-## EXIT THE CONDA ENV
-#.denv
-#
-## ENTER PYTHON CONDA ENV
-#cdh2_bokeh.env
-#
-## APP
+# CLUSTERING
+TGNE/embedding/clustering_final.ipynb
+
+# ENRICHMENT
+TGNE/enrichment/enrichment_final.ipynb
+
+# EXIT THE CONDA ENV
+.denv
+
+# ENTER PYTHON CONDA ENV
+cdh2_bokeh.env
+
+# APP
 #TGNE/embedding/app_final.ipynb
 
 ### RNA_SEQ
