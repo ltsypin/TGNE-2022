@@ -15,7 +15,7 @@ import umap
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from .microarray_utils import get_geom_mean_expression
+from .microarray_utils import get_geom_mean_expression, get_arith_mean_expression
 
 # bokeh_ui_utils
 
@@ -56,7 +56,8 @@ def plot_enrichment(enrich_column_data_source, plot_sizing_mode='stretch_both'):
         tooltips=hover,
         # background_fill_color='black'
         sizing_mode=plot_sizing_mode,
-        output_backend="webgl"
+        output_backend="webgl",
+        tools=["ypan", "box_zoom", "ywheel_zoom", "undo", "reset", "save"]
     )
     
     # cds = bokeh.models.ColumnDataSource(enrich_df)
@@ -75,8 +76,8 @@ def plot_enrichment(enrich_column_data_source, plot_sizing_mode='stretch_both'):
     p.yaxis.ticker = ticker
     p.y_range.flipped = True
     p.xaxis.major_label_text_font_size = '12pt'
-    p.yaxis.major_label_text_font_size = '12pt'
-    p.yaxis.axis_label_text_font_size = '12pt'
+    p.yaxis.major_label_text_font_size = '8pt'
+    p.yaxis.axis_label_text_font_size = '8pt'
     p.xaxis.axis_label_text_font_size = '12pt'
     
     return p
@@ -209,7 +210,7 @@ def interactive(
 #     subset_points=None,
     interactive_text_search=False,
     interactive_text_search_columns=['TTHERM_ID', 'PFAMs', 'Description', 'TGD2021_description', 'module'],
-    interactive_text_search_alpha_contrast=0.9999,
+    interactive_text_search_alpha_contrast=0.999,
     alpha=None,
     expr_min = 0,
     expr_max = 1,
@@ -513,7 +514,7 @@ def interactive(
         color=['black']))
     
     # if normalized:
-    y_axis_label = 'Geometric mean expression of normalized replicates'
+    y_axis_label = 'Mean expression z-score'
     y_range = (expr_min - 0.01, expr_max + 0.01)
         
     # else:
@@ -527,7 +528,8 @@ def interactive(
                                      x_range=x_heatmap_profile, 
                                      y_range=y_range,
                                      sizing_mode=plot_sizing_mode,
-                                     output_backend="webgl"
+                                     output_backend="webgl",
+                                     tools=["ypan", "xpan", "box_zoom", "ywheel_zoom", "xwheel_zoom", "undo", "reset", "save"]
                                     )
 
     expr_fig.multi_line('expr_xs', 
@@ -576,7 +578,7 @@ def interactive(
               ]
     table = DataTable(source=s2, 
                       columns=columns, 
-                      editable=False,
+                      editable=True,
                       selectable=True,
                       sortable=True,
                     #   index_width=10,
@@ -1010,16 +1012,16 @@ table.change.emit();
 
 
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    download_button1 = Button(label="⬇️", button_type="success")
+    download_button1 = Button(label="D", button_type="success")
     download_button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
             code="""
             var inds = source_data.selected.indices;
             var data = source_data.data;
-            var out = "TTHERM_ID\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tPFAMs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\tKEGG_TC\tCAZy\tBiGG_Reaction\\n";
+            var out = "TTHERM_ID\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\tKEGG_TC\tCAZy\tBiGG_Reaction\\n";
             for (var i = 0; i < inds.length; i++) {
-                out += data['ID'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" data['PFAMs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\t" + data['KEGG_TC'][inds[i]] + "\t" + data['CAZy'][inds[i]] + "\t" + data['BiGG_Reaction'][inds[i]] + "\\n";
+                out += data['ID'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\t" + data['KEGG_TC'][inds[i]] + "\t" + data['CAZy'][inds[i]] + "\t" + data['BiGG_Reaction'][inds[i]] + "\\n";
             }
             var file = new Blob([out], {type: 'text/plain'});
             var elem = window.document.createElement('a');
@@ -1038,7 +1040,7 @@ table.change.emit();
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
     enrich_p = plot_enrichment(enrich_cds, plot_sizing_mode=plot_sizing_mode)
     
-    download_button2 = Button(label="⬇️", button_type="success")
+    download_button2 = Button(label="D", button_type="success")
     download_button2.js_on_click(
         CustomJS(
             args=dict(source_data=enrich_cds),
@@ -1268,12 +1270,13 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     return arranged_df
 
 
-def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1):
+def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, z=False):
     
     """
     Function to plot the UMAP of expression data.
     
-    
+    z : Bool
+        Whether the normalization is by z-score
     """
     
     # get new index for clustered heatmap
@@ -1332,8 +1335,11 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
     merge = merge.merge(relevant_annot, on='TTHERM_ID')
     
+    if z:
+        mean_expression_df = get_arith_mean_expression(merge)
 
-    mean_expression_df = get_geom_mean_expression(merge)
+    else:
+        mean_expression_df = get_geom_mean_expression(merge)
     
     ttherm_ids = merge['TTHERM_ID'].values
     merge = merge.merge(mean_expression_df, on='TTHERM_ID')
@@ -1429,7 +1435,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
 #                     color_key_cmap='Paired',
                     background='white', 
                     radius=radius,
-                    alpha=0.7,
+                    alpha=0.3,
 #                     width=600, 
 #                     height=500,
                     interactive_text_search=True,
@@ -1447,7 +1453,7 @@ def compute_2d_embedding_point_radius(embedding_df):
     return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / 339.30587926495537
 
 
-def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean'):
+def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', z=False):
     
     data = expression_df[list(expression_df.columns)[1:]].values
     
@@ -1459,7 +1465,7 @@ def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df,
     radius = compute_2d_embedding_point_radius(umap_df)
     
     bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
-    p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max)
+    p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, z=z)
     bokeh.plotting.save(p)
     print(outfile_name)
     return p
