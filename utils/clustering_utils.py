@@ -548,12 +548,15 @@ def fraction_max_same_cluster_genes(gene_list: list, label_df: pd.DataFrame, fra
             target_ids.append(f'{dict_ttherm_to_y[gene]}.t1')
 
         # ACCOUNT FOR TRANSLATE YF TO TTHERM BEING ENABLED
-        if gene in label_df['TTHERM_ID'].values:
+        elif gene in label_df['TTHERM_ID'].values:
             target_ids.append(gene)
+
+        else:
+            print(gene)
 
     gene_cluster_assignments = label_df.loc[label_df['TTHERM_ID'].isin(target_ids)]
 
-    print('UTILS: ', len(target_ids)) #FIXME
+    print('UTILS: ', len(target_ids)) # FIXME
 
     fraction = 0
 

@@ -20,11 +20,11 @@ p_minkowski = None
 # PARAMETERS
 ################################################################################
 
-expression_dataset = 'rna_seq'
-expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
+# expression_dataset = 'rna_seq'
+# expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
 
-# expression_dataset = 'microarray'
-# expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+expression_dataset = 'microarray'
+expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
 
 # # manually curated metrics + metrics refered to in the documentation
 # all_doc_metrics = ['angular', 'clr'] + ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'] + ['nan_euclidean'] + ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
@@ -43,19 +43,26 @@ expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
 # metrics = ['clr', 'manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
 # metrics = [m for m in all_metrics if m not in metrics + boolean_metrics and m[: len('minkowski')] != 'minkowski']
 # metrics = ['manhattan']
-metrics = ['clr_lev']
-# metrics = [sys.argv[1]]
+# metrics = ['clr_lev']
+metrics = [sys.argv[1]]
+
+
 
 
 # scan_nns = np.arange(3, 6, 1)
-scan_nns = [3]
-# scan_nns = [int(sys.argv[2])]
+# scan_nns = [3]
+
+scan_nns = [int(sys.argv[2])]
+
+# scan_nns = np.arange(2, 13, 1)
 
 
 # scan_rps = np.arange(0.05, 0.5, 0.05)
 # scan_rps = [0.030, 0.035]
-scan_rps = [0.030]
+# scan_rps = [0.030]
 # scan_rps = np.arange(0.005, 0.07, 0.005)
+
+scan_rps = np.arange(0, 1.1, 0.005)
 
 
 partition_type = 'EXP'
@@ -112,7 +119,12 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
     if partition_type == 'NC':
         full_filtered_df = dataframe_utils.shuffle_rows(full_filtered_df)
 
-    full_filtered_norm_df = microarray_utils.normalize_expression_per_gene(full_filtered_df, z=True)
+    if expression_dataset == 'microarray':
+        full_filtered_norm_df = microarray_utils.normalize_expression_per_gene(full_filtered_df, z=True)
+    elif expression_dataset == 'rna_seq':
+        full_filtered_norm_df = full_filtered_df
+    else:
+        raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
 
     if partition_type == 'TNC':
         raw_data = dataframe_utils.get_hypercube_sample(full_filtered_df.shape[1], full_filtered_df.shape[0])
@@ -227,8 +239,8 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                 'mean_enriched_cluster_size': clustering_utils.compute_cluster_size_mean(enriched_cluster_sizes),
                 'median_enriched_cluster_size': clustering_utils.compute_cluster_size_median(enriched_cluster_sizes),
                 'sd_enriched_cluster_size': clustering_utils.compute_cluster_size_sd(enriched_cluster_sizes),
-                'max_cluster_size': np.max(enriched_cluster_sizes),
-                'min_cluster_size': np.min(enriched_cluster_sizes),
+                'max_enriched_cluster_size': np.max(enriched_cluster_sizes),
+                'min_enriched_cluster_size': np.min(enriched_cluster_sizes),
                 'nenriched_cluster_genes': num_enriched_cluster_genes,
 
                 'datetime': curr_datetime
@@ -242,7 +254,7 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                         full_filtered_norm_df, partition), 
                     print_mode=False)
 
-                    print('SCAN: ', id_list) #FIXME
+                    print('SCAN: ', len(id_list)) #FIXME
 
                     print()
                     print()
