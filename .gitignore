@@ -87,6 +87,9 @@ active_fastas/*
 TGNE/enrichment/**/*.csv
 *.zip
 *.sbatch
+
+!TGNE/clustering_optimization/*.sbatch
+
 *.numbers
 
 
