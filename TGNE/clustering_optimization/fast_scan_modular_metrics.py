@@ -20,11 +20,15 @@ p_minkowski = None
 # PARAMETERS
 ################################################################################
 
-# expression_dataset = 'rna_seq'
-# expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
+expression_dataset = sys.argv[1]
 
-expression_dataset = 'microarray'
-expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+if expression_dataset == 'microarray':
+    expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+elif expression_dataset == 'rna_seq':
+    expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
+else:
+    raise(ValueError(f'{expression_dataset} is an invalid choice for expression_dataset.'))
+
 
 # # manually curated metrics + metrics refered to in the documentation
 # all_doc_metrics = ['angular', 'clr'] + ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'] + ['nan_euclidean'] + ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
@@ -44,7 +48,7 @@ expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and
 # metrics = [m for m in all_metrics if m not in metrics + boolean_metrics and m[: len('minkowski')] != 'minkowski']
 # metrics = ['manhattan']
 # metrics = ['clr_lev']
-metrics = [sys.argv[1]]
+metrics = [sys.argv[2]]
 
 
 
@@ -52,7 +56,7 @@ metrics = [sys.argv[1]]
 # scan_nns = np.arange(3, 6, 1)
 # scan_nns = [3]
 
-scan_nns = [int(sys.argv[2])]
+scan_nns = [int(sys.argv[3])]
 
 # scan_nns = np.arange(2, 13, 1)
 
@@ -260,7 +264,7 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                     print()
 
                 try:
-                    output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{"_".join([n for n in scan_nns])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
+                    output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{"_".join([str(n) for n in scan_nns])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
                     file_utils.write_to_csv(output_file, cluster_stats, list(cluster_stats.keys()))
                 except Exception as e:
                     output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
