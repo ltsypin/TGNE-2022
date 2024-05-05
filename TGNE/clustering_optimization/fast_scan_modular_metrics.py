@@ -216,6 +216,9 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                 enriched_cluster_sizes = clustering_utils.compute_enriched_cluster_sizes(communities, enrichment_df)
                 scan_dict[nn][rp]['enriched_cluster_sizes'] = enriched_cluster_sizes
 
+                num_enriched_clusters = 0
+                enriched_cluster_sizes = []
+
                 cluster_stats = {
                 'partition_type': partition_type,
 
@@ -243,8 +246,8 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                 'mean_enriched_cluster_size': clustering_utils.compute_cluster_size_mean(enriched_cluster_sizes),
                 'median_enriched_cluster_size': clustering_utils.compute_cluster_size_median(enriched_cluster_sizes),
                 'sd_enriched_cluster_size': clustering_utils.compute_cluster_size_sd(enriched_cluster_sizes),
-                'max_enriched_cluster_size': np.max(enriched_cluster_sizes),
-                'min_enriched_cluster_size': np.min(enriched_cluster_sizes),
+                'max_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.max(enriched_cluster_sizes),
+                'min_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.max(enriched_cluster_sizes),
                 'nenriched_cluster_genes': num_enriched_cluster_genes,
 
                 'datetime': curr_datetime
