@@ -216,9 +216,6 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                 enriched_cluster_sizes = clustering_utils.compute_enriched_cluster_sizes(communities, enrichment_df)
                 scan_dict[nn][rp]['enriched_cluster_sizes'] = enriched_cluster_sizes
 
-                num_enriched_clusters = 0
-                enriched_cluster_sizes = []
-
                 cluster_stats = {
                 'partition_type': partition_type,
 
