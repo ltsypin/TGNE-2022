@@ -192,7 +192,12 @@ def compute_communities(partition, idx_labels):
 
 
 def compute_silhouette_score(distance_matrix, partition):
-    return silhouette_score(distance_matrix, partition, metric='precomputed')
+    ss = None
+    try:
+        ss = silhouette_score(distance_matrix, partition, metric='precomputed')
+    except:
+        ss = float('NaN')
+    return ss
 
 
 def compute_modularity(graph, communities):

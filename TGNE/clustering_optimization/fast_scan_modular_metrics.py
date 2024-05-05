@@ -66,7 +66,7 @@ scan_nns = [int(sys.argv[3])]
 # scan_rps = [0.030]
 # scan_rps = np.arange(0.005, 0.07, 0.005)
 
-scan_rps = np.arange(0.005, 1.1, 0.005)
+scan_rps = np.arange(0, 1.1, 0.005)
 
 
 partition_type = 'EXP'
