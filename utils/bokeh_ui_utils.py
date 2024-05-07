@@ -1364,10 +1364,10 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
     merge = merge.merge(relevant_annot, on='TTHERM_ID')
 
-    if phases == 'full':
+    if phases in ['full', 'veg', 'sex']:
 
         if z:
-            mean_expression_df = get_arith_mean_expression(merge, z=True)
+            mean_expression_df = get_arith_mean_expression(merge)
 
         else:
             mean_expression_df = get_geom_mean_expression(merge)
@@ -1439,6 +1439,8 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
         raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
 
     xs = [x for ttid in ttherm_ids]
+
+    # print(merge)
 
     ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
 
