@@ -385,7 +385,7 @@ def build_label_df(data_df, dataset, metric='manhattan', n_neighbors=3, resoluti
         data_df = shuffle_rows(data_df)
 
     if dataset == 'microarray':
-        full_filtered_norm_df = normalize_expression_per_gene(data_df)
+        full_filtered_norm_df = normalize_expression_per_gene(data_df, z=True)
     elif dataset == 'rna_seq':
         full_filtered_norm_df = data_df
 
