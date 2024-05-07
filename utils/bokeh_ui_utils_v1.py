@@ -553,27 +553,27 @@ def interactive(
     # For data table
     s2 = bokeh.plotting.ColumnDataSource(data=dict(ID=[]))
 
-    columns = [TableColumn(field="ID",  title="TTHERM_ID", formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>'), width=150),
-            #    TableColumn(field="YF_ID", title="YF_ID", width=300),
-               TableColumn(field="module",  title="Module", width=100),
-               TableColumn(field='TGD2021_description', title='TGD2021_description', width=300),
-               TableColumn(field="Description", title="eggNOG_description", width=300),
-               TableColumn(field="Preferred_name", title="eggNOG_preferred_name", width=150),
-               TableColumn(field="max_annot_lvl", title="max_annot_lvl", width=100),
-               TableColumn(field="COG_category", title="COG_category", width=100),
-               TableColumn(field='EC', title='EC', width=100),
-               TableColumn(field='GOs', title='GOs', width=300),
-               TableColumn(field='PFAMs', title='PFAMs', width=300),
-               TableColumn(field='KEGG_ko', title='KEGG_ko', width=300),
-               TableColumn(field='KEGG_Pathway', title='KEGG_Pathway', width=300),
-               TableColumn(field='KEGG_Module', title='KEGG_Module', width=300),
-               TableColumn(field='KEGG_Reaction', title='KEGG_Reaction', width=300),
-               TableColumn(field='KEGG_rclass', title='KEGG_rclass', width=300),
-               TableColumn(field='BRITE', title='BRITE', width=300),
-            #    TableColumn(field='KEGG_TC', title='KEGG_TC', width=300),
-            #    TableColumn(field='CAZy', title='CAZy', width=300),
-            #    TableColumn(field='BiGG_Reaction', title='BiGG_Reaction', width=300),
-#                    TableColumn(field="x",  title="x", width=300),
+    columns = [TableColumn(field="ID",  title="TTHERM_ID", formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>')),
+            #    TableColumn(field="YF_ID", title="YF_ID"),
+               TableColumn(field="module",  title="Module"),
+               TableColumn(field='TGD2021_description', title='TGD2021_description'),
+               TableColumn(field="Description", title="eggNOG_description"),
+               TableColumn(field="Preferred_name", title="eggNOG_preferred_name"),
+               TableColumn(field="max_annot_lvl", title="max_annot_lvl"),
+               TableColumn(field="COG_category", title="COG_category"),
+               TableColumn(field='EC', title='EC'),
+               TableColumn(field='GOs', title='GOs'),
+               TableColumn(field='PFAMs', title='PFAMs'),
+               TableColumn(field='KEGG_ko', title='KEGG_ko'),
+               TableColumn(field='KEGG_Pathway', title='KEGG_Pathway'),
+               TableColumn(field='KEGG_Module', title='KEGG_Module'),
+               TableColumn(field='KEGG_Reaction', title='KEGG_Reaction'),
+               TableColumn(field='KEGG_rclass', title='KEGG_rclass'),
+               TableColumn(field='BRITE', title='BRITE'),
+               TableColumn(field='KEGG_TC', title='KEGG_TC'),
+               TableColumn(field='CAZy', title='CAZy'),
+               TableColumn(field='BiGG_Reaction', title='BiGG_Reaction'),
+#                    TableColumn(field="x",  title="x"),
 #                    TableColumn(field="y",  title="y")
               ]
     table = DataTable(source=s2, 
@@ -744,9 +744,9 @@ def interactive(
         d2['KEGG_Reaction'] = []
         d2['KEGG_rclass'] = []
         d2['BRITE'] = []
-        // d2['KEGG_TC'] = []
-        // d2['CAZy'] = []
-        // d2['BiGG_Reaction'] = []
+        d2['KEGG_TC'] = []
+        d2['CAZy'] = []
+        d2['BiGG_Reaction'] = []
 
         for (var i = 0; i < inds.length; i++) {
             d2['module'].push(d1['module'][inds[i]])
@@ -766,9 +766,9 @@ def interactive(
             d2['KEGG_Reaction'].push(d1['KEGG_Reaction'][inds[i]])
             d2['KEGG_rclass'].push(d1['KEGG_rclass'][inds[i]])
             d2['BRITE'].push(d1['BRITE'][inds[i]])
-            // d2['KEGG_TC'].push(d1['KEGG_TC'][inds[i]])
-            // d2['CAZy'].push(d1['CAZy'][inds[i]])
-            // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][inds[i]])
+            d2['KEGG_TC'].push(d1['KEGG_TC'][inds[i]])
+            d2['CAZy'].push(d1['CAZy'][inds[i]])
+            d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][inds[i]])
 
             d1['alpha'][inds[i]] = 1
             d1['line_alpha'][inds[i]] = 1
@@ -782,7 +782,7 @@ def interactive(
     data_source.selected.js_on_change('indices', selection_callback, expression_callback, heatmap_callback)
 
     if interactive_text_search:
-        text_input = TextInput(value="Search comma-separated module(s), TTHERM_ID(s), or functional term(s), for example: m0003, TTHERM_01207610, Histone", sizing_mode=search_sizing_mode)
+        text_input = TextInput(value="Search module(s) or TTHERM_ID(s), e.g. TTHERM_00321680, TTHERM_00313130...", sizing_mode=search_sizing_mode)
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -1022,16 +1022,16 @@ table.change.emit();
 
 
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    download_button1 = Button(label='💾 Annotations', button_type="success")
+    download_button1 = Button(label='💾', button_type="success")
     download_button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
             code="""
             var inds = source_data.selected.indices;
             var data = source_data.data;
-            var out = "TTHERM_ID\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\\n";
+            var out = "TTHERM_ID\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\tKEGG_TC\tCAZy\tBiGG_Reaction\\n";
             for (var i = 0; i < inds.length; i++) {
-                out += data['ID'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\\n";
+                out += data['ID'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\t" + data['KEGG_TC'][inds[i]] + "\t" + data['CAZy'][inds[i]] + "\t" + data['BiGG_Reaction'][inds[i]] + "\\n";
             }
             var file = new Blob([out], {type: 'text/plain'});
             var elem = window.document.createElement('a');
@@ -1050,7 +1050,7 @@ table.change.emit();
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
     enrich_p = plot_enrichment(enrich_cds, plot_sizing_mode=plot_sizing_mode)
     
-    download_button2 = Button(label='💾 Enrichment', button_type="success")
+    download_button2 = Button(label='💾', button_type="success")
     download_button2.js_on_click(
         CustomJS(
             args=dict(source_data=enrich_cds),
@@ -1098,11 +1098,11 @@ table.change.emit();
         cola_sizing_mode = 'stretch_width'
         colb_sizing_mode = 'stretch_width'
 
-        col1a = column(hm, height=800)
+        col1a = column(row(text_input, sizing_mode='stretch_width'), hm, height=800)
         col1a.sizing_mode = cola_sizing_mode
-        col2a = column(enrich_p, height=800)
+        col2a = column(row(text_search2, download_button1, sizing_mode='stretch_width'), enrich_p, height=800)
         col2a.sizing_mode = cola_sizing_mode
-        col3a = column(plot, expr_fig, height=800)
+        col3a = column(row(spinner_custom_text, spinner, download_button2, sizing_mode='stretch_width'), plot, expr_fig, height=800)
         col3a.sizing_mode = cola_sizing_mode
 
         col1b = column(module_stats_table, height=800, max_width=450)
@@ -1112,13 +1112,12 @@ table.change.emit();
 
         rows_sizing_mode = 'stretch_width'
 
-        row_search = row(text_input, download_button1, download_button2, sizing_mode='stretch_width')
         rowa = row(row(col1a, col2a, sizing_mode=rows_sizing_mode), col3a)
         rowa.sizing_mode = rows_sizing_mode
-        rowb = row(col2b)
+        rowb = row(col1b, col2b)
         rowb.sizing_mode = rows_sizing_mode
 
-        plot = column(row_search, rowa, rowb)
+        plot = column(rowa, rowb)
         plot.sizing_mode = 'stretch_width'
 
     else:
@@ -1241,24 +1240,6 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     cols = ['TTHERM_ID'] + [c for c in expr_df.columns if c.split('_')[0] in x]
     
     module_centroid_df = get_module_centroid_df(expr_df[cols], cluster_label_df)
-
-    # print(module_centroid_df.shape)
-    # print(module_centroid_df.columns)
-
-    # print(np.where(np.isfinite(module_centroid_df) == True))
-
-    # non_finite_indices = np.where(~np.isfinite(module_centroid_df))
-
-    # print(non_finite_indices)
-
-    # print(np.all(np.isfinite(module_centroid_df)))
-
-    # nan_values = module_centroid_df.isna().sum()
-    # print("NaN values in each column:\n", nan_values)
-
-    # inf_values = np.isinf(module_centroid_df).sum()
-    # print("Infinite values in each column:\n", inf_values)
-
     
     linkage = scipy.cluster.hierarchy.linkage(module_centroid_df, method='average', metric='correlation', optimal_ordering=True)
     r_cophcorre, ar_copdist = scipy.cluster.hierarchy.cophenet(linkage, scipy.spatial.distance.pdist(module_centroid_df, metric='correlation'))
@@ -1367,7 +1348,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     if phases == 'full':
 
         if z:
-            mean_expression_df = get_arith_mean_expression(merge, z=True)
+            mean_expression_df = get_arith_mean_expression(merge)
 
         else:
             mean_expression_df = get_geom_mean_expression(merge)
@@ -1502,7 +1483,7 @@ def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df,
     p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, z=z)
     bokeh.plotting.save(p)
     print(outfile_name)
-    return p    
+    return p
 
 def generate_and_save_pca(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1):
     
@@ -1544,165 +1525,3 @@ def generate_and_save_tsne(outfile_name, expression_df, annotation_df, label_df,
     bokeh.plotting.save(p)
     print(outfile_name)
     return p
-
-
-def generate_server_data(expression_df, annotation_df, label_df, phases, palette, n_neighbors=3, random_state=42, embedding_metric='euclidean', z=True):
-    
-    data = expression_df[list(expression_df.columns)[1:]].values
-    
-    umap_mapper = umap.UMAP(random_state=random_state, n_components=2, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
-    embedding = _get_umap_embedding(umap_mapper)
-    
-    embedding_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
-    
-    """
-    Function to plot the UMAP of expression data.
-    
-    z : Bool
-        Whether the normalization is by z-score
-    """
-    
-    # get new index for clustered heatmap
-    # label_df_unsorted = arrange_modules(expression_df, label_df, phases) # FIXME maybe
-    
-    # Weirdly, the heatmap looks better-arranged when I just sort by the modules, as
-    # given by the hierarchical clustering done by arrange_modules(), than if
-    # I stay with the order they were given automatically
-    # label_df = label_df_unsorted.sort_values(by=['label', 'TTHERM_ID'], ascending=False)
-    # new_index = label_df.index
-
-    # sorted_label_df = label_df.sort_values(by='label') # FIXME maybe
-        
-    # data = expression_df[list(expression_df.columns)[1:]].values
-    
-    embedding_df['TTHERM_ID'] = expression_df['TTHERM_ID'].values
-
-    # print(list(label_df['label'].values)[0:10])
-    
-    merge_unsorted = expression_df.merge(embedding_df, on='TTHERM_ID')
-
-    merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
-
-    # if list(label_df['TTHERM_ID'].values) == list(merge_all['TTHERM_ID'].values):
-    #     print('MERGING SUCCESS!!!')
-    
-    # merge_all_sorted = merge_all.sort_values(by='label')  # FIXME maybe
-
-    merge_all_sorted = merge_all
-
-    labels = merge_all_sorted['label'].values
-
-    merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
-
-    # labels = merge['label'].values
-
-    # if list(labels) == list(sorted(labels)):
-    #     print('SORTED!')
-
-    # if len(merge) != len(label_df):
-    #     print('LENGTH DIFFERENT', len(merge), len(label_df))
-    # else:
-    #     print('LENGTH SAME!')
-
-    # if list(merge['TTHERM_ID'].values) != list(label_df['TTHERM_ID'].values):
-    #     print('ORDER DIFFERENT')
-    # else:
-    #     print('SAME ORDER!')
-    
-    
-    # merge = merge.reindex(new_index)
-    
-    # take part of annotation df that shared TTHERM_IDs with expression df
-    relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
-    merge = merge.merge(relevant_annot, on='TTHERM_ID')
-
-    if phases == 'full':
-
-        if z:
-            mean_expression_df = get_arith_mean_expression(merge)
-
-        else:
-            mean_expression_df = get_geom_mean_expression(merge)
-
-        ttherm_ids = merge['TTHERM_ID'].values
-        merge = merge.merge(mean_expression_df, on='TTHERM_ID')
-
-    else:
-        mean_expression_df = merge
-        ttherm_ids = merge['TTHERM_ID'].values
-    
-    if phases == 'full':
-        
-        x = ['Ll', 
-             'Lm', 
-             'Lh', 
-             'S0', 
-             'S3', 
-             'S6', 
-             'S9', 
-             # 'S12',
-             'S15', 
-             'S24', 
-             'C0', 
-             # 'C2', 
-             'C4', 
-             'C6', 
-             'C8', 
-             'C10', 
-             'C12', 
-             'C14', 
-             'C16', 
-             'C18']
-        
-        
-    elif phases == 'veg':
-        
-        x = ['Ll', 
-             'Lm', 
-             'Lh', 
-             'S0', 
-             'S3', 
-             'S6', 
-             'S9', 
-             # 'S12', 
-             'S15', 
-             'S24']
-        
-    elif phases == 'sex':
-        
-        x = ['C0', 
-             # 'C2', 
-             'C4', 
-             'C6', 
-             'C8', 
-             'C10',
-             'C12',
-             'C14', 
-             'C16', 
-             'C18']
-        
-    elif phases == 'rna_seq':
-        x = ['000min', '030min', '060min', '090min', '120min', '150min', '180min', '210min', '240min']
-        
-    elif phases == 'rna_seq_single_cycle':
-        x = ['000min', '030min', '060min', '090min', '120min', '150min', '180min']
-        
-    else:
-        raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
-
-    xs = [x for ttid in ttherm_ids]
-
-    ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
-
-    merge['expr_xs'] = xs
-    merge['expr_ys'] = ys
-    
-
-    merge['module'] = [f'm{int(l):04d}' for l in labels]
-
-    pr = compute_2d_embedding_point_radius(embedding_df)
-
-    merge['radius'] = [pr for _ in range(merge.shape[0])]
-
-    return merge
-    

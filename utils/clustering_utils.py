@@ -364,7 +364,7 @@ def compute_num_enriched_cluster_genes(edf, partition):
 #     return lldf, dists, sscore, modularity
 
 
-def build_label_df(data_df, metric='manhattan', n_neighbors=3, resolution_param=0.5, partition_type = 'EXP', n_jobs = -1, random_state=42):
+def build_label_df(data_df, dataset, metric='manhattan', n_neighbors=3, resolution_param=0.5, partition_type = 'EXP', n_jobs = -1, random_state=42):
 
     curr_datetime = str(datetime.now())
 
@@ -384,7 +384,10 @@ def build_label_df(data_df, metric='manhattan', n_neighbors=3, resolution_param=
     if partition_type == 'NC':
         data_df = shuffle_rows(data_df)
 
-    full_filtered_norm_df = normalize_expression_per_gene(data_df)
+    if dataset == 'microarray':
+        full_filtered_norm_df = normalize_expression_per_gene(data_df)
+    elif dataset == 'rna_seq':
+        full_filtered_norm_df = data_df
 
     if partition_type == 'TNC':
         raw_data = get_hypercube_sample(data_df.shape[1], data_df.shape[0])
