@@ -384,15 +384,10 @@ def build_label_df(data_df, dataset, metric='manhattan', n_neighbors=3, resoluti
     if partition_type == 'NC':
         data_df = shuffle_rows(data_df)
 
-    if dataset == 'microarray':
-        full_filtered_norm_df = normalize_expression_per_gene(data_df, z=True)
-    elif dataset == 'rna_seq':
-        full_filtered_norm_df = data_df
-
     if partition_type == 'TNC':
         raw_data = get_hypercube_sample(data_df.shape[1], data_df.shape[0])
     
-    raw_data = full_filtered_norm_df[list(full_filtered_norm_df.columns)[1:]].values
+    raw_data = data_df[list(data_df.columns)[1:]].values
 
     idx_labels = list(range(raw_data.shape[0]))
 
@@ -563,8 +558,6 @@ def fraction_max_same_cluster_genes(gene_list: list, label_df: pd.DataFrame, fra
             print(gene)
 
     gene_cluster_assignments = label_df.loc[label_df['TTHERM_ID'].isin(target_ids)]
-
-    print('UTILS: ', len(target_ids)) # FIXME
 
     fraction = 0
 

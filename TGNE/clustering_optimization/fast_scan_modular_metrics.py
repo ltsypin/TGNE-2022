@@ -10,7 +10,7 @@ from glob import glob
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.join(file_dir, '../../'))
-from utils import file_utils, microarray_utils, clustering_utils, dataframe_utils
+from utils import file_utils, microarray_utils, clustering_utils, dataframe_utils, rna_seq_utils
 
 # SCAN START
 curr_datetime = str(datetime.now())
@@ -27,47 +27,13 @@ if expression_dataset == 'microarray':
 elif expression_dataset == 'rna_seq':
     expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
 else:
-    raise(ValueError(f'{expression_dataset} is an invalid choice for expression_dataset.'))
+    raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
 
-
-# # manually curated metrics + metrics refered to in the documentation
-# all_doc_metrics = ['angular', 'clr'] + ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'] + ['nan_euclidean'] + ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule']
-# # manually curated metrics + metrics refered to in metric parameter ValueError (sklearn documentation is likely not updated)
-# all_metrics = ['angular', 'clr'] + ['euclidean', 'l2', 'l1', 'manhattan', 'cityblock', 'braycurtis', 'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'hamming', 'jaccard', 'mahalanobis', 'matching', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule', 'wminkowski', 'nan_euclidean', 'haversine']
-# # metrics that covert data to boolean (essentially destroying all information for our data) (20 clusters are always produced with the same exact size)
-# boolean_metrics = [
-# 'dice',
-# 'jaccard',
-# 'rogerstanimoto',
-# 'russellrao',
-# 'sokalmichener',
-# 'sokalsneath',
-# 'yule',
-# ]
-# metrics = ['clr', 'manhattan', 'euclidean', 'cosine'] + [f'minkowski_{str(p)}' for p in np.array([0.5, 1, 2, 3, 4, 5])]
-# metrics = [m for m in all_metrics if m not in metrics + boolean_metrics and m[: len('minkowski')] != 'minkowski']
-# metrics = ['manhattan']
-# metrics = ['clr_lev']
 metrics = [sys.argv[2]]
-
-
-
-
-# scan_nns = np.arange(3, 6, 1)
-# scan_nns = [3]
 
 scan_nns = [int(sys.argv[3])]
 
-# scan_nns = np.arange(2, 13, 1)
-
-
-# scan_rps = np.arange(0.05, 0.5, 0.05)
-# scan_rps = [0.030, 0.035]
-# scan_rps = [0.030]
-# scan_rps = np.arange(0.005, 0.07, 0.005)
-
 scan_rps = np.arange(0, 1.1, 0.005)
-
 
 partition_type = 'EXP'
 # partition_type = 'NC'
@@ -97,25 +63,21 @@ for msf in module_subset_files:
         print(f'WARNING: DUPLICATE GENE LIST NAME: \'{file_name}\'. RENAMING TO \'{new_file_name}\'.')
         file_name = new_file_name
 
-    # for id in msf_df.loc[:, 0].values:
-    #     if id != 'TTHERM_ID' and (id[:len('YF_')] == 'YF_' or id[:len('TTHERM_')] =='TTHERM_'):
-    #         gene_ids.append(id)
     gene_ids = list(msf_df.iloc[:, 0].values)
     gene_lists[file_name] = gene_ids
 
 
 ################################################################################
-output_file = None
+output_file = ''
 
 n_jobs = -1
 random_state = 42
 
-scan_dict = {}
-
 if num_iterations > 1 and partition_type != 'NC':
     raise(ValueError(f'PARTITION TYPE IS SET TO {partition_type}. {num_iterations} IDENTICAL PARTITIONS WILL BE COMPUTED. PLEASE SET NUM ITERATIONS TO 1.'))
 
-for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
+for idx, iteration in enumerate(range(num_iterations)):
+    print('COMPUTING', idx+1,'of',len(scan_nns), 'ITERATION')     
 
     full_filtered_df = pd.read_csv(expression_data_path)
     full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
@@ -126,10 +88,10 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
     if expression_dataset == 'microarray':
         full_filtered_norm_df = microarray_utils.normalize_expression_per_gene(full_filtered_df, z=True)
     elif expression_dataset == 'rna_seq':
-        full_filtered_norm_df = full_filtered_df
+        full_filtered_norm_df = rna_seq_utils.normalize_expression_per_gene(full_filtered_df)
     else:
         raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
-
+    
     if partition_type == 'TNC':
         raw_data = dataframe_utils.get_hypercube_sample(full_filtered_df.shape[1], full_filtered_df.shape[0])
     
@@ -174,47 +136,29 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                 distance_matrix = clustering_utils.get_clr_dist_arr_lev(int(nn), clr_networks_folder)
                 nn_idxs, nn_dists = clustering_utils.compute_nns(raw_data, max(scan_nns), metric, random_state, n_jobs, p_minkowski, distance_matrix)
 
-            scan_dict[nn] = {}
-
-            scan_dict[nn]['nn_idxs'] = nn_idxs
-            scan_dict[nn]['nn_dists'] = nn_dists
-
             nn_graph = clustering_utils.compute_umap_graph(raw_data, nn, metric, nn_idxs, nn_dists)
-            scan_dict[nn]['nn_graph'] = nn_graph
 
             for rp in tqdm.tqdm(scan_rps, 'RESOLUTION PARAMETERS COMPUTED'):
-
-                scan_dict[nn][rp] = {}
                 
                 partition = clustering_utils.compute_leiden_partition(nn_graph, rp, random_state)
-                scan_dict[nn][rp]['partition'] = partition
 
                 communities = clustering_utils.compute_communities(partition, idx_labels)
-                scan_dict[nn][rp]['communities'] = communities
 
                 sil_score = clustering_utils.compute_silhouette_score(distance_matrix, partition)
-                scan_dict[nn][rp]['sil_score'] = sil_score
 
                 modularity = clustering_utils.compute_modularity(nn_graph, communities.values())
-                scan_dict[nn][rp]['modularity'] = modularity
 
                 enrichment_df = clustering_utils.compute_enrichment(full_filtered_norm_df, partition)
-                scan_dict[nn][rp]['enrichment_df'] = enrichment_df
 
                 num_clusters = clustering_utils.compute_num_clusters(partition, communities.values())
-                scan_dict[nn][rp]['num_clusters'] = num_clusters
 
                 num_enriched_clusters = clustering_utils.compute_num_enriched_clusters(enrichment_df)
-                scan_dict[nn][rp]['num_enriched_clusters'] = num_enriched_clusters
 
                 num_enriched_cluster_genes = clustering_utils.compute_num_enriched_cluster_genes(enrichment_df, partition)
-                scan_dict[nn][rp]['num_enriched_cluster_genes'] = num_enriched_cluster_genes
 
                 cluster_sizes = clustering_utils.compute_cluster_sizes(communities)
-                scan_dict[nn][rp]['cluster_sizes'] = cluster_sizes
 
                 enriched_cluster_sizes = clustering_utils.compute_enriched_cluster_sizes(communities, enrichment_df)
-                scan_dict[nn][rp]['enriched_cluster_sizes'] = enriched_cluster_sizes
 
                 cluster_stats = {
                 'partition_type': partition_type,
@@ -251,18 +195,10 @@ for iteration in tqdm.tqdm(range(num_iterations), 'ITERATIONS COMPUTED'):
                 }
 
                 for file_name, id_list in gene_lists.items():
-                    print(file_name) # FIXME
-
                     cluster_stats[f'max_fraction_same_cluster_{file_name}'] = clustering_utils.fraction_max_same_cluster_genes(
                     id_list, clustering_utils.format_partition_for_enrichment(
                         full_filtered_norm_df, partition), 
                     print_mode=False)
-
-                    print('SCAN: ', len(id_list)) #FIXME
-
-                    print()
-                    print()
-
                 try:
                     output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{"_".join([str(n) for n in scan_nns])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
                     file_utils.write_to_csv(output_file, cluster_stats, list(cluster_stats.keys()))

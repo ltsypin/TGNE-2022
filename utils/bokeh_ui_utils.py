@@ -15,7 +15,7 @@ import umap
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from .microarray_utils import get_geom_mean_expression, get_arith_mean_expression
+from .microarray_utils import get_geom_mean_expression, get_arith_mean_expression, rna_seq_utils
 
 # bokeh_ui_utils
 
@@ -1629,8 +1629,9 @@ def generate_server_data(expression_df, annotation_df, label_df, phases, palette
         ttherm_ids = merge['TTHERM_ID'].values
         merge = merge.merge(mean_expression_df, on='TTHERM_ID')
 
-    else:
-        mean_expression_df = merge
+    elif phases == 'rna_seq':
+
+        mean_expression_df = rna_seq_utils.ari_mean_df_of_duplicates(merge)
         ttherm_ids = merge['TTHERM_ID'].values
     
     if phases == 'full':
