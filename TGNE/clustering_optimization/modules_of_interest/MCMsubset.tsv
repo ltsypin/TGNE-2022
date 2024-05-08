@@ -1,13 +1,13 @@
 TTHERM_ID	module	TGD2021_description	eggNOG_description	eggNOG_preferred_name	max_annot_lvl	COG_category	GOs	EC	KEGG_ko	KEGG_Pathway	KEGG_Module	KEGG_Reaction	KEGG_rclass	BRITE	KEGG_TC	CAZy	BiGG_Reaction
-TTHERM_01031060	m1692	MCM8 DNA replication licensing factor MCM8 putative	minichromosome  maintenance proteins	-	5878|Ciliophora	L	-	3.6.4.12	ko:K10737	-	-	-	-	ko00000,ko01000,ko03032	-	-	-
+YF00003565.t1	m1692	MCM8 DNA replication licensing factor MCM8 putative	minichromosome  maintenance proteins	-	5878|Ciliophora	L	-	3.6.4.12	ko:K10737	-	-	-	-	ko00000,ko01000,ko03032	-	-	-
 YF00016741.t1	m1459	-	MCM OB domain	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02212	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032	-	-	-
-TTHERM_00554270	m1459	MCM2 MCM2/3/5 family protein	Mini-chromosome maintenance protein 2	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02540	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032,ko03036	-	-	-
-TTHERM_00448570	m1459	MCM6 DNA replication licensing factor MCM4	Belongs to the MCM family	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02542	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032	-	-	-
-TTHERM_00092850	m1459	MCM3 DNA replication licensing factor MCM4	MCM OB domain	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02541	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032,ko03036	-	-	-
-TTHERM_00069420	m1459	MCM5 DNA replication licensing factor MCM4	MCM OB domain	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02209	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032,ko03036	-	-	-
-TTHERM_00011780	m1459	WD domain G-beta repeat protein	MCM OB domain	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02210	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko01009,ko03032	-	-	-
-TTHERM_00011740	m1214	MCM7 MCM2/3/5 family protein	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
-TTHERM_00522550	m0885	mini-chromosome maintenance replisome factor	Mini-chromosome maintenance replisome factor	-	5878|Ciliophora	S	-	-	-	-	-	-	-	-	-	-	-
-TTHERM_00703910	m0498	MCM9 MCM2/3/5 family protein	negative regulation of DNA helicase activity	-	2759|Eukaryota	L	-	3.6.4.12	ko:K10738	-	-	-	-	ko00000,ko01000,ko03032	-	-	-
-TTHERM_000011759	m0165	DNA replication licensing factor MCM4	-	-	5911.EAR86071|-	-	-	-	-	-	-	-	-	-	-	-	-
-TTHERM_01207610	m0120	MCM2/3/5 family protein	Exosome complex exonuclease RRP4 N-terminal region	-	5878|Ciliophora	J	-	-	ko:K03679	ko03018,map03018	M00390,M00391	-	-	ko00000,ko00001,ko00002,ko03019	-	-	-
+YF00012156.t1	m1459	MCM2 MCM2/3/5 family protein	Mini-chromosome maintenance protein 2	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02540	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032,ko03036	-	-	-
+YF00025215.t1	m1459	MCM6 DNA replication licensing factor MCM4	Belongs to the MCM family	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02542	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032	-	-	-
+YF00018584.t1	m1459	MCM3 DNA replication licensing factor MCM4	MCM OB domain	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02541	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032,ko03036	-	-	-
+YF00026324.t1	m1459	MCM5 DNA replication licensing factor MCM4	MCM OB domain	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02209	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko03032,ko03036	-	-	-
+YF00036240.t1	m1459	WD domain G-beta repeat protein	MCM OB domain	-	5878|Ciliophora	L	-	3.6.4.12	ko:K02210	ko03030,ko04110,ko04111,ko04113,map03030,map04110,map04111,map04113	M00285	-	-	ko00000,ko00001,ko00002,ko01000,ko01009,ko03032	-	-	-
+YF00009981.t1	m1214	MCM7 MCM2/3/5 family protein	-	-	-	-	-	-	-	-	-	-	-	-	-	-	-
+YF00005960.t1	m0885	mini-chromosome maintenance replisome factor	Mini-chromosome maintenance replisome factor	-	5878|Ciliophora	S	-	-	-	-	-	-	-	-	-	-	-
+YF00003115.t1	m0498	MCM9 MCM2/3/5 family protein	negative regulation of DNA helicase activity	-	2759|Eukaryota	L	-	3.6.4.12	ko:K10738	-	-	-	-	ko00000,ko01000,ko03032	-	-	-
+YF00036241.t1	m0165	DNA replication licensing factor MCM4	-	-	5911.EAR86071|-	-	-	-	-	-	-	-	-	-	-	-	-
+YF00035370.t1	m0120	MCM2/3/5 family protein	Exosome complex exonuclease RRP4 N-terminal region	-	5878|Ciliophora	J	-	-	ko:K03679	ko03018,map03018	M00390,M00391	-	-	ko00000,ko00001,ko00002,ko03019	-	-	-

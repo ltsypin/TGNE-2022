@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ~/.zshrc
+source ~/.bashrc
 
 set -e
 
