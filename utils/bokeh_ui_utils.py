@@ -15,7 +15,8 @@ import umap
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from .microarray_utils import get_geom_mean_expression, get_arith_mean_expression, rna_seq_utils
+from .microarray_utils import get_arith_mean_expression
+from .rna_seq_utils import ari_mean_df_of_duplicates
 
 # bokeh_ui_utils
 
@@ -1198,8 +1199,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
              'C12', 
              'C14', 
              'C16', 
-             'C18']
-        
+             'C18']        
         
     elif phases == 'veg':
         
@@ -1213,7 +1213,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
              # 'S12', 
              'S15', 
              'S24']
-        
+                
     elif phases == 'sex':
         
         x = ['C0', 
@@ -1226,20 +1226,20 @@ def arrange_modules(expr_df, cluster_label_df, phases):
              'C14', 
              'C16', 
              'C18']
-
+        
     elif phases == 'rna_seq':
         x = ['000min', '030min', '060min', '090min', '120min', '150min',
        '180min', '210min', '240min']
-        
+                
     elif phases == 'rna_seq_single_cycle':
         x = ['000min', '030min', '060min', '090min', '120min', '150min',
        '180min']
-        
+                
     else:
         raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
-        
-    cols = ['TTHERM_ID'] + [c for c in expr_df.columns if c.split('_')[0] in x]
     
+    cols = ['TTHERM_ID'] + [c for c in expr_df.columns if c.split('_')[0] in x]
+        
     module_centroid_df = get_module_centroid_df(expr_df[cols], cluster_label_df)
 
     # print(module_centroid_df.shape)
@@ -1299,7 +1299,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     return arranged_df
 
 
-def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, z=False):
+def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1):
     
     """
     Function to plot the UMAP of expression data.
@@ -1307,77 +1307,32 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     z : Bool
         Whether the normalization is by z-score
     """
-    
-    # get new index for clustered heatmap
-    # label_df_unsorted = arrange_modules(expression_df, label_df, phases) # FIXME maybe
-    
-    # Weirdly, the heatmap looks better-arranged when I just sort by the modules, as
-    # given by the hierarchical clustering done by arrange_modules(), than if
-    # I stay with the order they were given automatically
-    # label_df = label_df_unsorted.sort_values(by=['label', 'TTHERM_ID'], ascending=False)
-    # new_index = label_df.index
 
-    # sorted_label_df = label_df.sort_values(by='label') # FIXME maybe
-        
-    # data = expression_df[list(expression_df.columns)[1:]].values
+    if phases in ['full', 'veg', 'sex']:
+        mean_expression_df = get_arith_mean_expression(expression_df)
 
-    num_genes = len(expression_df['TTHERM_ID'].values)
-    
-    embedding_df['TTHERM_ID'] = expression_df['TTHERM_ID'].values
+    elif phases == 'rna_seq':
+        mean_expression_df = ari_mean_df_of_duplicates(expression_df)
 
-    # print(list(label_df['label'].values)[0:10])
+    num_genes = mean_expression_df.shape[0]
     
-    merge_unsorted = expression_df.merge(embedding_df, on='TTHERM_ID')
+    embedding_df['TTHERM_ID'] = mean_expression_df['TTHERM_ID'].values
+    
+    merge_unsorted = mean_expression_df.merge(embedding_df, on='TTHERM_ID')
 
     merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
-
-    # if list(label_df['TTHERM_ID'].values) == list(merge_all['TTHERM_ID'].values):
-    #     print('MERGING SUCCESS!!!')
-    
-    # merge_all_sorted = merge_all.sort_values(by='label')  # FIXME maybe
 
     merge_all_sorted = merge_all
 
     labels = merge_all_sorted['label'].values
 
     merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
-
-    # labels = merge['label'].values
-
-    # if list(labels) == list(sorted(labels)):
-    #     print('SORTED!')
-
-    # if len(merge) != len(label_df):
-    #     print('LENGTH DIFFERENT', len(merge), len(label_df))
-    # else:
-    #     print('LENGTH SAME!')
-
-    # if list(merge['TTHERM_ID'].values) != list(label_df['TTHERM_ID'].values):
-    #     print('ORDER DIFFERENT')
-    # else:
-    #     print('SAME ORDER!')
-    
-    
-    # merge = merge.reindex(new_index)
     
     # take part of annotation df that shared TTHERM_IDs with expression df
     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
     merge = merge.merge(relevant_annot, on='TTHERM_ID')
 
-    if phases in ['full', 'veg', 'sex']:
-
-        if z:
-            mean_expression_df = get_arith_mean_expression(merge)
-
-        else:
-            mean_expression_df = get_geom_mean_expression(merge)
-
-        ttherm_ids = merge['TTHERM_ID'].values
-        merge = merge.merge(mean_expression_df, on='TTHERM_ID')
-
-    else:
-        mean_expression_df = merge
-        ttherm_ids = merge['TTHERM_ID'].values
+    ttherm_ids = merge['TTHERM_ID'].values
     
     if phases == 'full':
         
@@ -1430,7 +1385,8 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
              'C18']
         
     elif phases == 'rna_seq':
-        x = ['000min', '030min', '060min', '090min', '120min', '150min', '180min', '210min', '240min']
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min', '210min', '240min']
         
     elif phases == 'rna_seq_single_cycle':
         x = ['000min', '030min', '060min', '090min', '120min', '150min', '180min']
@@ -1455,10 +1411,6 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
                                # 'index':np.arange(len(data)),
                                'ID':merge['TTHERM_ID'].values,
                                'module':[f'm{int(l):04d}' for l in labels]})
-
-    # print('MOD', list(hover_data['module'].values)[0])
-    
-#     palette = [palette[l] for l in sorted(label_df[label_key].unique())]
     
     p = interactive(merge,
                     num_genes,
@@ -1548,7 +1500,7 @@ def generate_and_save_tsne(outfile_name, expression_df, annotation_df, label_df,
     return p
 
 
-def generate_server_data(expression_df, annotation_df, label_df, phases, palette, n_neighbors=3, random_state=42, embedding_metric='euclidean', z=True):
+def generate_server_data(expression_df, annotation_df, label_df, phases, palette, n_neighbors=3, random_state=42, embedding_metric='euclidean'):
     
     data = expression_df[list(expression_df.columns)[1:]].values
     
@@ -1557,38 +1509,11 @@ def generate_server_data(expression_df, annotation_df, label_df, phases, palette
     
     embedding_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
     
-    """
-    Function to plot the UMAP of expression data.
-    
-    z : Bool
-        Whether the normalization is by z-score
-    """
-    
-    # get new index for clustered heatmap
-    # label_df_unsorted = arrange_modules(expression_df, label_df, phases) # FIXME maybe
-    
-    # Weirdly, the heatmap looks better-arranged when I just sort by the modules, as
-    # given by the hierarchical clustering done by arrange_modules(), than if
-    # I stay with the order they were given automatically
-    # label_df = label_df_unsorted.sort_values(by=['label', 'TTHERM_ID'], ascending=False)
-    # new_index = label_df.index
-
-    # sorted_label_df = label_df.sort_values(by='label') # FIXME maybe
-        
-    # data = expression_df[list(expression_df.columns)[1:]].values
-    
     embedding_df['TTHERM_ID'] = expression_df['TTHERM_ID'].values
-
-    # print(list(label_df['label'].values)[0:10])
     
     merge_unsorted = expression_df.merge(embedding_df, on='TTHERM_ID')
 
     merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
-
-    # if list(label_df['TTHERM_ID'].values) == list(merge_all['TTHERM_ID'].values):
-    #     print('MERGING SUCCESS!!!')
-    
-    # merge_all_sorted = merge_all.sort_values(by='label')  # FIXME maybe
 
     merge_all_sorted = merge_all
 
@@ -1596,43 +1521,32 @@ def generate_server_data(expression_df, annotation_df, label_df, phases, palette
 
     merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
 
-    # labels = merge['label'].values
-
-    # if list(labels) == list(sorted(labels)):
-    #     print('SORTED!')
-
-    # if len(merge) != len(label_df):
-    #     print('LENGTH DIFFERENT', len(merge), len(label_df))
-    # else:
-    #     print('LENGTH SAME!')
-
-    # if list(merge['TTHERM_ID'].values) != list(label_df['TTHERM_ID'].values):
-    #     print('ORDER DIFFERENT')
-    # else:
-    #     print('SAME ORDER!')
+    relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
+    merge = merge.merge(relevant_annot, on='TTHERM_ID')
     
+    if phases in ['full', 'veg', 'sex']:
+        mean_expression_df = get_arith_mean_expression(expression_df)
+
+    elif phases == 'rna_seq':
+        mean_expression_df = ari_mean_df_of_duplicates(expression_df)
     
-    # merge = merge.reindex(new_index)
+    embedding_df['TTHERM_ID'] = mean_expression_df['TTHERM_ID'].values
+    
+    merge_unsorted = mean_expression_df.merge(embedding_df, on='TTHERM_ID')
+
+    merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
+
+    merge_all_sorted = merge_all
+
+    labels = merge_all_sorted['label'].values
+
+    merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
     
     # take part of annotation df that shared TTHERM_IDs with expression df
     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
     merge = merge.merge(relevant_annot, on='TTHERM_ID')
 
-    if phases == 'full':
-
-        if z:
-            mean_expression_df = get_arith_mean_expression(merge)
-
-        else:
-            mean_expression_df = get_geom_mean_expression(merge)
-
-        ttherm_ids = merge['TTHERM_ID'].values
-        merge = merge.merge(mean_expression_df, on='TTHERM_ID')
-
-    elif phases == 'rna_seq':
-
-        mean_expression_df = rna_seq_utils.ari_mean_df_of_duplicates(merge)
-        ttherm_ids = merge['TTHERM_ID'].values
+    ttherm_ids = merge['TTHERM_ID'].values
     
     if phases == 'full':
         
@@ -1685,7 +1599,8 @@ def generate_server_data(expression_df, annotation_df, label_df, phases, palette
              'C18']
         
     elif phases == 'rna_seq':
-        x = ['000min', '030min', '060min', '090min', '120min', '150min', '180min', '210min', '240min']
+        x = ['000min', '030min', '060min', '090min', '120min', '150min',
+       '180min', '210min', '240min']
         
     elif phases == 'rna_seq_single_cycle':
         x = ['000min', '030min', '060min', '090min', '120min', '150min', '180min']
@@ -1700,7 +1615,6 @@ def generate_server_data(expression_df, annotation_df, label_df, phases, palette
     merge['expr_xs'] = xs
     merge['expr_ys'] = ys
     
-
     merge['module'] = [f'm{int(l):04d}' for l in labels]
 
     pr = compute_2d_embedding_point_radius(embedding_df)

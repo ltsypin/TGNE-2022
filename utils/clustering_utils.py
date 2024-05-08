@@ -417,7 +417,7 @@ def build_label_df(data_df, dataset, metric='manhattan', n_neighbors=3, resoluti
 
     modularity = compute_modularity(nn_graph, communities.values())
 
-    partition_df = format_partition_for_enrichment(full_filtered_norm_df, partition)
+    partition_df = format_partition_for_enrichment(data_df, partition)
 
     enrichment_df = compute_enrichment(partition_df)
 

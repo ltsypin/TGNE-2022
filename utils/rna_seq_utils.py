@@ -60,6 +60,7 @@ def ari_mean_df_of_duplicates(df: pd.DataFrame):
     while idxb < len(num_df_cols):
         col_a_split = num_df_cols[idxa].split('_')
         col_name = '_'.join(col_a_split[:len(col_a_split)-1])
+
         return_df[col_name] = num_df[num_df_cols[idxa]] + num_df[num_df_cols[idxb]] / 2
 
         idxa += 1
