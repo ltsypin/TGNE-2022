@@ -327,6 +327,10 @@ def interactive(
     Returns
     -------
     """
+    if 'TTHERM_IDs' in list(embedding_df.columns):
+        print('1')
+        interactive_text_search_columns=['TTHERM_ID', 'TTHERM_IDs', 'PFAMs', 'Description', 'TGD2021_description', 'module']
+
     if theme is not None:
         cmap = _themes[theme]["cmap"]
         color_key_cmap = _themes[theme]["color_key_cmap"]
@@ -461,27 +465,6 @@ def interactive(
     
     x_heatmap_profile = x
     
-    # ['Ll', 
-    #      'Lm', 
-    #      'Lh', 
-    #      'S0', 
-    #      'S3', 
-    #      'S6', 
-    #      'S9', 
-    #      # 'S12', 
-    #      'S15', 
-    #      'S24', 
-    #      'C0', 
-    #      # 'C2', 
-    #      'C4', 
-    #      'C6', 
-    #      'C8', 
-    #      'C10', 
-    #      'C12', 
-    #      'C14', 
-    #      'C16', 
-    #      'C18']
-    
     # if normalized:
     hm_min = expr_min
     hm_max = expr_max
@@ -495,6 +478,7 @@ def interactive(
     hm_df = embedding_df[['TTHERM_ID'] + x_heatmap_profile]
     hm_df['module'] = hover_data['module'].values
     hm_df_tidy = hm_df.melt(id_vars=['TTHERM_ID', 'module'], var_name='phase', value_name='normalized_expression')
+    print(hm_df_tidy)
     hm_cds = bokeh.plotting.ColumnDataSource(hm_df_tidy)
     hm_cds.data['fill_alpha'] = [0.7]*len(hm_df_tidy)
     hm_cds.data['line_alpha'] = [0.7]*len(hm_df_tidy)
@@ -577,6 +561,12 @@ def interactive(
 #                    TableColumn(field="x",  title="x", width=300),
 #                    TableColumn(field="y",  title="y")
               ]
+    
+    print(interactive_text_search_columns)
+    if 'TTHERM_IDs' in list(embedding_df.columns):
+        print('2')
+        columns.insert(1, TableColumn(field="TTHERM_IDs",  title="TTHERM_IDs", width=600))
+
     table = DataTable(source=s2, 
                       columns=columns, 
                       editable=True,
@@ -730,6 +720,7 @@ def interactive(
 
         d2['module'] = []
         d2['ID'] = []
+        d2['TTHERM_IDs'] = []
         // d2['YF_ID'] = []
         d2['TGD2021_description'] = []
         d2['Description'] = []
@@ -752,6 +743,7 @@ def interactive(
         for (var i = 0; i < inds.length; i++) {
             d2['module'].push(d1['module'][inds[i]])
             d2['ID'].push(d1['ID'][inds[i]])
+            d2['TTHERM_IDs'].push(d1['TTHERM_IDs'][inds[i]])
             // d2['YF_ID'].push(d1['YF_ID'][inds[i]])
             d2['TGD2021_description'].push(d1['TGD2021_description'][inds[i]])
             d2['Description'].push(d1['Description'][inds[i]])
@@ -1030,9 +1022,9 @@ table.change.emit();
             code="""
             var inds = source_data.selected.indices;
             var data = source_data.data;
-            var out = "TTHERM_ID\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\\n";
+            var out = "TTHERM_ID\tTTHERM_IDs\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\\n";
             for (var i = 0; i < inds.length; i++) {
-                out += data['ID'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\\n";
+                out += data['ID'][inds[i]] + "\t" + data['TTHERM_IDs'][inds[i]] + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\\n";
             }
             var file = new Blob([out], {type: 'text/plain'});
             var elem = window.document.createElement('a');
@@ -1299,7 +1291,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     return arranged_df
 
 
-def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1):
+def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None):
     
     """
     Function to plot the UMAP of expression data.
@@ -1405,6 +1397,9 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     
     # print(merge.head())
 
+    if yf_to_ttherm_map_df is not None:
+        merge = merge.merge(yf_to_ttherm_map_df, on='TTHERM_ID', how='left')
+
     
 #     pdb.set_trace()
     hover_data = pd.DataFrame({
@@ -1412,6 +1407,8 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
                                'ID':merge['TTHERM_ID'].values,
                                'module':[f'm{int(l):04d}' for l in labels]})
     
+    print(merge.columns)
+        
     p = interactive(merge,
                     num_genes,
                     x,
@@ -1441,7 +1438,7 @@ def compute_2d_embedding_point_radius(embedding_df):
     return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / 339.30587926495537
 
 
-def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', z=False):
+def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None):
     
     data = expression_df[list(expression_df.columns)[1:]].values
     
@@ -1453,7 +1450,7 @@ def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df,
     radius = compute_2d_embedding_point_radius(umap_df)
     
     bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
-    p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, z=z)
+    p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df)
     bokeh.plotting.save(p)
     print(outfile_name)
     return p    
