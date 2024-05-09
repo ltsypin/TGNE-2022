@@ -83,7 +83,7 @@ def plot_enrichment(enrich_column_data_source, plot_sizing_mode='stretch_both'):
     
     return p
 
-def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors, y_axis_factors, s_z="normalized_expression", index_name='TTHERM_ID', col_name='phase', plot_sizing_mode='stretch_both'):
+def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors, y_axis_factors, s_z="normalized_expression", index_name='TTHERM_ID', col_name='phase', plot_sizing_mode='stretch_both', hover_module=True):
     # adapted from https://gitlab.com/biotransistor/bokehheat/-/blob/master/bokehheat/heat.py
     """
     input:
@@ -150,8 +150,11 @@ def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors,
         (s_y, f"@{s_y}"),
         (s_x, f"@{s_x}"),
         (s_z, f"@{s_z}"),
-        ('module', f'@module')
     ]
+
+    if hover_module:
+        lt_tooltip.append(('module', f'@module'))
+
     # generate figure
     o_colorbar = ColorBar(color_mapper=d_zcolormapper['transform'])
     p = bokeh.plotting.figure(
@@ -328,7 +331,6 @@ def interactive(
     -------
     """
     if 'TTHERM_IDs' in list(embedding_df.columns):
-        print('1')
         interactive_text_search_columns=['TTHERM_ID', 'TTHERM_IDs', 'PFAMs', 'Description', 'TGD2021_description', 'module']
 
     if theme is not None:
@@ -478,7 +480,6 @@ def interactive(
     hm_df = embedding_df[['TTHERM_ID'] + x_heatmap_profile]
     hm_df['module'] = hover_data['module'].values
     hm_df_tidy = hm_df.melt(id_vars=['TTHERM_ID', 'module'], var_name='phase', value_name='normalized_expression')
-    print(hm_df_tidy)
     hm_cds = bokeh.plotting.ColumnDataSource(hm_df_tidy)
     hm_cds.data['fill_alpha'] = [0.7]*len(hm_df_tidy)
     hm_cds.data['line_alpha'] = [0.7]*len(hm_df_tidy)
@@ -562,9 +563,7 @@ def interactive(
 #                    TableColumn(field="y",  title="y")
               ]
     
-    print(interactive_text_search_columns)
     if 'TTHERM_IDs' in list(embedding_df.columns):
-        print('2')
         columns.insert(1, TableColumn(field="TTHERM_IDs",  title="TTHERM_IDs", width=600))
 
     table = DataTable(source=s2, 
@@ -1406,9 +1405,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
                                # 'index':np.arange(len(data)),
                                'ID':merge['TTHERM_ID'].values,
                                'module':[f'm{int(l):04d}' for l in labels]})
-    
-    print(merge.columns)
-        
+            
     p = interactive(merge,
                     num_genes,
                     x,
