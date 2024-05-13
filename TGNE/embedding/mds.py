@@ -12,24 +12,24 @@ sys.path.append(os.path.join(file_dir, '../../'))
 
 from utils import clustering_utils, rna_seq_utils, microarray_utils
 
-def mds_embedding(full_filtered_norm_df: pd.DataFrame, file_name: str):
+def mds_embedding(full_filtered_norm_df: pd.DataFrame, file_name: str, random_state=42):
     data = full_filtered_norm_df[list(full_filtered_norm_df.columns)[1:]].values
 
     data_dists = clustering_utils.compute_pairwise_distance_matrix(data, 'manhattan')
 
-    mds_mapper = MDS(n_components=2, normalized_stress='auto', dissimilarity='precomputed', n_jobs=-1)
+    mds_mapper = MDS(n_components=2, normalized_stress='auto', dissimilarity='precomputed', random_state=random_state)
     embedding = mds_mapper.fit_transform(data_dists)
 
     mds_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
 
     mds_df.to_csv(os.path.join(file_dir, f'./{file_name}'), index=False)
 
-def nmds_embedding(full_filtered_norm_df: pd.DataFrame, file_name: str):
+def nmds_embedding(full_filtered_norm_df: pd.DataFrame, file_name: str, random_state=42):
     data = full_filtered_norm_df[list(full_filtered_norm_df.columns)[1:]].values
 
     data_dists = clustering_utils.compute_pairwise_distance_matrix(data, 'manhattan')
 
-    mds_mapper = MDS(n_components=2, normalized_stress='auto', dissimilarity='precomputed', n_jobs=-1, metric=False)
+    mds_mapper = MDS(n_components=2, normalized_stress='auto', dissimilarity='precomputed', n_jobs=-1, metric=False, random_state=random_state)
     embedding = mds_mapper.fit_transform(data_dists)
 
     mds_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
