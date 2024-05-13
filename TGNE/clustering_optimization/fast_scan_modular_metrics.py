@@ -10,6 +10,7 @@ from glob import glob
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.join(file_dir, '../../'))
+
 from utils import file_utils, microarray_utils, clustering_utils, dataframe_utils, rna_seq_utils
 
 # SCAN START

@@ -14,9 +14,11 @@ from bokeh.transform import linear_cmap, jitter
 import umap
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+from sklearn.manifold import MDS
 
 from .microarray_utils import get_arith_mean_expression
 from .rna_seq_utils import ari_mean_df_of_duplicates
+from .clustering_utils import compute_pairwise_distance_matrix
 
 # bokeh_ui_utils
 
@@ -1441,6 +1443,25 @@ def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df,
     
     umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
     embedding = _get_umap_embedding(umap_mapper)
+    
+    umap_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
+
+    radius = compute_2d_embedding_point_radius(umap_df)
+    
+    bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
+    p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df)
+    bokeh.plotting.save(p)
+    print(outfile_name)
+    return p    
+
+def generate_and_save_mds(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None):
+    
+    data = expression_df[list(expression_df.columns)[1:]].values
+
+    data_dists = compute_pairwise_distance_matrix(data, embedding_metric)
+
+    mds_mapper = MDS(n_components=2, normalized_stress='auto', dissimilarity='precomputed', n_jobs=-1)
+    embedding = mds_mapper.fit_transform(data_dists)
     
     umap_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
 
