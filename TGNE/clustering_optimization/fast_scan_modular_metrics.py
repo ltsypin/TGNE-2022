@@ -190,7 +190,7 @@ for idx, iteration in enumerate(range(num_iterations)):
                 'median_enriched_cluster_size': clustering_utils.compute_cluster_size_median(enriched_cluster_sizes),
                 'sd_enriched_cluster_size': clustering_utils.compute_cluster_size_sd(enriched_cluster_sizes),
                 'max_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.max(enriched_cluster_sizes),
-                'min_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.max(enriched_cluster_sizes),
+                'min_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.min(enriched_cluster_sizes),
                 'nenriched_cluster_genes': num_enriched_cluster_genes,
 
                 'datetime': curr_datetime
