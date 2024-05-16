@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import warnings
 import scipy.spatial
 import scipy.cluster.hierarchy
 import bokeh
@@ -1301,6 +1302,9 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
         Whether the normalization is by z-score
     """
 
+    if expression_df.shape[0] != embedding_df.shape[0]:
+        raise(ValueError(f'The number of rows (genes) in the input dataframes are not equal.\nexpression_df: {expression_df.shape[0]} rows\nembedding_df: {expression_df.shape[0]} rows'))
+
     if phases in ['full', 'veg', 'sex']:
         mean_expression_df = get_arith_mean_expression(expression_df)
 
@@ -1323,7 +1327,11 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     
     # take part of annotation df that shared TTHERM_IDs with expression df
     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
-    merge = merge.merge(relevant_annot, on='TTHERM_ID')
+
+    if relevant_annot.shape[0] < merge.shape[0]:
+           warnings.warn(f'The number of rows (genes) in the relevant annotation dataframe and the merged input dataframe are not equal. If you are using a new genome model, please rerun eggnog to ensure all annotations are populated.\nrelevant_annot: {relevant_annot.shape[0]} rows\nmerge: {merge.shape[0]} rows')
+
+    merge = merge.merge(relevant_annot, on='TTHERM_ID', how='left')
 
     ttherm_ids = merge['TTHERM_ID'].values
     
@@ -1402,6 +1410,12 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
         merge = merge.merge(yf_to_ttherm_map_df, on='TTHERM_ID', how='left')
 
     
+    # print(len(merge['TTHERM_ID'].values))
+    # print(len([f'm{int(l):04d}' for l in labels]))
+    # print(merge['TTHERM_ID'].values)
+    # print([f'm{int(l):04d}' for l in labels])
+
+    
 #     pdb.set_trace()
     hover_data = pd.DataFrame({
                                # 'index':np.arange(len(data)),
@@ -1433,8 +1447,8 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
 
 
 # ((range of x values)^2 * (range of y values)^2)^(0.5) * (const) = (optimal radius value)
-def compute_2d_embedding_point_radius(embedding_df):
-    return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / 339.30587926495537
+def compute_2d_embedding_point_radius(embedding_df, const=339.30587926495537):
+    return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / const
 
 
 def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None):

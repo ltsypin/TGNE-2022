@@ -29,7 +29,7 @@ def nmds_embedding(full_filtered_norm_df: pd.DataFrame, file_name: str, random_s
 
     data_dists = clustering_utils.compute_pairwise_distance_matrix(data, 'manhattan')
 
-    mds_mapper = MDS(n_components=2, normalized_stress='auto', dissimilarity='precomputed', n_jobs=-1, metric=False, random_state=random_state)
+    mds_mapper = MDS(n_components=2, normalized_stress='auto', dissimilarity='precomputed', metric=False, random_state=random_state)
     embedding = mds_mapper.fit_transform(data_dists)
 
     mds_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
