@@ -819,7 +819,7 @@ def interactive(
     data_source.selected.js_on_change('indices', selection_callback, expression_callback, heatmap_callback)
 
     if interactive_text_search:
-        text_input = TextInput(value="Search comma-separated module(s), TTHERM_ID(s), or functional term(s), for example: m0003, TTHERM_01207610, Histone", sizing_mode=search_sizing_mode)
+        text_input = TextInput(value="Search comma-separated module(s), TTHERM_ID(s), or functional term(s), for example: m0003, TTHERM_00825460, Histone", sizing_mode=search_sizing_mode)
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
