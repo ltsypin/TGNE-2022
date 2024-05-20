@@ -469,8 +469,6 @@ def interactive(
 
     
     x_heatmap_profile = x
-
-    # for FIXME add the rna seq phases
     
     # if normalized:
     hm_min = expr_min
@@ -1329,13 +1327,11 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     if expression_df.shape[0] != embedding_df.shape[0]:
         raise(ValueError(f'The number of rows (genes) in the input dataframes are not equal.\nexpression_df: {expression_df.shape[0]} rows\nembedding_df: {expression_df.shape[0]} rows'))
 
-    # if phases in ['full', 'veg', 'sex']:
-    #     mean_expression_df = get_arith_mean_expression(expression_df)
+    if phases in ['full', 'veg', 'sex']:
+        mean_expression_df = get_arith_mean_expression(expression_df)
 
-    # elif phases == 'rna_seq':
-    #     mean_expression_df = ari_mean_df_of_duplicates(expression_df)
-
-    mean_expression_df = expression_df
+    elif phases == 'rna_seq':
+        mean_expression_df = ari_mean_df_of_duplicates(expression_df)
 
     num_genes = mean_expression_df.shape[0]
     
@@ -1579,13 +1575,11 @@ def generate_server_data(expression_df, annotation_df, label_df, phases, palette
     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
     merge = merge.merge(relevant_annot, on='TTHERM_ID')
     
-    # if phases in ['full', 'veg', 'sex']:
-    #     mean_expression_df = get_arith_mean_expression(expression_df)
+    if phases in ['full', 'veg', 'sex']:
+        mean_expression_df = get_arith_mean_expression(expression_df)
 
-    # elif phases == 'rna_seq':
-    #     mean_expression_df = ari_mean_df_of_duplicates(expression_df)
-
-    mean_expression_df = expression_df
+    elif phases == 'rna_seq':
+        mean_expression_df = ari_mean_df_of_duplicates(expression_df)
     
     embedding_df['TTHERM_ID'] = mean_expression_df['TTHERM_ID'].values
     

@@ -34,8 +34,8 @@ metrics = [sys.argv[2]]
 
 scan_nns = [int(sys.argv[3])]
 
-# scan_rps = np.arange(0, 1.1, 0.005)
-scan_rps = [0.005]
+scan_rps = np.arange(0, 1.1, 0.005)
+# scan_rps = [0.005]
 
 partition_type = 'EXP'
 # partition_type = 'NC'
@@ -89,8 +89,10 @@ for idx, iteration in enumerate(range(num_iterations)):
 
     if expression_dataset == 'microarray':
         full_filtered_norm_df = microarray_utils.normalize_expression_per_gene(full_filtered_df, z=True)
+        full_filtered_norm_df = microarray_utils.get_arith_mean_expression(full_filtered_norm_df)
     elif expression_dataset == 'rna_seq':
         full_filtered_norm_df = rna_seq_utils.normalize_expression_per_gene(full_filtered_df)
+        full_filtered_norm_df = rna_seq_utils.ari_mean_df_of_duplicates(full_filtered_norm_df)
     else:
         raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
     
@@ -200,7 +202,7 @@ for idx, iteration in enumerate(range(num_iterations)):
                     cluster_stats[f'max_fraction_same_cluster_{file_name}'] = clustering_utils.fraction_max_same_cluster_genes(
                     id_list, clustering_utils.format_partition_for_enrichment(
                         full_filtered_norm_df, partition), 
-                    print_mode=True)
+                    print_mode=False)
                 try:
                     output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{"_".join([str(n) for n in scan_nns])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
                     file_utils.write_to_csv(output_file, cluster_stats, list(cluster_stats.keys()))
