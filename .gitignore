@@ -127,3 +127,4 @@ new_raw_data/**/*.gff3
 
 new_raw_data/**/*.fasta
 
+new_raw_data/all_pair/**/*

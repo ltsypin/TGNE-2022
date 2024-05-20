@@ -4,6 +4,8 @@ import numpy as np
 import warnings
 import scipy.spatial
 import scipy.cluster.hierarchy
+from copy import deepcopy
+
 import bokeh
 from bokeh.plotting import show as show_interactive
 from bokeh.plotting import output_file, output_notebook
@@ -470,6 +472,22 @@ def interactive(
     
     x_heatmap_profile = x
 
+    # rna_seq_phase_dict = {
+    #         '000min': '(000min) G1',
+    #         '030min': '(030min) G1',
+    #         '060min': '(060min) S',
+    #         '090min': '(090min) S',
+    #         '120min': '(120min) G2',
+    #         '150min': '(150min) M',
+    #         '180min': '(180min) M',
+    #         '210min': '(210min) G1',
+    #         '240min': '(240min) S',
+    # }
+
+    # for idx in range(len(x_heatmap_profile)):
+    #     if x_heatmap_profile[idx] in rna_seq_phase_dict:
+    #         x_heatmap_profile[idx] = rna_seq_phase_dict[x_heatmap_profile[idx]]
+
     # for FIXME add the rna seq phases
     
     # if normalized:
@@ -482,7 +500,7 @@ def interactive(
     
     # For companion heatmap plot
     ttherm_ids = embedding_df['TTHERM_ID'].values
-    hm_df = embedding_df[['TTHERM_ID'] + x_heatmap_profile]
+    hm_df = embedding_df[['TTHERM_ID'] + x]
     hm_df['module'] = hover_data['module'].values
     hm_df_tidy = hm_df.melt(id_vars=['TTHERM_ID', 'module'], var_name='phase', value_name='normalized_expression')
     hm_cds = bokeh.plotting.ColumnDataSource(hm_df_tidy)
@@ -498,11 +516,15 @@ def interactive(
     # For companion expression plot
 
     expr_source = bokeh.plotting.ColumnDataSource(dict(
+        TTHERM_ID=['blah'],
+        module=['blah'],
         ID=['blah'], 
         expr_xs=[['Ll']], 
         expr_ys=[[0]],
         alpha=[0],
         color=['black']))
+    
+    # print(expr_source.data)
     
     # if normalized:
     y_axis_label = 'Mean expression z-score'
@@ -518,6 +540,10 @@ def interactive(
                                      y_axis_label=y_axis_label,
                                      x_range=x_heatmap_profile, 
                                      y_range=y_range,
+                                     tooltips=[
+                                         ('TTHERM_ID', '@TTHERM_ID'),
+                                         ('module', '@module'),
+                                               ],
                                      sizing_mode=plot_sizing_mode,
                                      output_backend="webgl",
                                      tools=["ypan", "xpan", "box_zoom", "ywheel_zoom", "xwheel_zoom", "undo", "reset", "save"]
@@ -546,8 +572,8 @@ def interactive(
 
     columns = [TableColumn(field="ID",  title="TTHERM_ID", formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>'), width=150),
             #    TableColumn(field="YF_ID", title="YF_ID", width=300),
-               TableColumn(field="peptide",  title="peptide", width=100),
                TableColumn(field="module",  title="Module", width=100),
+               TableColumn(field="peptide",  title="peptide", width=100),
                TableColumn(field='TGD2021_description', title='TGD2021_description', width=300),
                TableColumn(field="Description", title="eggNOG_description", width=300),
                TableColumn(field="Preferred_name", title="eggNOG_preferred_name", width=150),
@@ -586,7 +612,7 @@ def interactive(
         args=dict(
             s1=data_source,
             s_hm=hm_cds,
-            cols=x_heatmap_profile
+            cols=x
         ),
         code="""
         var d1 = s1.data;
@@ -672,6 +698,8 @@ def interactive(
 
         // console.log(d_expr['ID'].length, d_expr['expr_xs'].length, d_expr['expr_ys'].length)
 
+        d_expr['TTHERM_ID'] = ['blah']
+        d_expr['module'] = ['blah']
         d_expr['ID'] = [['blah']]
         d_expr['expr_xs'] = [['Ll']]
         d_expr['expr_ys'] = [[0]]
@@ -684,6 +712,8 @@ def interactive(
         for (var i = 0; i < inds.length; i++) {
             // d_expr['alpha'][inds[i]] = 1/(inds.length * 2)
             // console.log(inds[i], i)
+            d_expr['TTHERM_ID'].push(d1['ID'][inds[i]])
+            d_expr['module'].push(d1['module'][inds[i]])
             d_expr['ID'].push(Array(18).fill(d1['ID'][inds[i]]))
             d_expr['expr_xs'].push(d1['expr_xs'][inds[i]])
             d_expr['expr_ys'].push(d1['expr_ys'][inds[i]])
@@ -1035,7 +1065,7 @@ table.change.emit();
         download_button1_extra_str2 = '+ \"\t\"  + data[\'TTHERM_IDs\'][inds[i]]'
 
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    download_button1 = Button(label='💾 Annotations', button_type="success")
+    download_button1 = Button(label='💾 Data Table', button_type="success")
     download_button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
@@ -1044,12 +1074,12 @@ table.change.emit();
             var data = source_data.data;
             """
             +
-            'var out = "TTHERM_ID'+download_button1_extra_str1+'\tpeptide\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tPFAMs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\\n";'
+            'var out = "TTHERM_ID'+download_button1_extra_str1+'\tmodule\tpeptide\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tPFAMs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\\n";'
             +
             """
             for (var i = 0; i < inds.length; i++) {
             """
-                f"""\tout += data['ID'][inds[i]]{download_button1_extra_str2}+ "\t" + data['peptide'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['PFAMs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\\n";"""
+                f"""\tout += data['ID'][inds[i]]{download_button1_extra_str2} + "\t" + data['module'][inds[i]] + "\t" + data['peptide'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['PFAMs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\\n";"""
             """
             }
             var file = new Blob([out], {type: 'text/plain'});
@@ -1420,18 +1450,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
         
     else:
         raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
-
-    xs = [x for ttid in ttherm_ids]
-
-    # print(merge)
-
-    ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
-
-    merge['expr_xs'] = xs
-    merge['expr_ys'] = ys
     
-    # print(merge.head())
-
     if yf_to_ttherm_map_df is not None:
         merge = merge.merge(yf_to_ttherm_map_df, on='TTHERM_ID', how='left')
 
@@ -1441,12 +1460,39 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     # print(merge['TTHERM_ID'].values)
     # print([f'm{int(l):04d}' for l in labels])
 
+    if phases == 'rna_seq':
+        rna_seq_phase_dict = {
+            '000min': '(000min) G1',
+            '030min': '(030min) G1',
+            '060min': '(060min) S',
+            '090min': '(090min) S',
+            '120min': '(120min) G2',
+            '150min': '(150min) M',
+            '180min': '(180min) M',
+            '210min': '(210min) G1',
+            '240min': '(240min) S',
+        }
+
+        merge.rename(columns=rna_seq_phase_dict, inplace=True)
+        # print(merge.columns)
+
+        x = [rna_seq_phase_dict[t] for t in x]
+        
+    xs = [x for ttid in ttherm_ids]
+
+    ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
+
+    merge['expr_xs'] = xs
+    merge['expr_ys'] = ys
     
 #     pdb.set_trace()
     hover_data = pd.DataFrame({
                                # 'index':np.arange(len(data)),
                                'ID':merge['TTHERM_ID'].values,
                                'module':[f'm{int(l):04d}' for l in labels]})
+    
+    # print(x)
+    # print([rna_seq_phase_dict[t] for t in x])
             
     p = interactive(merge,
                     num_genes,
