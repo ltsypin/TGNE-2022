@@ -4,11 +4,13 @@ import numpy as np
 import warnings
 import scipy.spatial
 import scipy.cluster.hierarchy
+from copy import deepcopy
+
 import bokeh
 from bokeh.plotting import show as show_interactive
 from bokeh.plotting import output_file, output_notebook
 from bokeh.layouts import column, row
-from bokeh.models import Div, ColumnDataSource, CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem, Spinner
+from bokeh.models import Circle, Div, ColumnDataSource, CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem, Spinner
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn, Button, HTMLTemplateFormatter
 from bokeh.events import SelectionGeometry
 from bokeh.transform import linear_cmap, jitter
@@ -67,7 +69,7 @@ def plot_enrichment(enrich_column_data_source, plot_sizing_mode='stretch_both'):
     # cds = bokeh.models.ColumnDataSource(enrich_df)
     # print(enrich_df.head())
     
-    p.circle(y=jitter('module', width=0.4), x='fold_change', source=enrich_column_data_source, alpha=0.3, size=7, color='color', line_color='black')
+    renderer = p.circle(y=jitter('module', width=0.4), x='fold_change', source=enrich_column_data_source, alpha='alpha', size='size', color='color', line_color='line_color')
     # p.xaxis.major_label_orientation = 45
     p.ygrid.minor_grid_line_color = 'navy'
     p.ygrid.minor_grid_line_alpha = 0.1
@@ -83,6 +85,16 @@ def plot_enrichment(enrich_column_data_source, plot_sizing_mode='stretch_both'):
     p.yaxis.major_label_text_font_size = '8pt'
     p.yaxis.axis_label_text_font_size = '8pt'
     p.xaxis.axis_label_text_font_size = '12pt'
+
+    selected_circle = Circle(fill_alpha=0.3, 
+                            #  size=7, 
+                             line_color='black', fill_color='color')
+    nonselected_circle = Circle(fill_alpha=0.05, 
+                                # size=1, 
+                                line_color=None, fill_color='color')
+
+    renderer.selection_glyph = selected_circle
+    renderer.nonselection_glyph = nonselected_circle
     
     return p
 
@@ -432,7 +444,7 @@ def interactive(
 
     plot = bokeh.plotting.figure(
         tooltips=tooltips,
-        tools="tap,box_select,pan,wheel_zoom,box_zoom,reset,save",
+        tools="tap,lasso_select,box_select,pan,wheel_zoom,box_zoom,reset,save",
         background_fill_color=background,
         title=title,
         sizing_mode=plot_sizing_mode,
@@ -443,7 +455,7 @@ def interactive(
 
     if point_size is not None:
 
-        plot.circle(
+        renderer = plot.circle(
             x="x",
             y="y",
             source=data_source,
@@ -454,7 +466,7 @@ def interactive(
         )
 
     elif radius is not None:
-        plot.circle(
+        renderer = plot.circle(
             x="x",
             y="y",
             source=data_source,
@@ -467,8 +479,32 @@ def interactive(
     plot.grid.visible = False
     plot.axis.visible = False
 
+    selected_circle = Circle(fill_alpha=1, radius=radius, line_color='black', fill_color='color')
+    nonselected_circle = Circle(fill_alpha=0.05, radius=radius/20, line_color=None, fill_color='color')
+
+    renderer.selection_glyph = selected_circle
+    renderer.nonselection_glyph = nonselected_circle
+
     
     x_heatmap_profile = x
+
+    # rna_seq_phase_dict = {
+    #         '000min': '(000min) G1',
+    #         '030min': '(030min) G1',
+    #         '060min': '(060min) S',
+    #         '090min': '(090min) S',
+    #         '120min': '(120min) G2',
+    #         '150min': '(150min) M',
+    #         '180min': '(180min) M',
+    #         '210min': '(210min) G1',
+    #         '240min': '(240min) S',
+    # }
+
+    # for idx in range(len(x_heatmap_profile)):
+    #     if x_heatmap_profile[idx] in rna_seq_phase_dict:
+    #         x_heatmap_profile[idx] = rna_seq_phase_dict[x_heatmap_profile[idx]]
+
+    # for FIXME add the rna seq phases
     
     # if normalized:
     hm_min = expr_min
@@ -480,7 +516,7 @@ def interactive(
     
     # For companion heatmap plot
     ttherm_ids = embedding_df['TTHERM_ID'].values
-    hm_df = embedding_df[['TTHERM_ID'] + x_heatmap_profile]
+    hm_df = embedding_df[['TTHERM_ID'] + x]
     hm_df['module'] = hover_data['module'].values
     hm_df_tidy = hm_df.melt(id_vars=['TTHERM_ID', 'module'], var_name='phase', value_name='normalized_expression')
     hm_cds = bokeh.plotting.ColumnDataSource(hm_df_tidy)
@@ -496,11 +532,15 @@ def interactive(
     # For companion expression plot
 
     expr_source = bokeh.plotting.ColumnDataSource(dict(
+        TTHERM_ID=['blah'],
+        module=['blah'],
         ID=['blah'], 
         expr_xs=[['Ll']], 
         expr_ys=[[0]],
         alpha=[0],
         color=['black']))
+    
+    # print(expr_source.data)
     
     # if normalized:
     y_axis_label = 'Mean expression z-score'
@@ -516,6 +556,10 @@ def interactive(
                                      y_axis_label=y_axis_label,
                                      x_range=x_heatmap_profile, 
                                      y_range=y_range,
+                                     tooltips=[
+                                         ('TTHERM_ID', '@TTHERM_ID'),
+                                         ('module', '@module'),
+                                               ],
                                      sizing_mode=plot_sizing_mode,
                                      output_backend="webgl",
                                      tools=["ypan", "xpan", "box_zoom", "ywheel_zoom", "xwheel_zoom", "undo", "reset", "save"]
@@ -544,8 +588,8 @@ def interactive(
 
     columns = [TableColumn(field="ID",  title="TTHERM_ID", formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>'), width=150),
             #    TableColumn(field="YF_ID", title="YF_ID", width=300),
-               TableColumn(field="peptide",  title="peptide", width=100),
                TableColumn(field="module",  title="Module", width=100),
+               TableColumn(field="peptide",  title="peptide", width=100),
                TableColumn(field='TGD2021_description', title='TGD2021_description', width=300),
                TableColumn(field="Description", title="eggNOG_description", width=300),
                TableColumn(field="Preferred_name", title="eggNOG_preferred_name", width=150),
@@ -580,129 +624,21 @@ def interactive(
                       sizing_mode=table_sizing_mode
                      )
     
-    heatmap_callback = CustomJS(
-        args=dict(
-            s1=data_source,
-            s_hm=hm_cds,
-            cols=x_heatmap_profile
-        ),
-        code="""
-        var d1 = s1.data;
-        var d_hm = s_hm.data;
-        
-        var inds = s1.selected.indices;
-        const num_cols = cols.length;
-        
-        //d_hm['TTHERM_ID'] = []
-        //d_hm['normalized_expression'] = []
-        d_hm['fill_alpha'] = []
-        d_hm['line_alpha'] = []
-        
-        var selected_ttherm_ids = [];
-        
-        var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
-        
-        if (inds.length == 0) {
-            d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
-            d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
-        }else{
-        
-            // Start with everything deselected
-            d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
-            d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
-        
-            // Get the selected indices
-            for (var i = 0; i < inds.length; i++) {
-                selected_ttherm_ids.push(d1['ID'][inds[i]])
-            }
-            console.log(selected_ttherm_ids);
-            
-            // iterate over the selected ttherm ids
-            for (var j = 0; j < selected_ttherm_ids.length; j++) {
-            
-                // var selected_gene = selected_ttherm_ids[j];
-                // console.log(selected_gene);
 
-                // ad hoc function to find if ttherm ids match
-                var match = (element) => element == selected_ttherm_ids[j];
-            
-                // get index of matching ttherm id in heatmap
-                var gene_index = ttids.findIndex(match);
-                console.log(gene_index);
-                
-                // loop over the columns and highlight the selected genes
-                for (var k = 0; k < num_cols; k++) {
-                
-                    d_hm['fill_alpha'][gene_index] = 0.7
-                    d_hm['line_alpha'][gene_index] = 0.7
+    
+    # NEED TO STOP HARDCODING THIS FILE
+    enrich_df = pd.read_csv(os.path.join(file_dir, main_dir, 'enrichment/test_nn3_full_enrichment.csv'))
+    colors = [color_key[int(m) % len(color_key)] for m in enrich_df['module'].values]
+    enrich_df['color'] = colors
+    enrich_df['alpha'] = enrich_df.shape[0] * [0.3]
+    enrich_df['size'] = enrich_df.shape[0] * [7]
+    enrich_df['line_color'] = enrich_df.shape[0] * ['black']
+    
+    enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
+    enrich_p = plot_enrichment(enrich_cds, plot_sizing_mode=plot_sizing_mode)
 
-                    gene_index = gene_index + ttids.length
-                
-                }
-            
-            }
-            
-        }
-        
-        console.log(d_hm);
-        
-        s_hm.change.emit();
-        
-        """
-    )
 
-    expression_callback = CustomJS(
-        args=dict(
-            s1=data_source,
-            s_expr=expr_source,
-            alpha=alpha,
-        ),
-        code="""
-        var d1 = s1.data;
-        var d_expr = s_expr.data;
 
-        var inds = s1.selected.indices;
-        // console.log(inds)
-
-        // console.log(d1['ID'].length)
-
-        // d1['alpha'] = Array(d1['ID'].length).fill(0.2)
-
-        // console.log(d_expr['ID'].length, d_expr['expr_xs'].length, d_expr['expr_ys'].length)
-
-        d_expr['ID'] = [['blah']]
-        d_expr['expr_xs'] = [['Ll']]
-        d_expr['expr_ys'] = [[0]]
-        d_expr['alpha'] = [0]
-        d_expr['color'] = ['black']
-        // s_expr.change.emit();
-
-        // debugger;
-
-        for (var i = 0; i < inds.length; i++) {
-            // d_expr['alpha'][inds[i]] = 1/(inds.length * 2)
-            // console.log(inds[i], i)
-            d_expr['ID'].push(Array(18).fill(d1['ID'][inds[i]]))
-            d_expr['expr_xs'].push(d1['expr_xs'][inds[i]])
-            d_expr['expr_ys'].push(d1['expr_ys'][inds[i]])
-            d_expr['alpha'].push(Math.min(1, Math.max(7/(inds.length), 0.05)))
-            d_expr['color'].push(d1['color'][inds[i]])
-            // console.log(d_expr)
-            // console.log(i)
-            // console.log(
-            //     d_expr['ID'].length, 
-            //     d_expr['expr_xs'].length, 
-            //     d_expr['expr_ys'].length
-            // )
-        }
-
-        // s1.change.emit();
-        s_expr.change.emit();
-        // console.log(s_expr.data)
-
-        """
-
-    )
 
     selection_callback_extra_str1 = ''
     selection_callback_extra_str2 = ''
@@ -711,83 +647,8 @@ def interactive(
         selection_callback_extra_str1 = 'd2[\'TTHERM_IDs\'] = []'
         selection_callback_extra_str2 = 'd2[\'TTHERM_IDs\'].push(d1[\'TTHERM_IDs\'][inds[i]])'
 
-    selection_callback =  CustomJS(args=dict(
-                                          s1=data_source, 
-                                          s2=s2,
-                                          table=table), 
-                                               code="""
-
-        var d1 = s1.data;
-        var d2 = s2.data;
-
-
-        var inds = s1.selected.indices;
-
-        // Start by making everything tiny and pale
-        d1['alpha'] = Array(d1['ID'].length).fill(0.01)
-        d1['line_alpha'] = Array(d1['ID'].length).fill(0.01)
-        d1['radius'] = Array(d1['ID'].length).fill(0.0001)
-
-        d2['module'] = []
-        d2['ID'] = []
-        """+selection_callback_extra_str1+"""
-        // d2['YF_ID'] = []
-        d2['peptide'] = []
-        d2['TGD2021_description'] = []
-        d2['Description'] = []
-        d2['Preferred_name'] = []
-        d2['max_annot_lvl'] = []
-        d2['COG_category'] = []
-        d2['EC'] = []
-        d2['GOs'] = []
-        d2['PFAMs'] = []
-        d2['KEGG_ko'] = []
-        d2['KEGG_Pathway'] = []
-        d2['KEGG_Module'] = []
-        d2['KEGG_Reaction'] = []
-        d2['KEGG_rclass'] = []
-        d2['BRITE'] = []
-        // d2['KEGG_TC'] = []
-        // d2['CAZy'] = []
-        // d2['BiGG_Reaction'] = []
-
-        for (var i = 0; i < inds.length; i++) {
-            d2['module'].push(d1['module'][inds[i]])
-            d2['ID'].push(d1['ID'][inds[i]])
-            """+selection_callback_extra_str2+"""
-            // d2['YF_ID'].push(d1['YF_ID'][inds[i]])
-            d2['peptide'].push(d1['peptide'][inds[i]])
-            d2['TGD2021_description'].push(d1['TGD2021_description'][inds[i]])
-            d2['Description'].push(d1['Description'][inds[i]])
-            d2['Preferred_name'].push(d1['Preferred_name'][inds[i]])
-            d2['max_annot_lvl'].push(d1['max_annot_lvl'][inds[i]])
-            d2['COG_category'].push(d1['COG_category'][inds[i]])
-            d2['EC'].push(d1['EC'][inds[i]])
-            d2['GOs'].push(d1['GOs'][inds[i]])
-            d2['PFAMs'].push(d1['PFAMs'][inds[i]])
-            d2['KEGG_ko'].push(d1['KEGG_ko'][inds[i]])
-            d2['KEGG_Pathway'].push(d1['KEGG_Pathway'][inds[i]])
-            d2['KEGG_Module'].push(d1['KEGG_Module'][inds[i]])
-            d2['KEGG_Reaction'].push(d1['KEGG_Reaction'][inds[i]])
-            d2['KEGG_rclass'].push(d1['KEGG_rclass'][inds[i]])
-            d2['BRITE'].push(d1['BRITE'][inds[i]])
-            // d2['KEGG_TC'].push(d1['KEGG_TC'][inds[i]])
-            // d2['CAZy'].push(d1['CAZy'][inds[i]])
-            // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][inds[i]])
-
-            d1['alpha'][inds[i]] = 1
-            d1['line_alpha'][inds[i]] = 1
-            d1['radius'][inds[i]] = 20
-        }
-        s1.change.emit();
-        s2.change.emit();
-        table.change.emit();
-    """)
-
-    data_source.selected.js_on_change('indices', selection_callback, expression_callback, heatmap_callback)
-
     if interactive_text_search:
-        text_input = TextInput(value="Search comma-separated module(s), TTHERM_ID(s), or functional term(s), for example: m0003, TTHERM_01207610, Histone", sizing_mode=search_sizing_mode)
+        text_input = TextInput(value="Search comma-separated module(s), TTHERM_ID(s), or functional term(s), for example: m0003, TTHERM_00825460, Histone", sizing_mode=search_sizing_mode)
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -803,125 +664,463 @@ def interactive(
             )
 
         else:
+            data_source.selected.js_on_change('indices', CustomJS(args=dict(
+                    s1=data_source,
+                    s2=s2,
+                    table=table,
+                    matching_alpha=interactive_text_search_alpha_contrast,
+                    non_matching_alpha=1 - interactive_text_search_alpha_contrast,
+                    default_radius=radius,
+                    default_alpha=alpha,
+
+                    s_expr=expr_source,
+
+                    s_hm=hm_cds,
+                    cols=x,
+
+                    s_enrich=enrich_cds,
+                    ), code="""
+                var idxs = cb_obj.indices;
+                var d1 = s1.data; // embedding
+                var d2 = s2.data; // table
+
+                var d_expr = s_expr.data; // expression plot
+                var d_hm = s_hm.data; // heatmap
+                var d_enrich = s_enrich.data; // enrichment plot
+
+                var selected_ttherm_id = "";
+
+                var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
+                const num_cols = cols.length;
+
+                d2['module'] = []
+                d2['ID'] = []
+
+
+                // JS INITIALIZE
+
+                // EMBEDDING
+                // Start by making everything tiny and pale
+                d1['alpha'] = Array(d1['ID'].length).fill(0.01)
+                d1['line_alpha'] = Array(d1['ID'].length).fill(0.01)
+                d1['radius'] = Array(d1['ID'].length).fill(0.0001)
+
+                // TABLE
+                d2['module'] = []
+                d2['ID'] = []
+                // d2['YF_ID'] = []
+                d2['peptide'] = []
+                d2['TGD2021_description'] = []
+                d2['Description'] = []
+                d2['Preferred_name'] = []
+                d2['max_annot_lvl'] = []
+                d2['COG_category'] = []
+                d2['EC'] = []
+                d2['GOs'] = []
+                d2['PFAMs'] = []
+                d2['KEGG_ko'] = []
+                d2['KEGG_Pathway'] = []
+                d2['KEGG_Module'] = []
+                d2['KEGG_Reaction'] = []
+                d2['KEGG_rclass'] = []
+                d2['BRITE'] = []
+                // d2['KEGG_TC'] = []
+                // d2['CAZy'] = []
+                // d2['BiGG_Reaction'] = []
+
+                // EXPRESSION
+                d_expr['TTHERM_ID'] = ['blah']
+                d_expr['module'] = ['blah']
+                d_expr['ID'] = [['blah']]
+                d_expr['expr_xs'] = [['Ll']]
+                d_expr['expr_ys'] = [[0]]
+                d_expr['alpha'] = [0]
+                d_expr['color'] = ['black']
+
+                // HEATMAP
+                d_hm['fill_alpha'] = []
+                d_hm['line_alpha'] = []
+                
+                d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+                d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+
+
+                // ENRICHMENT
+                s_enrich.selected.indices = []
+
+                d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.3)
+                d_enrich['size'] = Array(d_enrich['size'].length).fill(7)
+                d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill("black")
+
+                // HEATMAP deselect all
+                d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+                d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+
+                // JS 
+                for (var i = 0; i < d1.x.length; i++) {
+                    if (idxs.includes(i)) {
+                        // console.log(i);
+                        // console.log(d1['module'][i]);
+                        // console.log(d1['ID'][i]);
+                        // d1['alpha'][i] = matching_alpha
+                        // d1['radius'][i] = 1
+                        // d2['YF_ID'].push(d1['YF_ID'][i])
+
+                        // d3['xs'].push(ref_expr['xs'][i])
+                        // d3['ys'].push(ref_expr['ys'][i])
+
+                        // TABLE
+                        d2['module'].push(d1['module'][i])
+                        d2['ID'].push(d1['ID'][i])
+                        // d2['YF_ID'].push(d1['YF_ID'][i])
+                        d2['peptide'].push(d1['peptide'][i])
+                        d2['TGD2021_description'].push(d1['TGD2021_description'][i])
+                        d2['Description'].push(d1['Description'][i])
+                        d2['Preferred_name'].push(d1['Preferred_name'][i])
+                        d2['max_annot_lvl'].push(d1['max_annot_lvl'][i])
+                        d2['COG_category'].push(d1['COG_category'][i])
+                        d2['EC'].push(d1['EC'][i])
+                        d2['GOs'].push(d1['GOs'][i])
+                        d2['PFAMs'].push(d1['PFAMs'][i])
+                        d2['KEGG_ko'].push(d1['KEGG_ko'][i])
+                        d2['KEGG_Pathway'].push(d1['KEGG_Pathway'][i])
+                        d2['KEGG_Module'].push(d1['KEGG_Module'][i])
+                        d2['KEGG_Reaction'].push(d1['KEGG_Reaction'][i])
+                        d2['KEGG_rclass'].push(d1['KEGG_rclass'][i])
+                        d2['BRITE'].push(d1['BRITE'][i])
+                        // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
+                        // d2['CAZy'].push(d1['CAZy'][i])
+                        // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
+                        
+                        // EMBEDDING
+                        d1['alpha'][i] = 1
+                        d1['line_alpha'][i] = 1
+                        d1['radius'][i] = 100
+
+                        // EXPRESSION
+                        d_expr['TTHERM_ID'].push(d1['ID'][i])
+                        d_expr['module'].push(d1['module'][i])
+                        d_expr['ID'].push(Array(18).fill(d1['ID'][i]))
+                        d_expr['expr_xs'].push(d1['expr_xs'][i])
+                        d_expr['expr_ys'].push(d1['expr_ys'][i])
+                        d_expr['color'].push(d1['color'][i])
+                        // console.log(d_expr)
+                        // console.log(i)
+                        // console.log(
+                        //     d_expr['ID'].length, 
+                        //     d_expr['expr_xs'].length, 
+                        //     d_expr['expr_ys'].length
+                        // )
+
+                        // HEATMAP
+                        selected_ttherm_id = d1['ID'][i]
+                        var match = (element) => element == selected_ttherm_id
+                        var gene_index = ttids.findIndex(match);
+
+                        for (var k = 0; k < num_cols; k++) {
+                            d_hm['fill_alpha'][gene_index] = 0.7
+                            d_hm['line_alpha'][gene_index] = 0.7
+
+                            gene_index = gene_index + ttids.length
+                        }
+
+                    }else{
+                        d1['alpha'][i] = non_matching_alpha
+                        d1['radius'][i] = 0.01
+                    }
+                }
+
+                d_expr['alpha'].push.apply(d_expr['alpha'],
+                    Array(idxs.length).fill(Math.min(1, Math.max(7/(idxs.length), 0.05)))
+                );
+
+                
+                var enrich_mods = d_enrich['module'].slice(0);
+                var selected_mods = d2['module'].slice(0)
+
+                console.log("selected_mods")
+                console.log(selected_mods)
+                
+                var enrich_mod_idx = -1
+                var nmod_str = ""
+                var nmod = -1
+
+                console.log(s_enrich.selected.indices);
+                
+                for (let mod of selected_mods){
+                    let nmod_str = mod.slice(1);
+                    let nmod = +nmod_str;
+                    console.log(nmod);
+                    enrich_mods.forEach((item, index) => {
+                        if (item === nmod) {
+                            console.log("IN");
+                            console.log(index);
+                            s_enrich.selected.indices.push(index);
+                        }
+                    });
+                }
+                
+                console.log(s_enrich.selected.indices.length);
+                console.log(s_enrich.selected.indices);
+
+                if (selected_mods.length > 0 && s_enrich.selected.indices.length == 0){
+                    console.log("NONE");
+                    d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.05)
+                    // d_enrich['size'] = Array(d_enrich['size'].length).fill(1)
+                    d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill(null)
+                }
+
+                console.log(s_enrich.selected.indices);
+
+
+                s1.change.emit();
+                s2.change.emit();
+                table.change.emit();
+
+
+                s_expr.change.emit();
+                    
+                s_hm.change.emit();
+
+                s_enrich.change.emit()
+
+                console.log("RAN selection");
+                // console.log(idxs.length);
+                // console.log(s1.selected.indices);
+                    
+                """)
+            )
+
             callback = CustomJS(
                 args=dict(
-                    source=data_source,
+                    s1=data_source,
                     s2=s2,
                     table=table,
                     matching_alpha=interactive_text_search_alpha_contrast,
                     non_matching_alpha=1 - interactive_text_search_alpha_contrast,
                     search_columns=interactive_text_search_columns,
                     default_radius=radius,
-                    default_alpha=alpha
+                    default_alpha=alpha,
+
+                    s_expr=expr_source,
+
+                    s_hm=hm_cds,
+                    cols=x,
+
+                    s_enrich=enrich_cds,
                 ),
                 code="""
-                var data = source.data;
+                var d1 = s1.data; // embedding
+                var d2 = s2.data; // table
+
+                var d_expr = s_expr.data; // expression plot
+                var d_hm = s_hm.data; // heatmap
+                var d_enrich = s_enrich.data; // enrichment plot
+
+                var selected_ttherm_id = "";
+
+                var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
+                const num_cols = cols.length;
+
                 var text_search = cb_obj.value;
-                var d2 = s2.data;
-
-                // var ref_expr = ref_e_s.data;
-                // var d3 = sel_e_s.data;
-
                 var search_terms = text_search.split(',');
 
                 d2['module'] = []
                 d2['ID'] = []
-                // d2['YF_ID'] = []
 
-                // d3['xs'] = []
-                // d3['ys'] = []
+
+                // JS INITIALIZE
+
+                // EMBEDDING
+                // Start by making everything tiny and pale
+                d1['alpha'] = Array(d1['ID'].length).fill(0.01)
+                d1['line_alpha'] = Array(d1['ID'].length).fill(0.01)
+                d1['radius'] = Array(d1['ID'].length).fill(0.0001)
+
+                // TABLE
+                d2['module'] = []
+                d2['ID'] = []
+                // d2['YF_ID'] = []
+                d2['peptide'] = []
+                d2['TGD2021_description'] = []
+                d2['Description'] = []
+                d2['Preferred_name'] = []
+                d2['max_annot_lvl'] = []
+                d2['COG_category'] = []
+                d2['EC'] = []
+                d2['GOs'] = []
+                d2['PFAMs'] = []
+                d2['KEGG_ko'] = []
+                d2['KEGG_Pathway'] = []
+                d2['KEGG_Module'] = []
+                d2['KEGG_Reaction'] = []
+                d2['KEGG_rclass'] = []
+                d2['BRITE'] = []
+                // d2['KEGG_TC'] = []
+                // d2['CAZy'] = []
+                // d2['BiGG_Reaction'] = []
+
+                // EXPRESSION
+                d_expr['TTHERM_ID'] = ['blah']
+                d_expr['module'] = ['blah']
+                d_expr['ID'] = [['blah']]
+                d_expr['expr_xs'] = [['Ll']]
+                d_expr['expr_ys'] = [[0]]
+                d_expr['alpha'] = [0]
+                d_expr['color'] = ['black']
+
+                // HEATMAP
+                d_hm['fill_alpha'] = []
+                d_hm['line_alpha'] = []
+                
+                d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+                d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+
+                // JS SEARCH
 
                 var search_columns_dict = {}
                 for (var col in search_columns){
                     search_columns_dict[col] = search_columns[col]
                 }
+                
+                s_enrich.selected.indices = []
 
-                // First, clear the data table and selection
-                // data['alpha'] = []
-                // data['radius'] = []
-                source.selected.indices = []
-
-                // source.change.emit();
-                s2.change.emit();
-                // sel_e_s.change.emit();
-                table.change.emit();
+                s1.selected.indices = []
 
                 // Run search
                 if (text_search.length > 0){
+                    
+                    // HEATMAP deselect all
+                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+
                     // Loop over columns and values
                     // If there is no match for any column for a given row, change the alpha value
                     var string_match = false;
-                    for (var i = 0; i < data.x.length; i++) {
+                    for (var i = 0; i < d1.x.length; i++) {
                         string_match = false
                         for (var j in search_columns_dict) {
-                            if (search_terms.some(t => String(data[search_columns_dict[j]][i]).includes(t.trim()))) {
+                            if (search_terms.some(t => String(d1[search_columns_dict[j]][i]).includes(t.trim()))) {
                                 string_match = true
                             }
                         }
                         if (string_match){
-                            // data['alpha'][i] = matching_alpha
-                            // data['radius'][i] = 1
-                            d2['module'].push(data['module'][i])
-                            d2['ID'].push(data['ID'][i])
-                            // d2['YF_ID'].push(data['YF_ID'][i])
+                            // d1['alpha'][i] = matching_alpha
+                            // d1['radius'][i] = 1
+                            // d2['YF_ID'].push(d1['YF_ID'][i])
 
                             // d3['xs'].push(ref_expr['xs'][i])
                             // d3['ys'].push(ref_expr['ys'][i])
 
                             // So that these points are actually considered selected
-                            source.selected.indices.push(i)
+                            s1.selected.indices.push(i)
 
-                        }else{
-                            // data['alpha'][i] = non_matching_alpha
-                            // data['radius'][i] = 0.01
-                        }
-                    }
-                    source.change.emit();
-                    s2.change.emit();
-                    // sel_e_s.change.emit();
-                    table.change.emit();
+                            // TABLE
+                            d2['module'].push(d1['module'][i])
+                            d2['ID'].push(d1['ID'][i])
+                            // d2['YF_ID'].push(d1['YF_ID'][i])
+                            d2['peptide'].push(d1['peptide'][i])
+                            d2['TGD2021_description'].push(d1['TGD2021_description'][i])
+                            d2['Description'].push(d1['Description'][i])
+                            d2['Preferred_name'].push(d1['Preferred_name'][i])
+                            d2['max_annot_lvl'].push(d1['max_annot_lvl'][i])
+                            d2['COG_category'].push(d1['COG_category'][i])
+                            d2['EC'].push(d1['EC'][i])
+                            d2['GOs'].push(d1['GOs'][i])
+                            d2['PFAMs'].push(d1['PFAMs'][i])
+                            d2['KEGG_ko'].push(d1['KEGG_ko'][i])
+                            d2['KEGG_Pathway'].push(d1['KEGG_Pathway'][i])
+                            d2['KEGG_Module'].push(d1['KEGG_Module'][i])
+                            d2['KEGG_Reaction'].push(d1['KEGG_Reaction'][i])
+                            d2['KEGG_rclass'].push(d1['KEGG_rclass'][i])
+                            d2['BRITE'].push(d1['BRITE'][i])
+                            // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
+                            // d2['CAZy'].push(d1['CAZy'][i])
+                            // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
+                            
+                            // EMBEDDING
+                            d1['alpha'][i] = 1
+                            d1['line_alpha'][i] = 1
+                            d1['radius'][i] = 100
 
-                } else {
+                            // EXPRESSION
+                            d_expr['TTHERM_ID'].push(d1['ID'][i])
+                            d_expr['module'].push(d1['module'][i])
+                            d_expr['ID'].push(Array(18).fill(d1['ID'][i]))
+                            d_expr['expr_xs'].push(d1['expr_xs'][i])
+                            d_expr['expr_ys'].push(d1['expr_ys'][i])
+                            d_expr['color'].push(d1['color'][i])
+                            // console.log(d_expr)
+                            // console.log(i)
+                            // console.log(
+                            //     d_expr['ID'].length, 
+                            //     d_expr['expr_xs'].length, 
+                            //     d_expr['expr_ys'].length
+                            // )
 
-                    // Loop over columns and values
-                    // If there is no match for any column for a given row, change the alpha value
-                    var string_match = false;
-                    for (var i = 0; i < data.x.length; i++) {
-                        string_match = false
-                        for (var j in search_columns_dict) {
-                            if (search_terms.some(t => String(data[search_columns_dict[j]][i]).includes(t.trim()))) {
-                                string_match = true
+                            // HEATMAP
+                            selected_ttherm_id = d1['ID'][i];
+                            var match = (element) => element == selected_ttherm_id;
+                            var gene_index = ttids.findIndex(match);
+
+                            for (var k = 0; k < num_cols; k++) {
+                                d_hm['fill_alpha'][gene_index] = 0.7
+                                d_hm['line_alpha'][gene_index] = 0.7
+
+                                gene_index = gene_index + ttids.length
                             }
-                        }
-                        if (string_match){
-                            // data['alpha'][i] = default_alpha
-                            // data['radius'][i] = default_radius
-                            d2['module'].push()
-                            d2['ID'].push()
-                            // d2['YF_ID'].push()
-
-                            // d3['xs'].push()
-                            // d3['ys'].push()
 
                         }else{
-                            // data['alpha'][i] = non_matching_alpha
-                            // data['radius'][i] = 0.01
+                            d1['alpha'][i] = non_matching_alpha
+                            d1['radius'][i] = 0.01
                         }
                     }
-                    source.change.emit();
-                    s2.change.emit();
-                    // sel_e_s.change.emit();
-                    table.change.emit();
-
                 }
 
+                d_expr['alpha'].push.apply(d_expr['alpha'],
+                    Array(s1.selected.indices.length).fill(Math.min(1, Math.max(7/(s1.selected.indices.length), 0.05)))
+                );
+
+                var enrich_mods = d_enrich['module'].slice(0);
+                var selected_mods = d2['module'].slice(0)
+                
+                var enrich_mod_idx = -1
+                var nmod_str = ""
+                var nmod = -1
+
+                for (let mod of selected_mods){
+                    let nmod_str = mod.slice(1);
+                    let nmod = +nmod_str;
+                    enrich_mods.forEach((item, index) => {
+                        if (item === nmod) {
+                            s_enrich.selected.indices.push(index);
+                        }
+                    });
+                }
+
+                console.log(d_expr['alpha']);
+                console.log(d_expr['TTHERM_ID']);
+                
+                s1.change.emit();
+                s2.change.emit();
+                table.change.emit();
 
 
+                s_expr.change.emit();
+                    
+                s_hm.change.emit();
+
+                s_enrich.change.emit()
+
+                console.log("RAN search");
+                // console.log(s1.selected.indices.length);
+                // console.log(s1.selected.indices);
 
             """,
             )
-            
-            text_input.js_on_change("value", callback, selection_callback, expression_callback, heatmap_callback)
+
+            text_input.js_on_change("value", callback)
+
 
     module_list = list(hover_data['module'].values)
     sorted_module_list = sorted(module_list)
@@ -941,89 +1140,7 @@ def interactive(
         )
 
     else:
-        spinner_callback = CustomJS(
-            args=dict(
-                source=data_source,
-                s2=s2,
-                table=table,
-                matching_alpha=interactive_text_search_alpha_contrast,
-                non_matching_alpha=1 - interactive_text_search_alpha_contrast,
-                search_columns=interactive_text_search_columns_spinner,
-                max_label_num_len=max_label_num_len,
-                default_radius=radius,
-                default_alpha=alpha
-            ),
-            code="""
-function zfill(str, width) {
-    const diff = width - str.length;
-    if (diff > 0) {
-        return '0'.repeat(diff) + str;
-    }
-    return str;
-}
-
-var data = source.data;
-var spinner_num = cb_obj.value;
-var spinner_str = "m" + zfill(spinner_num.toString(), max_label_num_len);
-var d2 = s2.data;
-
-console.log(spinner_str);
-
-d2['module'] = [];
-d2['ID'] = [];
-
-var search_columns_dict = {}
-for (var col in search_columns){
-    search_columns_dict[col] = search_columns[col]
-}
-
-// First, clear the data table and selection
-// data['alpha'] = [];
-// data['radius'] = [];
-source.selected.indices = [];
-
-s2.change.emit();
-table.change.emit();
-
-// Run search
-if (spinner_str.length > 0) {
-    // Loop over rows and check if search term is present in any column
-    for (var i = 0; i < data.x.length; i++) {
-        var string_match = false;
-        for (var col in search_columns_dict) {
-            if (String(data[search_columns_dict[col]][i]) == (spinner_str)) {
-                string_match = true;
-                break; // Exit the loop if match is found in any column
-            }
-        }
-        if (string_match) {
-            // data['alpha'][i] = matching_alpha;
-            // data['radius'][i] = 1;
-            d2['module'].push(data['module'][i]);
-            d2['ID'].push(data['ID'][i]);
-
-            // So that these points are actually considered selected
-            source.selected.indices.push(i);
-        } else {
-            // data['alpha'][i] = non_matching_alpha;
-            // data['radius'][i] = 0.01;
-        }
-    }
-} else {
-    // Loop over rows and set default alpha and radius values
-    for (var i = 0; i < data.x.length; i++) {
-        // data['alpha'][i] = default_alpha;
-        // data['radius'][i] = default_radius;
-    }
-}
-
-source.change.emit();
-s2.change.emit();
-table.change.emit();
-        """,
-        )
-        
-        spinner.js_on_change("value", spinner_callback, selection_callback, expression_callback, heatmap_callback)
+        pass
 
     download_button1_extra_str1 = ''
     download_button1_extra_str2 = ''
@@ -1033,7 +1150,7 @@ table.change.emit();
         download_button1_extra_str2 = '+ \"\t\"  + data[\'TTHERM_IDs\'][inds[i]]'
 
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
-    download_button1 = Button(label='💾 Annotations', button_type="success")
+    download_button1 = Button(label='💾 Data Table', button_type="success")
     download_button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
@@ -1042,12 +1159,12 @@ table.change.emit();
             var data = source_data.data;
             """
             +
-            'var out = "TTHERM_ID'+download_button1_extra_str1+'\tpeptide\tmodule\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tPFAMs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\\n";'
+            'var out = "TTHERM_ID'+download_button1_extra_str1+'\tmodule\tpeptide\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tPFAMs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\\n";'
             +
             """
             for (var i = 0; i < inds.length; i++) {
             """
-                f"""\tout += data['ID'][inds[i]]{download_button1_extra_str2}+ "\t" + data['peptide'][inds[i]] + "\t" + data['module'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['PFAMs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\\n";"""
+                f"""\tout += data['ID'][inds[i]]{download_button1_extra_str2} + "\t" + data['module'][inds[i]] + "\t" + data['peptide'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['PFAMs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\\n";"""
             """
             }
             var file = new Blob([out], {type: 'text/plain'});
@@ -1058,14 +1175,6 @@ table.change.emit();
             elem.click();
             document.body.removeChild(elem);
             """))  
-    
-    # NEED TO STOP HARDCODING THIS FILE
-    enrich_df = pd.read_csv(os.path.join(file_dir, main_dir, 'enrichment/test_nn3_full_enrichment.csv'))
-    colors = [color_key[int(m) % len(color_key)] for m in enrich_df['module'].values]
-    enrich_df['color'] = colors
-    
-    enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
-    enrich_p = plot_enrichment(enrich_cds, plot_sizing_mode=plot_sizing_mode)
     
     download_button2 = Button(label='💾 Enrichment', button_type="success")
     download_button2.js_on_click(
@@ -1327,11 +1436,13 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     if expression_df.shape[0] != embedding_df.shape[0]:
         raise(ValueError(f'The number of rows (genes) in the input dataframes are not equal.\nexpression_df: {expression_df.shape[0]} rows\nembedding_df: {expression_df.shape[0]} rows'))
 
-    if phases in ['full', 'veg', 'sex']:
-        mean_expression_df = get_arith_mean_expression(expression_df)
+    # if phases in ['full', 'veg', 'sex']:
+    #     mean_expression_df = get_arith_mean_expression(expression_df)
 
-    elif phases == 'rna_seq':
-        mean_expression_df = ari_mean_df_of_duplicates(expression_df)
+    # elif phases == 'rna_seq':
+    #     mean_expression_df = ari_mean_df_of_duplicates(expression_df)
+
+    mean_expression_df = expression_df
 
     num_genes = mean_expression_df.shape[0]
     
@@ -1416,18 +1527,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
         
     else:
         raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
-
-    xs = [x for ttid in ttherm_ids]
-
-    # print(merge)
-
-    ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
-
-    merge['expr_xs'] = xs
-    merge['expr_ys'] = ys
     
-    # print(merge.head())
-
     if yf_to_ttherm_map_df is not None:
         merge = merge.merge(yf_to_ttherm_map_df, on='TTHERM_ID', how='left')
 
@@ -1437,12 +1537,39 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     # print(merge['TTHERM_ID'].values)
     # print([f'm{int(l):04d}' for l in labels])
 
+    if phases == 'rna_seq':
+        rna_seq_phase_dict = {
+            '000min': '(000min) G1',
+            '030min': '(030min) G1',
+            '060min': '(060min) S',
+            '090min': '(090min) S',
+            '120min': '(120min) G2',
+            '150min': '(150min) M',
+            '180min': '(180min) M',
+            '210min': '(210min) G1',
+            '240min': '(240min) S',
+        }
+
+        merge.rename(columns=rna_seq_phase_dict, inplace=True)
+        # print(merge.columns)
+
+        x = [rna_seq_phase_dict[t] for t in x]
+        
+    xs = [x for ttid in ttherm_ids]
+
+    ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
+
+    merge['expr_xs'] = xs
+    merge['expr_ys'] = ys
     
 #     pdb.set_trace()
     hover_data = pd.DataFrame({
                                # 'index':np.arange(len(data)),
                                'ID':merge['TTHERM_ID'].values,
                                'module':[f'm{int(l):04d}' for l in labels]})
+    
+    # print(x)
+    # print([rna_seq_phase_dict[t] for t in x])
             
     p = interactive(merge,
                     num_genes,
@@ -1575,11 +1702,13 @@ def generate_server_data(expression_df, annotation_df, label_df, phases, palette
     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
     merge = merge.merge(relevant_annot, on='TTHERM_ID')
     
-    if phases in ['full', 'veg', 'sex']:
-        mean_expression_df = get_arith_mean_expression(expression_df)
+    # if phases in ['full', 'veg', 'sex']:
+    #     mean_expression_df = get_arith_mean_expression(expression_df)
 
-    elif phases == 'rna_seq':
-        mean_expression_df = ari_mean_df_of_duplicates(expression_df)
+    # elif phases == 'rna_seq':
+    #     mean_expression_df = ari_mean_df_of_duplicates(expression_df)
+
+    mean_expression_df = expression_df
     
     embedding_df['TTHERM_ID'] = mean_expression_df['TTHERM_ID'].values
     
@@ -1673,4 +1802,10 @@ def generate_server_data(expression_df, annotation_df, label_df, phases, palette
     merge['radius'] = [pr for _ in range(merge.shape[0])]
 
     return merge
-    
+
+def main():
+    pass
+
+
+if __name__ == '__main__':
+    main()

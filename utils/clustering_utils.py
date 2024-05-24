@@ -579,3 +579,24 @@ def fraction_max_same_cluster_genes(gene_list: list, label_df: pd.DataFrame, fra
             print(gene_cluster_assignments)
 
     return fraction
+
+
+def ari_mean_nexpr_per_mod(full_filtered_norm_df: pd.DataFrame, leiden_label_df_round_1_arranged_sorted: pd.DataFrame):    
+    avg_df = None
+
+    for m in leiden_label_df_round_1_arranged_sorted['label'].unique():
+
+        curr_df = (full_filtered_norm_df.loc[full_filtered_norm_df['TTHERM_ID'].isin(
+                        (leiden_label_df_round_1_arranged_sorted.loc[leiden_label_df_round_1_arranged_sorted['label'] == m]['TTHERM_ID'].values)
+                    )].iloc[:, 1:].mean()).to_frame().T
+        curr_df['label'] = m
+
+        if avg_df is None:
+            avg_df = curr_df
+            continue
+
+        avg_df = pd.concat((avg_df, curr_df), ignore_index=True)
+
+    avg_df = avg_df.loc[: , list(avg_df.columns)[avg_df.shape[1] - 1:] + list(avg_df.columns)[0: avg_df.shape[1] - 1]]
+
+    return avg_df
