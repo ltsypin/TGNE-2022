@@ -214,6 +214,7 @@ def heatmap(column_data_source, ls_color_palette, r_low, r_high, x_axis_factors,
         
 def interactive(
     embedding_df,
+    enrich_df,
     num_genes,
     x,
     # mean_expression_df,
@@ -717,8 +718,7 @@ def interactive(
     
 
     
-    # NEED TO STOP HARDCODING THIS FILE
-    enrich_df = pd.read_csv(os.path.join(file_dir, main_dir, 'enrichment/test_nn3_full_enrichment.csv'))
+    enrich_df = enrich_df
     colors = [color_key[int(m) % len(color_key)] for m in enrich_df['module'].values]
     enrich_df['color'] = colors
     enrich_df['alpha'] = enrich_df.shape[0] * [0.3]
@@ -1852,7 +1852,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     return arranged_df
 
 
-def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None, avg_df=None, avg_radius=None):
+def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None, avg_df=None, avg_radius=None):
     
     """
     Function to plot the UMAP of expression data.
@@ -2002,6 +2002,7 @@ def plot_embedding(expression_df, embedding_df, annotation_df, label_df, phases,
     # print([rna_seq_phase_dict[t] for t in x])
             
     p = interactive(merge,
+                    enrich_df,
                     num_genes,
                     x,
                     # mean_expression_df,
@@ -2032,7 +2033,7 @@ def compute_2d_embedding_point_radius(embedding_df, const=339.30587926495537):
     return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / const
 
 
-def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None):
+def generate_and_save_umap(outfile_name, expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None):
     
     data = expression_df[list(expression_df.columns)[1:]].values
     
@@ -2059,7 +2060,7 @@ def generate_and_save_umap(outfile_name, expression_df, annotation_df, label_df,
     avg_radius = compute_2d_embedding_point_radius(avg_umap_df)
     
     bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
-    p = plot_embedding(expression_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius)
+    p = plot_embedding(expression_df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius)
     bokeh.plotting.save(p)
     print(outfile_name)
     return p    

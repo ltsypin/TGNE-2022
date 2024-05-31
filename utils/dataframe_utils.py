@@ -54,3 +54,19 @@ def sql_query_df(dataframes: dict, query: str):
         # Close the cursor and connection
         cursor.close()
         connection.close()
+
+def csv_files_to_df(files: list):
+
+    combined_df = None
+
+    for f in files:
+
+        if combined_df is None:
+            combined_df = pd.read_csv(f)
+            continue
+
+        curr_df = pd.read_csv(f)
+
+        combined_df = pd.concat([combined_df, curr_df], ignore_index=True)
+
+    return combined_df

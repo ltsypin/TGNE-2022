@@ -34,15 +34,15 @@ metrics = [sys.argv[2]]
 
 scan_nns = [int(sys.argv[3])]
 
-scan_rps = np.arange(0, 1.1, 0.005)
-# scan_rps = [0.005]
+# scan_rps = np.arange(0, 1.1, 0.005)
+scan_rps = [0.005]
 
-partition_type = 'EXP'
-# partition_type = 'NC'
+# partition_type = 'EXP'
+partition_type = 'NC'
 # partition_type = 'TNC'
 
-num_iterations = 1
-# num_iterations = 10
+# num_iterations = 1
+num_iterations = 300
 
 gene_lists = {}
 
@@ -79,14 +79,23 @@ if num_iterations > 1 and partition_type != 'NC':
     raise(ValueError(f'PARTITION TYPE IS SET TO {partition_type}. {num_iterations} IDENTICAL PARTITIONS WILL BE COMPUTED. PLEASE SET NUM ITERATIONS TO 1.'))
 
 for idx, iteration in enumerate(range(num_iterations)):
-    print('COMPUTING', idx+1,'of',len(scan_nns), 'ITERATION')     
+    print('COMPUTING', idx+1,'of', num_iterations, 'ITERATIONS')     
 
     full_filtered_df = pd.read_csv(expression_data_path)
     full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
 
     if partition_type == 'NC':
         full_filtered_df = dataframe_utils.shuffle_rows(full_filtered_df)
+    
+    if partition_type == 'TNC':
+        raw_data = dataframe_utils.get_hypercube_sample(full_filtered_df.shape[1], full_filtered_df.shape[0])
 
+        cols_to_add = list(full_filtered_df.columns)[1:]
+        full_filtered_df = pd.DataFrame({'TTHERM_ID': full_filtered_df['TTHERM_ID'].values})
+
+        for idx, col in enumerate(cols_to_add):
+            full_filtered_df[col] = raw_data[idx].values
+    
     if expression_dataset == 'microarray':
         full_filtered_norm_df = microarray_utils.normalize_expression_per_gene(full_filtered_df, z=True)
         full_filtered_norm_df = microarray_utils.get_arith_mean_expression(full_filtered_norm_df)
@@ -96,11 +105,8 @@ for idx, iteration in enumerate(range(num_iterations)):
     else:
         raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
     
-    if partition_type == 'TNC':
-        raw_data = dataframe_utils.get_hypercube_sample(full_filtered_df.shape[1], full_filtered_df.shape[0])
-    
     raw_data = full_filtered_norm_df[list(full_filtered_norm_df.columns)[1:]].values
-
+    
     idx_labels = list(range(raw_data.shape[0]))
 
     for metric_p in metrics:

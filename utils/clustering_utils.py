@@ -180,13 +180,13 @@ def compute_leiden_partition(graph, resolution_parameter, random_state=42):
         return leiden_modules
 
 
-def compute_communities(partition, idx_labels):
+def compute_communities(partition, labels):
     communities = {}
 
     for idx, membership in enumerate(partition):
         if membership not in communities:
             communities[membership] = []
-        communities[membership].append(idx_labels[idx])
+        communities[membership].append(labels[idx])
 
     return communities
 
@@ -533,7 +533,8 @@ def get_gene_module_assignments(all_gene_labels: list, gene_list: list, parition
 
 def multi_fraction_max_same_cluster_genes(gene_list_dict: dict, label_df: pd.DataFrame, fraction_threshold=0, print_mode=False):
     for name, gene_list in gene_list_dict.items():
-        print('GENE_LIST:', name)
+        if print_mode:
+            print('GENE_LIST:', name)
         fraction_max_same_cluster_genes(gene_list, label_df, print_mode=print_mode)
         print()
         print()
@@ -555,7 +556,8 @@ def fraction_max_same_cluster_genes(gene_list: list, label_df: pd.DataFrame, fra
             target_ids.append(gene)
 
         else:
-            print(gene)
+            pass
+            # print(gene)
 
     gene_cluster_assignments = label_df.loc[label_df['TTHERM_ID'].isin(target_ids)]
 
@@ -600,3 +602,6 @@ def ari_mean_nexpr_per_mod(full_filtered_norm_df: pd.DataFrame, leiden_label_df_
     avg_df = avg_df.loc[: , list(avg_df.columns)[avg_df.shape[1] - 1:] + list(avg_df.columns)[0: avg_df.shape[1] - 1]]
 
     return avg_df
+
+def compute_fraction_clusters_enriched(row):
+    return row['nenriched_clusters'] / (row['nclusters'])

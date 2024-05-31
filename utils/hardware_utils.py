@@ -1,4 +1,5 @@
 import os
+import platform
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -16,4 +17,14 @@ def get_cpu_cores():
     # If the operating system is not recognized
     else:
         return "Unable to determine the number of CPU cores."
-
+    
+def get_os():
+    os_name = platform.system()
+    if os_name == "Linux":
+        return "Linux"
+    elif os_name == "Darwin":
+        return "macOS"
+    elif os_name == "Windows":
+        return "Windows"
+    else:
+        return "Unknown"
