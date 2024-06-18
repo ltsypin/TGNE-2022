@@ -55,18 +55,35 @@ def sql_query_df(dataframes: dict, query: str):
         cursor.close()
         connection.close()
 
-def csv_files_to_df(files: list):
+def csv_files_to_df(files: list, sep=None, cols=None):
 
     combined_df = None
 
     for f in files:
 
-        if combined_df is None:
-            combined_df = pd.read_csv(f)
-            continue
+        curr_df = pd.read_csv(f, sep=sep, names=cols)
 
-        curr_df = pd.read_csv(f)
+        if combined_df is None:
+            combined_df = curr_df
+            continue
 
         combined_df = pd.concat([combined_df, curr_df], ignore_index=True)
 
     return combined_df
+
+def scale_df_values(df: pd.DataFrame, scale_min: int, scale_max: int):
+    #        (b-a)(x - min)
+    # f(x) = --------------  + a
+    #           max - min
+
+    cols = list(df.columns)
+
+    df_min = np.min([df[col].min() for col in cols])
+    df_max = np.max([df[col].max() for col in cols])
+
+    scaled_df = df.copy(deep=True)
+    
+    for col in cols:
+        scaled_df[col] = (((scale_max - scale_min) * (scaled_df[col].values - df_min)) / (df_max - df_min)) + scale_min
+
+    return scaled_df

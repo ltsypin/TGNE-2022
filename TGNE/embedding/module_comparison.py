@@ -13,27 +13,27 @@ from utils import clustering_utils
 def process_community(community: tuple):
 
     rna_seq_mod = []
-    rna_seq_overlap_fraction = []
+    fraction_of_overlapping_genes_in_rna_seq_mod = []
 
     microarray_mod = []
-    microarray_overlap_fraction = []
+    fraction_of_overlapping_genes_in_microarray_mod = []
 
     r_mod = community[0]
     r_set = community[1]
 
     for m_mod, m_set in microarray_communities_sets.items():
         rna_seq_mod.append(r_mod)
-        rna_seq_overlap_fraction.append(len(set.intersection(r_set, m_set)) / len(r_set))
+        fraction_of_overlapping_genes_in_rna_seq_mod.append(len(set.intersection(r_set, m_set)) / len(r_set))
 
         microarray_mod.append(m_mod)
-        microarray_overlap_fraction.append(len(set.intersection(r_set, m_set)) / len(m_set))
+        fraction_of_overlapping_genes_in_microarray_mod.append(len(set.intersection(r_set, m_set)) / len(m_set))
 
     comparison_df = pd.DataFrame(
     {
     'rna_seq_mod': rna_seq_mod,
-    'rna_seq_overlap_fraction': rna_seq_overlap_fraction,
+    'fraction_of_overlapping_genes_in_rna_seq_mod': fraction_of_overlapping_genes_in_rna_seq_mod,
     'microarray_mod': microarray_mod,
-    'microarray_overlap_fraction': microarray_overlap_fraction,
+    'fraction_of_overlapping_genes_in_microarray_mod': fraction_of_overlapping_genes_in_microarray_mod,
     }
     )
 

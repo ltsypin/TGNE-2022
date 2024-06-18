@@ -4,19 +4,26 @@ import zipfile
 import requests
 import tarfile
 import re
+from collections import OrderedDict
 
 # file_utils
 
-def write_to_csv(csv_file_path, data_item, header):
-    # Check if the CSV file exists and write header if it doesn't
+def write_to_csv(csv_file_path: str, data_item: dict):
+    dir_path = os.path.dirname(csv_file_path)
+    create_directories(dir_path)
+
+    sorted_keys = sorted(data_item.keys())
+    
     if not os.path.isfile(csv_file_path):
         with open(csv_file_path, 'w', newline='') as file:
-            writer = DictWriter(file, fieldnames=header)
+            writer = DictWriter(file, fieldnames=sorted_keys)
             writer.writeheader()
 
+    ordered_data_item = OrderedDict((key, data_item[key]) for key in sorted_keys)
+    
     with open(csv_file_path, 'a', newline='') as file:
-        writer = DictWriter(file, fieldnames=header)
-        writer.writerow(data_item)
+        writer = DictWriter(file, fieldnames=sorted_keys)
+        writer.writerow(ordered_data_item)
 
 def remove_file(file_path):
     if os.path.exists(file_path):
@@ -46,10 +53,19 @@ def unzip_file(zip_file: str, extract_to=None):
 
 def download_file_chunks(url: str, output_file_path: str, chunk_size=128):
     r = requests.get(url, stream=True)
-    with open(output_file_path, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=chunk_size):
-                f.write(chunk)
-    print(f'FILE SAVED: {os.path.abspath(output_file_path)}')
+    
+    if r.status_code == 200:
+        if r.headers.get('Content-Length') is not None and int(r.headers.get('Content-Length')) == 0:
+            print('Error: The file is empty.')
+            return
+
+        with open(output_file_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    f.write(chunk)
+        print(f'FILE SAVED: {os.path.abspath(output_file_path)}')
+    else:
+        raise(ReferenceError(f'Error: Failed to download file. HTTP Status Code: {r.status_code}'))
 
 def extract_tar(tar_file_path: str):
     tar_folder = tarfile.open(tar_file_path)

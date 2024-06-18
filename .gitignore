@@ -130,3 +130,6 @@ new_raw_data/**/*.fasta
 new_raw_data/all_pair/**/*
 /TGNE/microarray_probe_alignment_and_filtering/hisat2-2.2.1
 TGNE/embedding/emine_ttherms.txt
+
+TGNE/interproscan/**/*.tsv
+TGNE/interproscan/**/*.csv

@@ -9,6 +9,7 @@ go_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/go_annota
 kegg_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/kegg_annotations.csv'))
 ec_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/ec_annotations.csv'))
 pfam_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/pfam_annotations.csv'))
+interpro_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/interpro_annotations.csv'))
 
 
 def get_GO_info(go_term):
@@ -38,6 +39,12 @@ def get_PFAM_info(term):
         return pfam_df['PFAMs_description'].loc[pfam_df['PFAMs'] == term].values[0]
     except:
         raise ValueError(f'THE PFAM TERM {term} DOES NOT HAVE A DESCRIPTION ENTRY.')
+    
+def get_InterPro_info(term):
+    try:
+        return interpro_df['InterPro_description'].loc[interpro_df['InterPro'] == term].values[0]
+    except:
+        raise ValueError(f'THE InterPro TERM {term} DOES NOT HAVE A DESCRIPTION ENTRY.')
 
 # As of 2020 https://www.ncbi.nlm.nih.gov/research/cog/
 COG_dict = {

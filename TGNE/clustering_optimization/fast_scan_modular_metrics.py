@@ -6,6 +6,7 @@ import sys
 import os
 import warnings
 from glob import glob
+import pickle
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -34,15 +35,15 @@ metrics = [sys.argv[2]]
 
 scan_nns = [int(sys.argv[3])]
 
-# scan_rps = np.arange(0, 1.1, 0.005)
-scan_rps = [0.005]
+scan_rps = np.arange(0, 1.1, 0.005)
+# scan_rps = [0.005]
 
-# partition_type = 'EXP'
-partition_type = 'NC'
+partition_type = 'EXP'
+# partition_type = 'NC'
 # partition_type = 'TNC'
 
-# num_iterations = 1
-num_iterations = 300
+num_iterations = 1
+# num_iterations = 300
 
 gene_lists = {}
 
@@ -84,11 +85,26 @@ for idx, iteration in enumerate(range(num_iterations)):
     full_filtered_df = pd.read_csv(expression_data_path)
     full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
 
+    data_min = np.min([full_filtered_df[c].min() for c in (list(full_filtered_df.columns)[1:])])
+    data_max = np.min([full_filtered_df[c].max() for c in (list(full_filtered_df.columns)[1:])])
+
+    # if partition_type == 'EXP':
+    #     print(data_min)
+    #     print(data_max)
+
+
     if partition_type == 'NC':
         full_filtered_df = dataframe_utils.shuffle_rows(full_filtered_df)
     
     if partition_type == 'TNC':
         raw_data = dataframe_utils.get_hypercube_sample(full_filtered_df.shape[1], full_filtered_df.shape[0])
+        # print(np.min([raw_data[c].min() for c in raw_data.columns]))
+        # print(np.min([raw_data[c].max() for c in raw_data.columns]))
+
+        raw_data = dataframe_utils.scale_df_values(raw_data, data_min, data_max)
+        # print(np.min([raw_data[c].min() for c in raw_data.columns]))
+        # print(np.min([raw_data[c].max() for c in raw_data.columns]))
+
 
         cols_to_add = list(full_filtered_df.columns)[1:]
         full_filtered_df = pd.DataFrame({'TTHERM_ID': full_filtered_df['TTHERM_ID'].values})
@@ -152,13 +168,37 @@ for idx, iteration in enumerate(range(num_iterations)):
                 
                 partition = clustering_utils.compute_leiden_partition(nn_graph, rp, random_state)
 
+                enrichment_df = clustering_utils.compute_enrichment(full_filtered_norm_df, partition)
+
+                try:
+                    output_dir = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{"_".join([str(n) for n in scan_nns])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats'))
+                    file_utils.create_directories(output_dir)
+                    with open(os.path.join(output_dir, f'./{expression_dataset}_{partition_type}_{metric_p}_{str(nn)}_{curr_datetime.replace(" ", "_").replace(":", "-")}.pkl'), 'wb') as f:
+                        pickle.dump({
+                                    'partition': partition,
+                                    # 'nn_graph': nn_graph,
+                                    # 'distance_matrix': distance_matrix,
+                                    'enrichment_df': enrichment_df,
+                                    },
+                                    f)
+                        
+                except Exception as e:
+                    output_dir = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats'))
+                    file_utils.create_directories(output_dir)
+                    with open(os.path.join(output_dir, f'./{expression_dataset}_{partition_type}_{metric_p}_{str(nn)}_{curr_datetime.replace(" ", "_").replace(":", "-")}.pkl'), 'wb') as f:
+                        pickle.dump({
+                                    'partition': partition,
+                                    # 'nn_graph': nn_graph,
+                                    # 'distance_matrix': distance_matrix,
+                                    'enrichment_df': enrichment_df,
+                                    },
+                                    f)
+                        
                 communities = clustering_utils.compute_communities(partition, idx_labels)
 
                 sil_score = clustering_utils.compute_silhouette_score(distance_matrix, partition)
 
                 modularity = clustering_utils.compute_modularity(nn_graph, communities.values())
-
-                enrichment_df = clustering_utils.compute_enrichment(full_filtered_norm_df, partition)
 
                 num_clusters = clustering_utils.compute_num_clusters(partition, communities.values())
 
@@ -189,6 +229,8 @@ for idx, iteration in enumerate(range(num_iterations)):
                 'mean_cluster_size': clustering_utils.compute_cluster_size_mean(cluster_sizes),
                 'median_cluster_size': clustering_utils.compute_cluster_size_median(cluster_sizes),
                 'sd_cluster_size': clustering_utils.compute_cluster_size_sd(cluster_sizes),
+                'q1_cluster_size': np.percentile(cluster_sizes, 25),
+                'q3_cluster_size': np.percentile(cluster_sizes, 75),
                 'max_cluster_size': np.max(cluster_sizes),
                 'min_cluster_size': np.min(cluster_sizes),
                 'ngenes': len(partition),
@@ -197,6 +239,8 @@ for idx, iteration in enumerate(range(num_iterations)):
                 'mean_enriched_cluster_size': clustering_utils.compute_cluster_size_mean(enriched_cluster_sizes),
                 'median_enriched_cluster_size': clustering_utils.compute_cluster_size_median(enriched_cluster_sizes),
                 'sd_enriched_cluster_size': clustering_utils.compute_cluster_size_sd(enriched_cluster_sizes),
+                'q1_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.percentile(enriched_cluster_sizes, 25),
+                'q3_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.percentile(enriched_cluster_sizes, 75),
                 'max_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.max(enriched_cluster_sizes),
                 'min_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.min(enriched_cluster_sizes),
                 'nenriched_cluster_genes': num_enriched_cluster_genes,
@@ -209,12 +253,13 @@ for idx, iteration in enumerate(range(num_iterations)):
                     id_list, clustering_utils.format_partition_for_enrichment(
                         full_filtered_norm_df, partition), 
                     print_mode=False)
+                    
                 try:
                     output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{"_".join([str(n) for n in scan_nns])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
-                    file_utils.write_to_csv(output_file, cluster_stats, list(cluster_stats.keys()))
+                    file_utils.write_to_csv(output_file, cluster_stats)
                 except Exception as e:
                     output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
-                    file_utils.write_to_csv(output_file, cluster_stats, list(cluster_stats.keys()))
+                    file_utils.write_to_csv(output_file, cluster_stats)
 
 if os.path.exists(output_file):
     print(f'SCAN RESULTS WRITTEN TO: {output_file}')

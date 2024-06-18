@@ -1,6 +1,7 @@
 # ENTER PYTHON CONDA ENV
 tgne_all.env
 
+# RNA_SEQ DATA ANALYSIS, FORMATTING, AND GENE FILTERING
 new_raw_data/rna_seq_processed/compute_tpm_kallisto_final.ipynb
 
 # SET THE ACTIVE GENE MODEL FASTAS (CUSTOMIZABLE)

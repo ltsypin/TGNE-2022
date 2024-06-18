@@ -630,7 +630,9 @@ def interactive(
         expr_xs=[['Ll']], 
         expr_ys=[[0]],
         alpha=[0],
-        color=['black']))
+        color=['black'],
+        line_dash = ['solid'],
+        ))
     
     # print(expr_source.data)
     
@@ -663,44 +665,84 @@ def interactive(
                         alpha='alpha', 
                         line_width=3, 
                         line_join='round',
-                        line_color="color"
+                        line_color="color",
+                        line_dash = 'line_dash',
                        )
 
     expr_fig.xaxis.major_label_orientation = np.pi/4
     expr_fig.xaxis.major_label_text_font_size = '12pt'
     expr_fig.yaxis.major_label_text_font_size = '12pt'
     expr_fig.yaxis.axis_label_text_font_size = '12pt'
-    expr_fig.xgrid.grid_line_color='whitesmoke'
+    expr_fig.xgrid.grid_line_color='black'
     expr_fig.xgrid.grid_line_alpha=0.2
-    expr_fig.ygrid.grid_line_color='whitesmoke'
+    expr_fig.ygrid.grid_line_color='black'
     expr_fig.ygrid.grid_line_alpha=0.2
+
+
+
+    all_columns = [
+        'module',
+        'common_name',
+        'peptide',
+        'TGD2021_description',
+        'Description',
+        'Preferred_name',
+        'max_annot_lvl',
+        'COG_category',
+        'EC',
+        'GOs',
+        'PFAMs',
+        'KEGG_ko',
+        'InterPro',
+        'KEGG_Pathway',
+        'KEGG_Module',
+        'KEGG_Reaction',
+        'KEGG_rclass',
+        'BRITE',
+        'KEGG_TC',
+        'CAZy',
+        'BiGG_Reaction'
+    ]
+
+    if 'TTHERM_IDs' in list(embedding_df.columns):
+        all_columns.insert(0, 'TTHERM_IDs')
 
     # For data table
     s2 = bokeh.plotting.ColumnDataSource(data=dict(ID=[]))
 
+    columns_with_widths = {
+        "module": 100,
+        "common_name": 100,
+        "peptide": 100,
+        "TGD2021_description": 300,
+        "Description": 300,
+        "Preferred_name": 150,
+        "max_annot_lvl": 100,
+        "COG_category": 100,
+        "EC": 100,
+        "GOs": 300,
+        "PFAMs": 300,
+        "KEGG_ko": 300,
+        "InterPro": 300,
+        "KEGG_Pathway": 300,
+        "KEGG_Module": 300,
+        "KEGG_Reaction": 300,
+        "KEGG_rclass": 300,
+        "BRITE": 300
+    }
+
+    table_columns = [c for c in all_columns if c in columns_with_widths]
+
     columns = [TableColumn(field="ID",  title="TTHERM_ID", formatter=HTMLTemplateFormatter(template='<a href="http://tet.ciliate.org/index.php/feature/details/feature_details.php?feature_name=<%= ID %>"target="_blank"><%= ID %></a>'), width=150),
             #    TableColumn(field="YF_ID", title="YF_ID", width=300),
-               TableColumn(field="module",  title="Module", width=100),
-               TableColumn(field="peptide",  title="peptide", width=100),
-               TableColumn(field='TGD2021_description', title='TGD2021_description', width=300),
-               TableColumn(field="Description", title="eggNOG_description", width=300),
-               TableColumn(field="Preferred_name", title="eggNOG_preferred_name", width=150),
-               TableColumn(field="max_annot_lvl", title="max_annot_lvl", width=100),
-               TableColumn(field="COG_category", title="COG_category", width=100),
-               TableColumn(field='EC', title='EC', width=100),
-               TableColumn(field='GOs', title='GOs', width=300),
-               TableColumn(field='PFAMs', title='PFAMs', width=300),
-               TableColumn(field='KEGG_ko', title='KEGG_ko', width=300),
-               TableColumn(field='KEGG_Pathway', title='KEGG_Pathway', width=300),
-               TableColumn(field='KEGG_Module', title='KEGG_Module', width=300),
-               TableColumn(field='KEGG_Reaction', title='KEGG_Reaction', width=300),
-               TableColumn(field='KEGG_rclass', title='KEGG_rclass', width=300),
-               TableColumn(field='BRITE', title='BRITE', width=300),
+
             #    TableColumn(field='KEGG_TC', title='KEGG_TC', width=300),
             #    TableColumn(field='CAZy', title='CAZy', width=300),
             #    TableColumn(field='BiGG_Reaction', title='BiGG_Reaction', width=300),
 #                    TableColumn(field="x",  title="x", width=300),
 #                    TableColumn(field="y",  title="y")
+              ] + [
+                  TableColumn(field=c, title=c, width=columns_with_widths[c]) for c in table_columns
               ]
     
     if 'TTHERM_IDs' in list(embedding_df.columns):
@@ -717,6 +759,29 @@ def interactive(
                      )
     
 
+    callback = CustomJS(args=dict(s_expr=expr_source, s2=s2), code="""
+    var inds = cb_obj.indices;
+    // console.log(inds);
+    var d_expr = s_expr.data;
+    var d2 = s2.data;
+
+    d_expr['line_dash'] = Array(d_expr['line_dash'].length).fill('solid');
+    
+    d_expr['alpha'] = Array(d_expr['alpha'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)));
+    
+    
+    if (inds.length > 0) {
+        d_expr['line_dash'] = Array(d_expr['line_dash'].length).fill('solid');
+        d_expr['line_dash'][inds[0]+1] = 'solid';
+                        
+        d_expr['alpha'] = Array(d_expr['alpha'].length).fill(Math.min(1/3, Math.max(7/(d2['ID'].length)/3, 0.05)));
+        d_expr['alpha'][inds[0]+1] = 1;
+    }
+                        
+    s_expr.change.emit();    
+    """)
+
+    s2.selected.js_on_change('indices', callback)
     
     enrich_df = enrich_df
     colors = [color_key[int(m) % len(color_key)] for m in enrich_df['module'].values]
@@ -728,15 +793,6 @@ def interactive(
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
     enrich_p = plot_enrichment(enrich_cds, plot_sizing_mode=plot_sizing_mode)
 
-
-
-
-    selection_callback_extra_str1 = ''
-    selection_callback_extra_str2 = ''
-
-    if 'TTHERM_IDs' in list(embedding_df.columns):
-        selection_callback_extra_str1 = 'd2[\'TTHERM_IDs\'] = []'
-        selection_callback_extra_str2 = 'd2[\'TTHERM_IDs\'].push(d1[\'TTHERM_IDs\'][inds[i]])'
 
     if interactive_text_search:
         text_input = TextInput(value="", placeholder=f'Search comma-separated module(s), TTHERM_ID(s), or functional term(s), for example: m{str(int(3)).zfill(len(str(int(max(labels)))))}, TTHERM_00825460, Histone', sizing_mode=search_sizing_mode)
@@ -806,24 +862,11 @@ def interactive(
                 d1['radius'] = Array(d1['ID'].length).fill(0.0001)
 
                 // TABLE
-                d2['module'] = []
                 d2['ID'] = []
                 // d2['YF_ID'] = []
-                d2['peptide'] = []
-                d2['TGD2021_description'] = []
-                d2['Description'] = []
-                d2['Preferred_name'] = []
-                d2['max_annot_lvl'] = []
-                d2['COG_category'] = []
-                d2['EC'] = []
-                d2['GOs'] = []
-                d2['PFAMs'] = []
-                d2['KEGG_ko'] = []
-                d2['KEGG_Pathway'] = []
-                d2['KEGG_Module'] = []
-                d2['KEGG_Reaction'] = []
-                d2['KEGG_rclass'] = []
-                d2['BRITE'] = []
+
+                \n"""+'\n'.join([f"d2['{tc}'] = []" for tc in table_columns])+"""\n
+                
                 // d2['KEGG_TC'] = []
                 // d2['CAZy'] = []
                 // d2['BiGG_Reaction'] = []
@@ -836,6 +879,7 @@ def interactive(
                 d_expr['expr_ys'] = [[0]]
                 d_expr['alpha'] = [0]
                 d_expr['color'] = ['black']
+                d_expr['line_dash'] = ['solid']
 
                 // HEATMAP
                 d_hm['fill_alpha'] = []
@@ -896,24 +940,11 @@ def interactive(
                             s1.selected.indices.push(i)
 
                             // TABLE
-                            d2['module'].push(d1['module'][i])
                             d2['ID'].push(d1['ID'][i])
                             // d2['YF_ID'].push(d1['YF_ID'][i])
-                            d2['peptide'].push(d1['peptide'][i])
-                            d2['TGD2021_description'].push(d1['TGD2021_description'][i])
-                            d2['Description'].push(d1['Description'][i])
-                            d2['Preferred_name'].push(d1['Preferred_name'][i])
-                            d2['max_annot_lvl'].push(d1['max_annot_lvl'][i])
-                            d2['COG_category'].push(d1['COG_category'][i])
-                            d2['EC'].push(d1['EC'][i])
-                            d2['GOs'].push(d1['GOs'][i])
-                            d2['PFAMs'].push(d1['PFAMs'][i])
-                            d2['KEGG_ko'].push(d1['KEGG_ko'][i])
-                            d2['KEGG_Pathway'].push(d1['KEGG_Pathway'][i])
-                            d2['KEGG_Module'].push(d1['KEGG_Module'][i])
-                            d2['KEGG_Reaction'].push(d1['KEGG_Reaction'][i])
-                            d2['KEGG_rclass'].push(d1['KEGG_rclass'][i])
-                            d2['BRITE'].push(d1['BRITE'][i])
+
+                            \n"""+'\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns])+"""\n
+
                             // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
                             // d2['CAZy'].push(d1['CAZy'][i])
                             // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
@@ -930,6 +961,7 @@ def interactive(
                             d_expr['expr_xs'].push(d1['expr_xs'][i])
                             d_expr['expr_ys'].push(d1['expr_ys'][i])
                             d_expr['color'].push(d1['color'][i])
+                            d_expr['line_dash'].push('solid')
                             // console.log(d_expr)
                             // console.log(i)
                             // console.log(
@@ -958,7 +990,7 @@ def interactive(
                 }
 
                 d_expr['alpha'].push.apply(d_expr['alpha'],
-                    Array(s1.selected.indices.length).fill(Math.min(1, Math.max(7/(s1.selected.indices.length), 0.05)))
+                    Array(d2['ID'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)))
                 );
 
                 var avg_mods = d_avg['label'].slice(0);
@@ -1046,7 +1078,6 @@ def interactive(
             # text_input.js_on_change("value", callback)
             text_input.js_on_event(events.ValueSubmit, callback)
 
-
     module_list = list(hover_data['module'].values)
     sorted_module_list = sorted(module_list)
     max_label_num_str = (sorted_module_list[len(module_list) - 1]).replace('m', '')
@@ -1067,14 +1098,8 @@ def interactive(
     else:
         pass
 
-    download_button1_extra_str1 = ''
-    download_button1_extra_str2 = ''
 
-    if 'TTHERM_IDs' in list(embedding_df.columns):
-        download_button1_extra_str1 = '\tTTHERM_IDs'
-        download_button1_extra_str2 = '+ \"\t\"  + data[\'TTHERM_IDs\'][inds[i]]'
-
-    # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
+    # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content   + "\t" + 
     download_button1 = Button(label='💾 Data Table', button_type="success")
     download_button1.js_on_click(
         CustomJS(
@@ -1084,12 +1109,12 @@ def interactive(
             var data = source_data.data;
             """
             +
-            'var out = "TTHERM_ID'+download_button1_extra_str1+'\tmodule\tpeptide\tTGD2021_description\teggNOG_description\teggNOG_preferred_name\tmax_annot_lvl\tCOG_category\tGOs\tPFAMs\tEC\tKEGG_ko\tKEGG_Pathway\tKEGG_Module\tKEGG_Reaction\tKEGG_rclass\tBRITE\\n";'
+            'var out = "TTHERM_ID\t'+'\t'.join([tc for tc in table_columns])+'\\n";'
             +
             """
             for (var i = 0; i < inds.length; i++) {
             """
-                f"""\tout += data['ID'][inds[i]]{download_button1_extra_str2} + "\t" + data['module'][inds[i]] + "\t" + data['peptide'][inds[i]] + "\t" + data['TGD2021_description'][inds[i]] + "\t" + data['Description'][inds[i]] + "\t" + data['Preferred_name'][inds[i]] + "\t" + data['max_annot_lvl'][inds[i]] + "\t" + data['COG_category'][inds[i]] + "\t" + data['GOs'][inds[i]] + "\t" + data['PFAMs'][inds[i]] + "\t" + data['EC'][inds[i]] + "\t" + data['KEGG_ko'][inds[i]] + "\t" + data['KEGG_Pathway'][inds[i]] + "\t" + data['KEGG_Module'][inds[i]] + "\t" + data['KEGG_Reaction'][inds[i]] + "\t" + data['KEGG_rclass'][inds[i]] + "\t" + data['BRITE'][inds[i]] + "\\n";"""
+                f"""\tout += data['ID'][inds[i]] + "\t" + """+ ' + "\t" + '.join([f"data['{tc}'][inds[i]]" for tc in table_columns]) +""" + "\\n";"""
             """
             }
             var file = new Blob([out], {type: 'text/plain'});
@@ -1231,24 +1256,9 @@ def interactive(
             // d1['radius'] = Array(d1['ID'].length).fill(0.0001)
 
             // TABLE
-            d2['module'] = []
             d2['ID'] = []
             // d2['YF_ID'] = []
-            d2['peptide'] = []
-            d2['TGD2021_description'] = []
-            d2['Description'] = []
-            d2['Preferred_name'] = []
-            d2['max_annot_lvl'] = []
-            d2['COG_category'] = []
-            d2['EC'] = []
-            d2['GOs'] = []
-            d2['PFAMs'] = []
-            d2['KEGG_ko'] = []
-            d2['KEGG_Pathway'] = []
-            d2['KEGG_Module'] = []
-            d2['KEGG_Reaction'] = []
-            d2['KEGG_rclass'] = []
-            d2['BRITE'] = []
+            \n"""+'\n'.join([f"d2['{tc}'] = []" for tc in table_columns])+"""\n
             // d2['KEGG_TC'] = []
             // d2['CAZy'] = []
             // d2['BiGG_Reaction'] = []
@@ -1261,6 +1271,8 @@ def interactive(
             d_expr['expr_ys'] = [[0]]
             d_expr['alpha'] = [0]
             d_expr['color'] = ['black']
+            d_expr['line_dash'] = ['solid']
+            
 
             // HEATMAP
             d_hm['fill_alpha'] = []
@@ -1306,24 +1318,9 @@ def interactive(
                     s1.selected.indices.push(i)
 
                     // TABLE
-                    d2['module'].push(d1['module'][i])
                     d2['ID'].push(d1['ID'][i])
                     // d2['YF_ID'].push(d1['YF_ID'][i])
-                    d2['peptide'].push(d1['peptide'][i])
-                    d2['TGD2021_description'].push(d1['TGD2021_description'][i])
-                    d2['Description'].push(d1['Description'][i])
-                    d2['Preferred_name'].push(d1['Preferred_name'][i])
-                    d2['max_annot_lvl'].push(d1['max_annot_lvl'][i])
-                    d2['COG_category'].push(d1['COG_category'][i])
-                    d2['EC'].push(d1['EC'][i])
-                    d2['GOs'].push(d1['GOs'][i])
-                    d2['PFAMs'].push(d1['PFAMs'][i])
-                    d2['KEGG_ko'].push(d1['KEGG_ko'][i])
-                    d2['KEGG_Pathway'].push(d1['KEGG_Pathway'][i])
-                    d2['KEGG_Module'].push(d1['KEGG_Module'][i])
-                    d2['KEGG_Reaction'].push(d1['KEGG_Reaction'][i])
-                    d2['KEGG_rclass'].push(d1['KEGG_rclass'][i])
-                    d2['BRITE'].push(d1['BRITE'][i])
+                    \n"""+'\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns])+"""\n
                     // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
                     // d2['CAZy'].push(d1['CAZy'][i])
                     // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
@@ -1340,6 +1337,7 @@ def interactive(
                     d_expr['expr_xs'].push(d1['expr_xs'][i])
                     d_expr['expr_ys'].push(d1['expr_ys'][i])
                     d_expr['color'].push(d1['color'][i])
+                    d_expr['line_dash'].push('solid')
                     // console.log(d_expr)
                     // console.log(i)
                     // console.log(
@@ -1415,8 +1413,195 @@ def interactive(
             // console.log(avg_selected_mods);
             }
             """
-        )
-        
+        )        
+    
+    print("""
+            // console.log(plot_tabs.active);
+            if (plot_tabs.active == 0){
+            var avg_idxs = cb_obj.indices;
+            var d1 = s1.data; // embedding
+            var d2 = s2.data; // table
+            var d_avg = s_avg.data
+
+            var d_expr = s_expr.data; // expression plot
+            var d_hm = s_hm.data; // heatmap
+            var d_enrich = s_enrich.data; // enrichment plot
+
+            var selected_ttherm_id = "";
+
+            var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
+            const num_cols = cols.length;
+
+            d2['module'] = []
+            d2['ID'] = []
+
+
+            // JS INITIALIZE
+
+            // EMBEDDING
+            // Start by making everything tiny and pale
+            // d1['alpha'] = Array(d1['ID'].length).fill(0.01)
+            // d1['line_alpha'] = Array(d1['ID'].length).fill(0.01)
+            // d1['radius'] = Array(d1['ID'].length).fill(0.0001)
+
+            // TABLE
+            d2['ID'] = []
+            // d2['YF_ID'] = []
+            \n"""+'\n'.join([f"d2['{tc}'] = []" for tc in table_columns])+"""\n
+            // d2['KEGG_TC'] = []
+            // d2['CAZy'] = []
+            // d2['BiGG_Reaction'] = []
+
+            // EXPRESSION
+            d_expr['TTHERM_ID'] = ['blah']
+            d_expr['module'] = ['blah']
+            d_expr['ID'] = [['blah']]
+            d_expr['expr_xs'] = [['Ll']]
+            d_expr['expr_ys'] = [[0]]
+            d_expr['alpha'] = [0]
+            d_expr['color'] = ['black']
+            d_expr['line_dash'] = ['solid']
+            
+
+            // HEATMAP
+            d_hm['fill_alpha'] = []
+            d_hm['line_alpha'] = []
+            
+            d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+            d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+
+
+            // ENRICHMENT
+            s_enrich.selected.indices = []
+
+            d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.3)
+            d_enrich['size'] = Array(d_enrich['size'].length).fill(7)
+            d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill("black")
+
+            // HEATMAP deselect all
+            d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+            d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+
+
+            s1.selected.indices = []
+
+            var avg_selected_mods = (avg_idxs.map(index => d_avg['label'][index]))
+
+            // JS
+            for (var i = 0; i < d1.x.length; i++) {
+            
+                var mod_at_i = +((d1['module'][i]).slice(1))
+
+                if (avg_selected_mods.includes(mod_at_i)) { 
+                
+                    // console.log(i);
+                    // console.log(d1['module'][i]);
+                    // console.log(d1['ID'][i]);
+                    // d1['alpha'][i] = matching_alpha
+                    // d1['radius'][i] = 1
+                    // d2['YF_ID'].push(d1['YF_ID'][i])
+
+                    // d3['xs'].push(ref_expr['xs'][i])
+                    // d3['ys'].push(ref_expr['ys'][i])
+
+                    s1.selected.indices.push(i)
+
+                    // TABLE
+                    d2['ID'].push(d1['ID'][i])
+                    // d2['YF_ID'].push(d1['YF_ID'][i])
+                    \n"""+'\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns])+"""\n
+                    // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
+                    // d2['CAZy'].push(d1['CAZy'][i])
+                    // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
+                    
+                    // EMBEDDING
+                    // d1['alpha'][i] = 1
+                    // d1['line_alpha'][i] = 1
+                    // d1['radius'][i] = 100
+
+                    // EXPRESSION
+                    d_expr['TTHERM_ID'].push(d1['ID'][i])
+                    d_expr['module'].push(d1['module'][i])
+                    d_expr['ID'].push(Array(18).fill(d1['ID'][i]))
+                    d_expr['expr_xs'].push(d1['expr_xs'][i])
+                    d_expr['expr_ys'].push(d1['expr_ys'][i])
+                    d_expr['color'].push(d1['color'][i])
+                    d_expr['line_dash'].push('solid')
+                    // console.log(d_expr)
+                    // console.log(i)
+                    // console.log(
+                    //     d_expr['ID'].length, 
+                    //     d_expr['expr_xs'].length, 
+                    //     d_expr['expr_ys'].length
+                    // )
+
+                    // HEATMAP
+                    // selected_ttherm_id = d1['ID'][i]
+                    // var match = (element) => element == selected_ttherm_id
+                    var gene_index = i;
+
+                    for (var k = 0; k < num_cols; k++) {
+                        d_hm['fill_alpha'][gene_index] = 0.7
+                        d_hm['line_alpha'][gene_index] = 0.7
+
+                        gene_index = gene_index + ttids.length
+                    }
+
+                }else{
+                    // d1['alpha'][i] = non_matching_alpha
+                    // d1['radius'][i] = 0.01
+                }
+            }
+
+            d_expr['alpha'].push.apply(d_expr['alpha'],
+                Array(d2['ID'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)))
+            );
+            
+            var enrich_mods = d_enrich['module'].slice(0);
+            var selected_mods = d2['module'].slice(0);
+            
+            var nmod_str = ""
+            var nmod = -1
+            
+            for (let mod of selected_mods){
+                let nmod_str = mod.slice(1);
+                let nmod = +nmod_str;
+                // console.log(nmod);
+                enrich_mods.forEach((item, index) => {
+                    if (item === nmod) {
+                        s_enrich.selected.indices.push(index);
+                    }
+                });
+            }
+
+            if (selected_mods.length > 0 && s_enrich.selected.indices.length == 0){
+                d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.05)
+                // d_enrich['size'] = Array(d_enrich['size'].length).fill(1)
+                d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill(null)
+            }
+
+
+            s1.change.emit();
+            s2.change.emit();
+            table.change.emit();
+
+
+            s_expr.change.emit();
+                
+            s_hm.change.emit();
+
+            s_enrich.change.emit()
+
+            // s_avg.change.emit()
+
+            console.log("RAN AVG selection");
+            // console.log(idxs.length);
+            // console.log(s1.selected.indices);
+
+
+            // console.log(avg_selected_mods);
+            }
+            """)
 
     avg_data_source.selected.js_on_change('indices', a_s_callback)
 
@@ -1471,24 +1656,9 @@ def interactive(
             // d1['radius'] = Array(d1['ID'].length).fill(0.0001)
 
             // TABLE
-            d2['module'] = []
             d2['ID'] = []
             // d2['YF_ID'] = []
-            d2['peptide'] = []
-            d2['TGD2021_description'] = []
-            d2['Description'] = []
-            d2['Preferred_name'] = []
-            d2['max_annot_lvl'] = []
-            d2['COG_category'] = []
-            d2['EC'] = []
-            d2['GOs'] = []
-            d2['PFAMs'] = []
-            d2['KEGG_ko'] = []
-            d2['KEGG_Pathway'] = []
-            d2['KEGG_Module'] = []
-            d2['KEGG_Reaction'] = []
-            d2['KEGG_rclass'] = []
-            d2['BRITE'] = []
+            \n"""+'\n'.join([f"d2['{tc}'] = []" for tc in table_columns])+"""\n
             // d2['KEGG_TC'] = []
             // d2['CAZy'] = []
             // d2['BiGG_Reaction'] = []
@@ -1501,6 +1671,8 @@ def interactive(
             d_expr['expr_ys'] = [[0]]
             d_expr['alpha'] = [0]
             d_expr['color'] = ['black']
+            d_expr['line_dash'] = ['solid']
+            
 
             // HEATMAP
             d_hm['fill_alpha'] = []
@@ -1542,24 +1714,9 @@ def interactive(
                     // d3['ys'].push(ref_expr['ys'][i])
 
                     // TABLE
-                    d2['module'].push(d1['module'][i])
                     d2['ID'].push(d1['ID'][i])
                     // d2['YF_ID'].push(d1['YF_ID'][i])
-                    d2['peptide'].push(d1['peptide'][i])
-                    d2['TGD2021_description'].push(d1['TGD2021_description'][i])
-                    d2['Description'].push(d1['Description'][i])
-                    d2['Preferred_name'].push(d1['Preferred_name'][i])
-                    d2['max_annot_lvl'].push(d1['max_annot_lvl'][i])
-                    d2['COG_category'].push(d1['COG_category'][i])
-                    d2['EC'].push(d1['EC'][i])
-                    d2['GOs'].push(d1['GOs'][i])
-                    d2['PFAMs'].push(d1['PFAMs'][i])
-                    d2['KEGG_ko'].push(d1['KEGG_ko'][i])
-                    d2['KEGG_Pathway'].push(d1['KEGG_Pathway'][i])
-                    d2['KEGG_Module'].push(d1['KEGG_Module'][i])
-                    d2['KEGG_Reaction'].push(d1['KEGG_Reaction'][i])
-                    d2['KEGG_rclass'].push(d1['KEGG_rclass'][i])
-                    d2['BRITE'].push(d1['BRITE'][i])
+                    \n"""+'\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns])+"""\n
                     // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
                     // d2['CAZy'].push(d1['CAZy'][i])
                     // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
@@ -1576,6 +1733,7 @@ def interactive(
                     d_expr['expr_xs'].push(d1['expr_xs'][i])
                     d_expr['expr_ys'].push(d1['expr_ys'][i])
                     d_expr['color'].push(d1['color'][i])
+                    d_expr['line_dash'].push('solid')
                     // console.log(d_expr)
                     // console.log(i)
                     // console.log(

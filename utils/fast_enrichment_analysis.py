@@ -17,7 +17,7 @@ main_dir = '../TGNE/'
 complete_annotation = pd.read_csv(os.path.join(main_dir, 'eggnog/complete_eggnog_annotation.csv'))
 
 background_annotation = complete_annotation
-term_columns=['COG_category', 'GOs', 'KEGG_ko', 'EC', 'PFAMs']
+term_columns=['COG_category', 'GOs', 'KEGG_ko', 'EC', 'PFAMs', 'InterPro']
 
 def term_count_dict_from_annotation_df(annot_df, term_column):
     
@@ -136,6 +136,10 @@ def process_module(m):
         elif tc == 'PFAMs':
             for t in terms:
                 info.append(annotation_info.get_PFAM_info(t))
+
+        elif tc == 'InterPro':
+            for t in terms:
+                info.append(annotation_info.get_InterPro_info(t))
                 
         term_df = pd.DataFrame({'module': [m]*len(terms),
                                 'term': terms,
