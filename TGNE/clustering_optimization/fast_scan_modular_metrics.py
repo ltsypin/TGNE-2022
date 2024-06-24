@@ -35,9 +35,9 @@ metrics = [sys.argv[2]]
 
 scan_nns = [int(sys.argv[3])]
 
-# scan_rps = np.arange(0, 1.1, 0.005)
+scan_rps = np.arange(0, 1.1, 0.005)
 # print(np.arange(0, 1.1005, 0.005))
-scan_rps = [0.005]
+# scan_rps = [0.005]
 # scan_rps = [2.0]
 
 partition_type = sys.argv[4]
@@ -45,8 +45,8 @@ partition_type = sys.argv[4]
 # partition_type = 'NC'
 # partition_type = 'TNC'
 
-# num_iterations = 1
-num_iterations = 300
+num_iterations = 1
+# num_iterations = 300
 
 gene_lists = {}
 
