@@ -61,7 +61,10 @@ def csv_files_to_df(files: list, sep=None, cols=None):
 
     for f in files:
 
-        curr_df = pd.read_csv(f, sep=sep, names=cols)
+        if sep is None:
+            curr_df = pd.read_csv(f, names=cols)
+        else:
+            curr_df = pd.read_csv(f, sep=sep, names=cols)
 
         if combined_df is None:
             combined_df = curr_df

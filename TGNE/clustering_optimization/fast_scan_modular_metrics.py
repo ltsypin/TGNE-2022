@@ -35,15 +35,18 @@ metrics = [sys.argv[2]]
 
 scan_nns = [int(sys.argv[3])]
 
-scan_rps = np.arange(0, 1.1, 0.005)
-# scan_rps = [0.005]
+# scan_rps = np.arange(0, 1.1, 0.005)
+# print(np.arange(0, 1.1005, 0.005))
+scan_rps = [0.005]
+# scan_rps = [2.0]
 
-partition_type = 'EXP'
+partition_type = sys.argv[4]
+# partition_type = 'EXP'
 # partition_type = 'NC'
 # partition_type = 'TNC'
 
-num_iterations = 1
-# num_iterations = 300
+# num_iterations = 1
+num_iterations = 300
 
 gene_lists = {}
 
@@ -76,8 +79,14 @@ output_file = ''
 n_jobs = -1
 random_state = 42
 
-if num_iterations > 1 and partition_type != 'NC':
+if num_iterations > 1 and partition_type not in ['NC', 'TNC']:
     raise(ValueError(f'PARTITION TYPE IS SET TO {partition_type}. {num_iterations} IDENTICAL PARTITIONS WILL BE COMPUTED. PLEASE SET NUM ITERATIONS TO 1.'))
+
+if num_iterations > 1 and partition_type in ['NC', 'TNC'] and len(scan_rps) > 1:
+    raise(ValueError(f'PARTITION TYPE IS SET TO {partition_type}. {num_iterations} PARTITIONS WILL BE COMPUTED FOR {str(len(scan_rps))} RESOLUTION PARAMETERS. PLEASE SELECT A SINGLE RESOLUTION PARAMETER.'))
+
+if partition_type not in ['EXP', 'NC', 'TNC']:
+    raise(ValueError(f"PARTITION TYPE IS SET TO {partition_type}. PLEASE SELECT A VALID PARTITION TYPE ('EXP', 'NC', or 'TNC')."))
 
 for idx, iteration in enumerate(range(num_iterations)):
     print('COMPUTING', idx+1,'of', num_iterations, 'ITERATIONS')     
