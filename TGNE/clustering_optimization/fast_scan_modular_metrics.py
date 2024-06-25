@@ -95,7 +95,7 @@ for idx, iteration in enumerate(range(num_iterations)):
     full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
 
     data_min = np.min([full_filtered_df[c].min() for c in (list(full_filtered_df.columns)[1:])])
-    data_max = np.min([full_filtered_df[c].max() for c in (list(full_filtered_df.columns)[1:])])
+    data_max = np.max([full_filtered_df[c].max() for c in (list(full_filtered_df.columns)[1:])])
 
     # if partition_type == 'EXP':
     #     print(data_min)
@@ -106,7 +106,15 @@ for idx, iteration in enumerate(range(num_iterations)):
         full_filtered_df = dataframe_utils.shuffle_rows(full_filtered_df)
     
     if partition_type == 'TNC':
-        raw_data = dataframe_utils.get_hypercube_sample(full_filtered_df.shape[1], full_filtered_df.shape[0])
+        full_filtered_df_shape = full_filtered_df.shape
+
+        full_filtered_df_columns = list(full_filtered_df.columns)[1:]
+
+        full_filtered_df_ttherm_ids = full_filtered_df['TTHERM_ID'].values
+
+        full_filtered_df = None
+
+        raw_data = dataframe_utils.get_hypercube_sample(full_filtered_df_shape[1], full_filtered_df_shape[0])
         # print(np.min([raw_data[c].min() for c in raw_data.columns]))
         # print(np.min([raw_data[c].max() for c in raw_data.columns]))
 
@@ -115,8 +123,8 @@ for idx, iteration in enumerate(range(num_iterations)):
         # print(np.min([raw_data[c].max() for c in raw_data.columns]))
 
 
-        cols_to_add = list(full_filtered_df.columns)[1:]
-        full_filtered_df = pd.DataFrame({'TTHERM_ID': full_filtered_df['TTHERM_ID'].values})
+        cols_to_add = full_filtered_df_columns
+        full_filtered_df = pd.DataFrame({'TTHERM_ID': full_filtered_df_ttherm_ids})
 
         for idx, col in enumerate(cols_to_add):
             full_filtered_df[col] = raw_data[idx].values
