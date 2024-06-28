@@ -2223,6 +2223,46 @@ def generate_and_save_umap(outfile_name, expression_df, enrich_df, annotation_df
     print(outfile_name)
     return p    
 
+def generate_and_save_umap_tabbed(outfile_name, expression_df1, expression_df2, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df1=None, avg_df2=None):
+        tabs = []
+        tab_names = ['z-score', 'min-max']
+        dfs = [expression_df1, expression_df2]
+        avg_dfs = [avg_df1, avg_df2]
+
+        for i, df in enumerate(dfs):
+            avg_df = avg_dfs[i]
+
+            data = df[list(df.columns)[1:]].values
+    
+            umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
+            embedding = _get_umap_embedding(umap_mapper)
+            
+            umap_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
+
+            radius = compute_2d_embedding_point_radius(umap_df)
+
+            avg_data = avg_df[list(avg_df.columns)[1:]].values
+
+            avg_umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors, metric=embedding_metric).fit(avg_data)
+            avg_embedding = _get_umap_embedding(avg_umap_mapper)
+
+            avg_umap_df = pd.DataFrame(np.array(avg_embedding), columns=('x', 'y'))
+
+            avg_umap_df['label'] = avg_df['label'].values
+
+            avg_umap_df['num_genes'] = [np.count_nonzero(label_df['label'].values == m) for m in avg_umap_df['label'].values]
+
+            avg_radius = compute_2d_embedding_point_radius(avg_umap_df)
+            p = plot_embedding(df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius)
+
+            tabs.append(TabPanel(child=p, title=tab_names[i]))
+
+        tabbed_plot = Tabs(tabs=tabs)
+
+        bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
+
+        bokeh.plotting.save(tabbed_plot)
+
 def generate_and_save_mds(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None):
     
     data = expression_df[list(expression_df.columns)[1:]].values

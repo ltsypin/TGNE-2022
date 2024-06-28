@@ -121,6 +121,8 @@ new_raw_data/**/*.h5
 
 new_raw_data/**/*.xls
 
+new_raw_data/**/*.xlxs
+
 new_raw_data/**/*.log
 
 new_raw_data/**/*.gff3
