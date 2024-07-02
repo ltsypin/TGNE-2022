@@ -608,8 +608,8 @@ def interactive(
     
     # For companion heatmap plot
     ttherm_ids = embedding_df['TTHERM_ID'].values
-    hm_df = embedding_df[['TTHERM_ID'] + x]
-    hm_df['module'] = hover_data['module'].values
+    hm_df = embedding_df.loc[:, ['TTHERM_ID'] + x]
+    hm_df['module'] = hover_data.loc[:,:]['module'].values
     hm_df_tidy = hm_df.melt(id_vars=['TTHERM_ID', 'module'], var_name='phase', value_name='normalized_expression')
     hm_cds = bokeh.plotting.ColumnDataSource(hm_df_tidy)
     hm_cds.data['fill_alpha'] = [0.7]*len(hm_df_tidy)
@@ -1414,194 +1414,6 @@ def interactive(
             }
             """
         )        
-    
-    print("""
-            // console.log(plot_tabs.active);
-            if (plot_tabs.active == 0){
-            var avg_idxs = cb_obj.indices;
-            var d1 = s1.data; // embedding
-            var d2 = s2.data; // table
-            var d_avg = s_avg.data
-
-            var d_expr = s_expr.data; // expression plot
-            var d_hm = s_hm.data; // heatmap
-            var d_enrich = s_enrich.data; // enrichment plot
-
-            var selected_ttherm_id = "";
-
-            var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
-            const num_cols = cols.length;
-
-            d2['module'] = []
-            d2['ID'] = []
-
-
-            // JS INITIALIZE
-
-            // EMBEDDING
-            // Start by making everything tiny and pale
-            // d1['alpha'] = Array(d1['ID'].length).fill(0.01)
-            // d1['line_alpha'] = Array(d1['ID'].length).fill(0.01)
-            // d1['radius'] = Array(d1['ID'].length).fill(0.0001)
-
-            // TABLE
-            d2['ID'] = []
-            // d2['YF_ID'] = []
-            \n"""+'\n'.join([f"d2['{tc}'] = []" for tc in table_columns])+"""\n
-            // d2['KEGG_TC'] = []
-            // d2['CAZy'] = []
-            // d2['BiGG_Reaction'] = []
-
-            // EXPRESSION
-            d_expr['TTHERM_ID'] = ['blah']
-            d_expr['module'] = ['blah']
-            d_expr['ID'] = [['blah']]
-            d_expr['expr_xs'] = [['Ll']]
-            d_expr['expr_ys'] = [[0]]
-            d_expr['alpha'] = [0]
-            d_expr['color'] = ['black']
-            d_expr['line_dash'] = ['solid']
-            
-
-            // HEATMAP
-            d_hm['fill_alpha'] = []
-            d_hm['line_alpha'] = []
-            
-            d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
-            d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
-
-
-            // ENRICHMENT
-            s_enrich.selected.indices = []
-
-            d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.3)
-            d_enrich['size'] = Array(d_enrich['size'].length).fill(7)
-            d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill("black")
-
-            // HEATMAP deselect all
-            d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
-            d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
-
-
-            s1.selected.indices = []
-
-            var avg_selected_mods = (avg_idxs.map(index => d_avg['label'][index]))
-
-            // JS
-            for (var i = 0; i < d1.x.length; i++) {
-            
-                var mod_at_i = +((d1['module'][i]).slice(1))
-
-                if (avg_selected_mods.includes(mod_at_i)) { 
-                
-                    // console.log(i);
-                    // console.log(d1['module'][i]);
-                    // console.log(d1['ID'][i]);
-                    // d1['alpha'][i] = matching_alpha
-                    // d1['radius'][i] = 1
-                    // d2['YF_ID'].push(d1['YF_ID'][i])
-
-                    // d3['xs'].push(ref_expr['xs'][i])
-                    // d3['ys'].push(ref_expr['ys'][i])
-
-                    s1.selected.indices.push(i)
-
-                    // TABLE
-                    d2['ID'].push(d1['ID'][i])
-                    // d2['YF_ID'].push(d1['YF_ID'][i])
-                    \n"""+'\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns])+"""\n
-                    // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
-                    // d2['CAZy'].push(d1['CAZy'][i])
-                    // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
-                    
-                    // EMBEDDING
-                    // d1['alpha'][i] = 1
-                    // d1['line_alpha'][i] = 1
-                    // d1['radius'][i] = 100
-
-                    // EXPRESSION
-                    d_expr['TTHERM_ID'].push(d1['ID'][i])
-                    d_expr['module'].push(d1['module'][i])
-                    d_expr['ID'].push(Array(18).fill(d1['ID'][i]))
-                    d_expr['expr_xs'].push(d1['expr_xs'][i])
-                    d_expr['expr_ys'].push(d1['expr_ys'][i])
-                    d_expr['color'].push(d1['color'][i])
-                    d_expr['line_dash'].push('solid')
-                    // console.log(d_expr)
-                    // console.log(i)
-                    // console.log(
-                    //     d_expr['ID'].length, 
-                    //     d_expr['expr_xs'].length, 
-                    //     d_expr['expr_ys'].length
-                    // )
-
-                    // HEATMAP
-                    // selected_ttherm_id = d1['ID'][i]
-                    // var match = (element) => element == selected_ttherm_id
-                    var gene_index = i;
-
-                    for (var k = 0; k < num_cols; k++) {
-                        d_hm['fill_alpha'][gene_index] = 0.7
-                        d_hm['line_alpha'][gene_index] = 0.7
-
-                        gene_index = gene_index + ttids.length
-                    }
-
-                }else{
-                    // d1['alpha'][i] = non_matching_alpha
-                    // d1['radius'][i] = 0.01
-                }
-            }
-
-            d_expr['alpha'].push.apply(d_expr['alpha'],
-                Array(d2['ID'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)))
-            );
-            
-            var enrich_mods = d_enrich['module'].slice(0);
-            var selected_mods = d2['module'].slice(0);
-            
-            var nmod_str = ""
-            var nmod = -1
-            
-            for (let mod of selected_mods){
-                let nmod_str = mod.slice(1);
-                let nmod = +nmod_str;
-                // console.log(nmod);
-                enrich_mods.forEach((item, index) => {
-                    if (item === nmod) {
-                        s_enrich.selected.indices.push(index);
-                    }
-                });
-            }
-
-            if (selected_mods.length > 0 && s_enrich.selected.indices.length == 0){
-                d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.05)
-                // d_enrich['size'] = Array(d_enrich['size'].length).fill(1)
-                d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill(null)
-            }
-
-
-            s1.change.emit();
-            s2.change.emit();
-            table.change.emit();
-
-
-            s_expr.change.emit();
-                
-            s_hm.change.emit();
-
-            s_enrich.change.emit()
-
-            // s_avg.change.emit()
-
-            console.log("RAN AVG selection");
-            // console.log(idxs.length);
-            // console.log(s1.selected.indices);
-
-
-            // console.log(avg_selected_mods);
-            }
-            """)
 
     avg_data_source.selected.js_on_change('indices', a_s_callback)
 
@@ -2143,6 +1955,7 @@ def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_
         
     xs = [x for ttid in ttherm_ids]
 
+
     ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
 
     merge['expr_xs'] = xs
@@ -2190,9 +2003,8 @@ def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_
 def compute_2d_embedding_point_radius(embedding_df, const=339.30587926495537):
     return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / const
 
-
-def generate_and_save_umap(outfile_name, expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None):
-    
+def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None):
+       
     data = expression_df[list(expression_df.columns)[1:]].values
     
     umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
@@ -2201,8 +2013,6 @@ def generate_and_save_umap(outfile_name, expression_df, enrich_df, annotation_df
     umap_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
 
     radius = compute_2d_embedding_point_radius(umap_df)
-
-
 
     avg_data = avg_df[list(avg_df.columns)[1:]].values
 
@@ -2217,51 +2027,53 @@ def generate_and_save_umap(outfile_name, expression_df, enrich_df, annotation_df
 
     avg_radius = compute_2d_embedding_point_radius(avg_umap_df)
     
-    bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
     p = plot_embedding(expression_df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius)
+
+    return p
+
+
+def generate_and_save_umap(outfile_name, expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None):
+    
+    p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df)
+    
+    bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
     bokeh.plotting.save(p)
     print(outfile_name)
     return p    
 
-def generate_and_save_umap_tabbed(outfile_name, expression_df1, expression_df2, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df1=None, avg_df2=None):
+def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_labels: list, enrich_dfs: list, annotation_df: pd.DataFrame, label_dfs: list, phase, palettes, title, n_neighbors=5, n_components=2, random_state=42, expr_mins=[], expr_maxs=[], embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_dfs=None):
+        if avg_dfs is None:
+            avg_dfs = [None for _ in range(len(expression_dfs))]
+
+        num_elements_list = [len(_) for _ in [expression_dfs, tab_labels, enrich_dfs, label_dfs, avg_dfs, expr_mins, expr_maxs]]
+
+        if len(np.unique(num_elements_list)) != 1:
+            raise ValueError('The following parameters must all have the same length: expression_dfs, tab_labels, enrich_dfs, label_dfs, and avg_dfs.')
+
         tabs = []
-        tab_names = ['z-score', 'min-max']
-        dfs = [expression_df1, expression_df2]
-        avg_dfs = [avg_df1, avg_df2]
 
-        for i, df in enumerate(dfs):
-            avg_df = avg_dfs[i]
+        for idx in range(num_elements_list[0]):
+            expression_df = expression_dfs[idx]
+            enrich_df = enrich_dfs[idx]
+            label_df = label_dfs[idx]
+            avg_df = avg_dfs[idx]
+            expr_min = expr_mins[idx]
+            expr_max = expr_maxs[idx]
+            palette = palettes[idx]
 
-            data = df[list(df.columns)[1:]].values
-    
-            umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
-            embedding = _get_umap_embedding(umap_mapper)
-            
-            umap_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
+            tab_label = tab_labels[idx]
 
-            radius = compute_2d_embedding_point_radius(umap_df)
+            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df)
 
-            avg_data = avg_df[list(avg_df.columns)[1:]].values
+            tabs.append(TabPanel(child=p, title=tab_label))
 
-            avg_umap_mapper = umap.UMAP(random_state=random_state, n_components=n_components, n_neighbors=n_neighbors, metric=embedding_metric).fit(avg_data)
-            avg_embedding = _get_umap_embedding(avg_umap_mapper)
-
-            avg_umap_df = pd.DataFrame(np.array(avg_embedding), columns=('x', 'y'))
-
-            avg_umap_df['label'] = avg_df['label'].values
-
-            avg_umap_df['num_genes'] = [np.count_nonzero(label_df['label'].values == m) for m in avg_umap_df['label'].values]
-
-            avg_radius = compute_2d_embedding_point_radius(avg_umap_df)
-            p = plot_embedding(df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius)
-
-            tabs.append(TabPanel(child=p, title=tab_names[i]))
-
-        tabbed_plot = Tabs(tabs=tabs)
+        tabbed_plot = Tabs(tabs=tabs, sizing_mode='stretch_both')
 
         bokeh.plotting.output_file(filename=outfile_name, title=title, mode='inline')
 
         bokeh.plotting.save(tabbed_plot)
+
+        print(outfile_name)
 
 def generate_and_save_mds(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None):
     
@@ -2324,130 +2136,130 @@ def generate_and_save_tsne(outfile_name, expression_df, annotation_df, label_df,
     return p
 
 
-def generate_server_data(expression_df, annotation_df, label_df, phases, palette, n_neighbors=3, random_state=42, embedding_metric='euclidean'):
+# def generate_server_data(expression_df, annotation_df, label_df, phases, palette, n_neighbors=3, random_state=42, embedding_metric='euclidean'):
     
-    data = expression_df[list(expression_df.columns)[1:]].values
+#     data = expression_df[list(expression_df.columns)[1:]].values
     
-    umap_mapper = umap.UMAP(random_state=random_state, n_components=2, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
-    embedding = _get_umap_embedding(umap_mapper)
+#     umap_mapper = umap.UMAP(random_state=random_state, n_components=2, n_neighbors=n_neighbors, metric=embedding_metric).fit(data)
+#     embedding = _get_umap_embedding(umap_mapper)
     
-    embedding_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
+#     embedding_df = pd.DataFrame(np.array(embedding), columns=('x', 'y'))
     
-    embedding_df['TTHERM_ID'] = expression_df['TTHERM_ID'].values
+#     embedding_df['TTHERM_ID'] = expression_df['TTHERM_ID'].values
     
-    merge_unsorted = expression_df.merge(embedding_df, on='TTHERM_ID')
+#     merge_unsorted = expression_df.merge(embedding_df, on='TTHERM_ID')
 
-    merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
+#     merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
 
-    merge_all_sorted = merge_all
+#     merge_all_sorted = merge_all
 
-    labels = merge_all_sorted['label'].values
+#     labels = merge_all_sorted['label'].values
 
-    merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
+#     merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
 
-    relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
-    merge = merge.merge(relevant_annot, on='TTHERM_ID')
+#     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
+#     merge = merge.merge(relevant_annot, on='TTHERM_ID')
     
-    # if phases in ['full', 'veg', 'sex']:
-    #     mean_expression_df = get_arith_mean_expression(expression_df)
+#     # if phases in ['full', 'veg', 'sex']:
+#     #     mean_expression_df = get_arith_mean_expression(expression_df)
 
-    # elif phases == 'rna_seq':
-    #     mean_expression_df = ari_mean_df_of_duplicates(expression_df)
+#     # elif phases == 'rna_seq':
+#     #     mean_expression_df = ari_mean_df_of_duplicates(expression_df)
 
-    mean_expression_df = expression_df
+#     mean_expression_df = expression_df
     
-    embedding_df['TTHERM_ID'] = mean_expression_df['TTHERM_ID'].values
+#     embedding_df['TTHERM_ID'] = mean_expression_df['TTHERM_ID'].values
     
-    merge_unsorted = mean_expression_df.merge(embedding_df, on='TTHERM_ID')
+#     merge_unsorted = mean_expression_df.merge(embedding_df, on='TTHERM_ID')
 
-    merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
+#     merge_all = label_df.merge(merge_unsorted, on='TTHERM_ID')
 
-    merge_all_sorted = merge_all
+#     merge_all_sorted = merge_all
 
-    labels = merge_all_sorted['label'].values
+#     labels = merge_all_sorted['label'].values
 
-    merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
+#     merge = merge_all_sorted.loc[: , merge_all_sorted.columns]
     
-    # take part of annotation df that shared TTHERM_IDs with expression df
-    relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
-    merge = merge.merge(relevant_annot, on='TTHERM_ID')
+#     # take part of annotation df that shared TTHERM_IDs with expression df
+#     relevant_annot = annotation_df.iloc[np.in1d(annotation_df['TTHERM_ID'].values, merge['TTHERM_ID'].values)]
+#     merge = merge.merge(relevant_annot, on='TTHERM_ID')
 
-    ttherm_ids = merge['TTHERM_ID'].values
+#     ttherm_ids = merge['TTHERM_ID'].values
     
-    if phases == 'full':
+#     if phases == 'full':
         
-        x = ['Ll', 
-             'Lm', 
-             'Lh', 
-             'S0', 
-             'S3', 
-             'S6', 
-             'S9', 
-             # 'S12',
-             'S15', 
-             'S24', 
-             'C0', 
-             # 'C2', 
-             'C4', 
-             'C6', 
-             'C8', 
-             'C10', 
-             'C12', 
-             'C14', 
-             'C16', 
-             'C18']
+#         x = ['Ll', 
+#              'Lm', 
+#              'Lh', 
+#              'S0', 
+#              'S3', 
+#              'S6', 
+#              'S9', 
+#              # 'S12',
+#              'S15', 
+#              'S24', 
+#              'C0', 
+#              # 'C2', 
+#              'C4', 
+#              'C6', 
+#              'C8', 
+#              'C10', 
+#              'C12', 
+#              'C14', 
+#              'C16', 
+#              'C18']
         
         
-    elif phases == 'veg':
+#     elif phases == 'veg':
         
-        x = ['Ll', 
-             'Lm', 
-             'Lh', 
-             'S0', 
-             'S3', 
-             'S6', 
-             'S9', 
-             # 'S12', 
-             'S15', 
-             'S24']
+#         x = ['Ll', 
+#              'Lm', 
+#              'Lh', 
+#              'S0', 
+#              'S3', 
+#              'S6', 
+#              'S9', 
+#              # 'S12', 
+#              'S15', 
+#              'S24']
         
-    elif phases == 'sex':
+#     elif phases == 'sex':
         
-        x = ['C0', 
-             # 'C2', 
-             'C4', 
-             'C6', 
-             'C8', 
-             'C10',
-             'C12',
-             'C14', 
-             'C16', 
-             'C18']
+#         x = ['C0', 
+#              # 'C2', 
+#              'C4', 
+#              'C6', 
+#              'C8', 
+#              'C10',
+#              'C12',
+#              'C14', 
+#              'C16', 
+#              'C18']
         
-    elif phases == 'rna_seq':
-        x = ['000min', '030min', '060min', '090min', '120min', '150min',
-       '180min', '210min', '240min']
+#     elif phases == 'rna_seq':
+#         x = ['000min', '030min', '060min', '090min', '120min', '150min',
+#        '180min', '210min', '240min']
         
-    elif phases == 'rna_seq_single_cycle':
-        x = ['000min', '030min', '060min', '090min', '120min', '150min', '180min']
+#     elif phases == 'rna_seq_single_cycle':
+#         x = ['000min', '030min', '060min', '090min', '120min', '150min', '180min']
         
-    else:
-        raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
+#     else:
+#         raise(ValueError(f'\"{phases}\" is an invalid choice for parameter \"phases.\"'))
 
-    xs = [x for ttid in ttherm_ids]
+#     xs = [x for ttid in ttherm_ids]
 
-    ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
+#     ys = [merge.loc[merge['TTHERM_ID'] == ttid, x].values[0] for ttid in ttherm_ids]
 
-    merge['expr_xs'] = xs
-    merge['expr_ys'] = ys
+#     merge['expr_xs'] = xs
+#     merge['expr_ys'] = ys
     
-    merge['module'] = [f'm{int(l):04d}' for l in labels]
+#     merge['module'] = [f'm{int(l):04d}' for l in labels]
 
-    pr = compute_2d_embedding_point_radius(embedding_df)
+#     pr = compute_2d_embedding_point_radius(embedding_df)
 
-    merge['radius'] = [pr for _ in range(merge.shape[0])]
+#     merge['radius'] = [pr for _ in range(merge.shape[0])]
 
-    return merge
+#     return merge
 
 def main():
     pass
