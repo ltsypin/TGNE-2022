@@ -135,3 +135,5 @@ TGNE/embedding/emine_ttherms.txt
 
 TGNE/interproscan/**/*.tsv
 TGNE/interproscan/**/*.csv
+
+**/archive/*
