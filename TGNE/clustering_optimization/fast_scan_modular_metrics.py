@@ -12,7 +12,7 @@ file_dir = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.join(file_dir, '../../'))
 
-from utils import file_utils, microarray_utils, clustering_utils, dataframe_utils, rna_seq_utils
+from utils import file_utils, clustering_utils, dataframe_utils, expr_data_utils
 
 # SCAN START
 curr_datetime = str(datetime.now())
@@ -35,9 +35,11 @@ metrics = [sys.argv[2]]
 
 scan_nns = [int(sys.argv[3])]
 
-# scan_rps = np.arange(0, 1.1, 0.005)
-# print(np.arange(0, 1.1005, 0.005))
-scan_rps = [0.005]
+scan_rps = np.arange(0, 1.005, 0.005)
+# print(np.arange(0, 1.105, 0.005))
+# scan_rps = np.arange(0, 1.105, 0.005)
+# scan_rps = [0.005]
+# scan_rps = [1.100]
 # scan_rps = [2.0]
 
 partition_type = sys.argv[4]
@@ -45,8 +47,8 @@ partition_type = sys.argv[4]
 # partition_type = 'NC'
 # partition_type = 'TNC'
 
-# num_iterations = 1
-num_iterations = 300
+num_iterations = 1
+# num_iterations = 300
 
 gene_lists = {}
 
@@ -130,11 +132,11 @@ for idx, iteration in enumerate(range(num_iterations)):
             full_filtered_df[col] = raw_data[idx].values
     
     if expression_dataset == 'microarray':
-        full_filtered_norm_df = microarray_utils.normalize_expression_per_gene(full_filtered_df, z=True)
-        full_filtered_norm_df = microarray_utils.get_arith_mean_expression(full_filtered_norm_df)
+        full_filtered_norm_df = expr_data_utils.normalize_expression_per_gene(full_filtered_df, norm_type='z_score', add_scalar=0)
+        full_filtered_norm_df = expr_data_utils.mean_df_of_duplicates(full_filtered_norm_df, mean_type='arithmetic')
     elif expression_dataset == 'rna_seq':
-        full_filtered_norm_df = rna_seq_utils.normalize_expression_per_gene(full_filtered_df)
-        full_filtered_norm_df = rna_seq_utils.ari_mean_df_of_duplicates(full_filtered_norm_df)
+        full_filtered_norm_df = expr_data_utils.normalize_expression_per_gene(full_filtered_df, norm_type='z_score', add_scalar=1)
+        full_filtered_norm_df = expr_data_utils.mean_df_of_duplicates(full_filtered_norm_df, mean_type='arithmetic')
     else:
         raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
     

@@ -15,7 +15,6 @@ import subprocess
 
 from .file_utils import remove_file
 from .dataframe_utils import get_hypercube_sample, shuffle_rows
-from .microarray_utils import normalize_expression_per_gene
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 main_dir = '../TGNE/'

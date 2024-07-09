@@ -2,7 +2,7 @@
 tgne_all.env
 
 # RNA_SEQ DATA ANALYSIS, FORMATTING, AND GENE FILTERING
-new_raw_data/rna_seq_processed/compute_tpm_kallisto_final.ipynb
+new_raw_data/rna_seq_processed/compute_tpm_kallisto_final_june2024.ipynb
 
 # SET THE ACTIVE GENE MODEL FASTAS (CUSTOMIZABLE)
 set_active_files.ipynb
@@ -14,38 +14,14 @@ TGNE/microarray_probe_alignment_and_filtering/generate_probe_mapping_ndf.ipynb
 
 TGNE/microarray_probe_alignment_and_filtering/convert_and_filter_raw_probe_data.ipynb
 
-# EXIT THE CONDA ENV
-.denv
-
-# ENTER R CONDA ENV
-tgne_all.env
-
 # QUALITY CONTROL
 TGNE/microarray_QC/microarray_QC_new_data.Rmd
-
-# EXIT THE CONDA ENV
-.denv
-
-# ENTER PYTHON CONDA ENV
-tgne_all.env
 
 # PROBE ALIGNMENT PART 2
 TGNE/microarray_probe_alignment_and_filtering/bin_and_export_qc_rma_data.ipynb
 
-# EXIT THE CONDA ENV
-.denv
-
-# ENTER R CONDA ENV
-tgne_all.env
-
 # GENE FILTERING
 TGNE/microarray_probe_alignment_and_filtering/gene_filtering.Rmd
-
-# EXIT THE CONDA ENV
-.denv
-
-# ENTER PYTHON CONDA ENV
-tgne_all.env
 
 # ANNOTATION
 TGNE/eggnog/annotation.ipynb
@@ -56,12 +32,7 @@ TGNE/eggnog/annotation.ipynb
 ## ENRICHMENT
 #TGNE/enrichment/enrichment_final.ipynb
 #
-## EXIT THE CONDA ENV
-#.denv
-#
-## ENTER PYTHON CONDA ENV
-#cdh2_bokeh.env
-#
+
 ## APP
 ##TGNE/embedding/app_final.ipynb
 #
@@ -72,12 +43,6 @@ TGNE/eggnog/annotation.ipynb
 #
 ## ENRICHMENT
 #TGNE/enrichment/enrichment_final_rna_seq.ipynb
-#
-## EXIT THE CONDA ENV
-#.denv
-#
-## ENTER PYTHON CONDA ENV
-#cdh2_bokeh.env
 #
 ## APP
 #TGNE/embedding/app_final_rna_seq.ipynb

@@ -23,8 +23,6 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.manifold import MDS
 
-from .microarray_utils import get_arith_mean_expression
-from .rna_seq_utils import ari_mean_df_of_duplicates
 from .clustering_utils import compute_pairwise_distance_matrix
 
 # bokeh_ui_utils
@@ -233,7 +231,7 @@ def interactive(
     radius=None, # My contribution
 #     subset_points=None,
     interactive_text_search=False,
-    interactive_text_search_columns=['TTHERM_ID', 'PFAMs', 'Description', 'TGD2021_description', 'module'],
+    interactive_text_search_columns=['TTHERM_ID', 'PFAMs', 'Description', 'TGD2021_description', 'module', 'InterPro_description'],
     interactive_text_search_alpha_contrast=0.999,
     alpha=None,
     expr_min = 0,
@@ -353,7 +351,7 @@ def interactive(
     -------
     """
     if 'TTHERM_IDs' in list(embedding_df.columns):
-        interactive_text_search_columns=['TTHERM_ID', 'TTHERM_IDs', 'PFAMs', 'Description', 'TGD2021_description', 'module']
+        interactive_text_search_columns=['TTHERM_ID', 'TTHERM_IDs', 'PFAMs', 'Description', 'TGD2021_description', 'module', 'InterPro_description']
 
     if theme is not None:
         cmap = _themes[theme]["cmap"]
@@ -694,6 +692,7 @@ def interactive(
         'PFAMs',
         'KEGG_ko',
         'InterPro',
+        'InterPro_description',
         'KEGG_Pathway',
         'KEGG_Module',
         'KEGG_Reaction',
@@ -724,6 +723,7 @@ def interactive(
         "PFAMs": 300,
         "KEGG_ko": 300,
         "InterPro": 300,
+        'InterPro_description': 300,
         "KEGG_Pathway": 300,
         "KEGG_Module": 300,
         "KEGG_Reaction": 300,
@@ -2074,6 +2074,38 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
         bokeh.plotting.save(tabbed_plot)
 
         print(outfile_name)
+
+        return tabbed_plot
+
+def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: list, annotation_df: pd.DataFrame, label_dfs: list, phase, palettes, title, n_neighbors=5, n_components=2, random_state=42, expr_mins=[], expr_maxs=[], embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_dfs=None):
+        if avg_dfs is None:
+            avg_dfs = [None for _ in range(len(expression_dfs))]
+
+        num_elements_list = [len(_) for _ in [expression_dfs, tab_labels, enrich_dfs, label_dfs, avg_dfs, expr_mins, expr_maxs]]
+
+        if len(np.unique(num_elements_list)) != 1:
+            raise ValueError('The following parameters must all have the same length: expression_dfs, tab_labels, enrich_dfs, label_dfs, and avg_dfs.')
+
+        tabs = []
+
+        for idx in range(num_elements_list[0]):
+            expression_df = expression_dfs[idx]
+            enrich_df = enrich_dfs[idx]
+            label_df = label_dfs[idx]
+            avg_df = avg_dfs[idx]
+            expr_min = expr_mins[idx]
+            expr_max = expr_maxs[idx]
+            palette = palettes[idx]
+
+            tab_label = tab_labels[idx]
+
+            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df)
+
+            tabs.append(TabPanel(child=p, title=tab_label))
+
+        tabbed_plot = Tabs(tabs=tabs, sizing_mode='stretch_both')
+
+        return tabbed_plot
 
 def generate_and_save_mds(outfile_name, expression_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None):
     
