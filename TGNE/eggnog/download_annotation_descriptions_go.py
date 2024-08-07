@@ -27,35 +27,7 @@ def get_GO_info(go_term):
         obsolete = 'NA'
     
     return name, definition, obsolete
-
-
-def get_PFAM_info(pfam_short_name):
-
-    try:
-        r = requests.get(f'https://www.ebi.ac.uk/ebisearch/ws/rest/proteinFamilies/?query={pfam_short_name}&size=15&requestFrom=searchBox&format=JSON&fieldurl=true&viewurl=true&fields=creation_date%2Cdescription%2Cgpcr-family%2Cname&hlfields=creation_date%2Cdescription%2Cgpcr-family%2Cname&entryattrs=score')    
-        json_data = r.text
-
-        data = json.loads(json_data)
-
-        info = None
-
-        for entry in data['entries']:
-            info = {
-                'id': entry['id'],
-                'source': entry['source'],
-                'description': entry['fields']['description'][0] if entry['fields']['description'] else '',
-                'value': entry['fieldURLs'][0]['value'] if entry['fieldURLs'] else ''
-            }
-
-            if info['id'] == pfam_short_name:
-                break
-
-        return info['description']
-    
-    except:
-        return 'NA'
         
-
 
 def process_go_chunk(annotation_df):
 
@@ -86,7 +58,7 @@ def process_go_chunk(annotation_df):
 
 if __name__ == '__main__':
 
-    complete_annotation_df = pd.read_csv(os.path.join(file_dir, '../../active_fastas/annotations.csv'))
+    complete_annotation_df = pd.read_csv(os.path.join(file_dir, '../../active_files/eggnog_annotations.csv'))
 
     go_terms = []
 
@@ -108,4 +80,4 @@ if __name__ == '__main__':
 
     print(go_result_df.shape)
 
-    go_result_df.to_csv(os.path.join(file_dir, './go_annotations.csv'), index=False)
+    go_result_df.to_csv(os.path.join(file_dir, '../../active_files/go_annotations.csv'), index=False)

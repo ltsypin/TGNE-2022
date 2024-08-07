@@ -1,8 +1,8 @@
 #!/bin/bash
 
-source ~/.bash_profile
-
 set -e
+
+source ~/.bash_profile
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <pipeline_file> [rscript_command]"
@@ -34,7 +34,7 @@ run_ipynb_cmd() {
 
 run_py_cmd() {
 	echo -e "\n\n\n---PROCESSING ${1}---\n\n\n"
-	python3.10 $1
+	python $1
 }
 
 run_sh_cmd() {
@@ -49,7 +49,7 @@ run_rmd_cmd() {
 
 run_env_cmd() {
     echo -e "\n\n\n---ENTERING ${1}---\n\n\n"
-    source activate $1
+    conda activate $1
 }
 
 run_denv_cmd() {

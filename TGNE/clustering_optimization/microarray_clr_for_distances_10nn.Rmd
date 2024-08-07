@@ -18,7 +18,7 @@ Sys.getenv("OMP_NUM_THREADS")
 IMPORT THE FILTERED DATA AS A DATAFRAME AND TAKE THE TRANSPOSE
 
 ```{r}
-data <- read.csv("../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv", header = TRUE, row.names = 1)
+data <- read.csv("../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv", header = TRUE, row.names = 1)
 
 nn <- 10
 

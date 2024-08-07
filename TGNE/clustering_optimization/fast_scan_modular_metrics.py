@@ -7,48 +7,86 @@ import os
 import warnings
 from glob import glob
 import pickle
+import argparse
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.join(file_dir, '../../'))
 
-from utils import file_utils, clustering_utils, dataframe_utils, expr_data_utils
+from utils import file_utils, clustering_utils, dataframe_utils, expr_data_utils, print_utils
 
 # SCAN START
 curr_datetime = str(datetime.now())
 
 p_minkowski = None
 
+parser = argparse.ArgumentParser(description='')
+
 # PARAMETERS
 ################################################################################
 
-expression_dataset = sys.argv[1]
+parser.add_argument('--expression_dataset', 
+                    required=True, 
+                    type=str, 
+                    help='\'microarray\' or \'rna_seq\'')
 
-if expression_dataset == 'microarray':
-    expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
-elif expression_dataset == 'rna_seq':
-    expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
-else:
-    raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
+parser.add_argument('--metric', 
+                    required=True, 
+                    type=str, 
+                    help='distance metric (e.g., manhattan)')
 
-metrics = [sys.argv[2]]
+parser.add_argument('--scan_nn', 
+                    required=True, 
+                    type=int, 
+                    help='number of nearest neighbors to use for building the graph')
 
-scan_nns = [int(sys.argv[3])]
+parser.add_argument('--partition_type', 
+                    required=True, 
+                    type=str, 
+                    help='experimental (\'EXP\'), scrambled negtive control (\'NC\'), or simulated negative control (\'TNC\')')
+
+parser.add_argument('--print_stats', 
+                    default='n', 
+                    type=str, 
+                    help='yes (\'y\') or no (\'n\')')
+
+args = parser.parse_args()
+
+print_stats = args.print_stats.lower()
+
+expression_dataset = args.expression_dataset
+
+metrics = [args.metric]
+
+scan_nns = [args.scan_nn]
+
+partition_type = args.partition_type
+
+# expression_dataset = 'microarray'
+# expression_dataset = 'rna_seq'
+
+# partition_type = 'EXP'
+# partition_type = 'NC'
+# partition_type = 'TNC'
 
 scan_rps = np.arange(0, 1.005, 0.005)
-# print(np.arange(0, 1.105, 0.005))
+# print(scan_rps)
 # scan_rps = np.arange(0, 1.105, 0.005)
 # scan_rps = [0.005]
 # scan_rps = [1.100]
 # scan_rps = [2.0]
 
-partition_type = sys.argv[4]
-# partition_type = 'EXP'
-# partition_type = 'NC'
-# partition_type = 'TNC'
+# scan_nns = np.arange[2, 13, 1]
 
 num_iterations = 1
 # num_iterations = 300
+
+if expression_dataset == 'microarray':
+    expression_data_path = os.path.join(file_dir, '../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+elif expression_dataset == 'rna_seq':
+    expression_data_path = os.path.join(file_dir, '../../active_files/rna_seq.csv')
+else:
+    raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
 
 gene_lists = {}
 
@@ -94,7 +132,7 @@ for idx, iteration in enumerate(range(num_iterations)):
     print('COMPUTING', idx+1,'of', num_iterations, 'ITERATIONS')     
 
     full_filtered_df = pd.read_csv(expression_data_path)
-    full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
+    
 
     data_min = np.min([full_filtered_df[c].min() for c in (list(full_filtered_df.columns)[1:])])
     data_max = np.max([full_filtered_df[c].max() for c in (list(full_filtered_df.columns)[1:])])
@@ -181,11 +219,11 @@ for idx, iteration in enumerate(range(num_iterations)):
                 distance_matrix = clustering_utils.get_clr_dist_arr_lev(int(nn), clr_networks_folder)
                 nn_idxs, nn_dists = clustering_utils.compute_nns(raw_data, max(scan_nns), metric, random_state, n_jobs, p_minkowski, distance_matrix)
 
-            nn_graph = clustering_utils.compute_umap_graph(raw_data, nn, metric, nn_idxs, nn_dists)
+            nn_graph = clustering_utils.compute_umap_graph(raw_data, nn, metric, nn_idxs, nn_dists, random_state=random_state)
 
             for rp in tqdm.tqdm(scan_rps, 'RESOLUTION PARAMETERS COMPUTED'):
                 
-                partition = clustering_utils.compute_leiden_partition(nn_graph, rp, random_state)
+                partition = clustering_utils.compute_leiden_partition(nn_graph, rp, random_state=random_state)
 
                 enrichment_df = clustering_utils.compute_enrichment(full_filtered_norm_df, partition)
 
@@ -215,7 +253,7 @@ for idx, iteration in enumerate(range(num_iterations)):
                         
                 communities = clustering_utils.compute_communities(partition, idx_labels)
 
-                sil_score = clustering_utils.compute_silhouette_score(distance_matrix, partition)
+                sil_score = clustering_utils.compute_silhouette_score(distance_matrix, partition, random_state=random_state)
 
                 modularity = clustering_utils.compute_modularity(nn_graph, communities.values())
 
@@ -229,43 +267,10 @@ for idx, iteration in enumerate(range(num_iterations)):
 
                 enriched_cluster_sizes = clustering_utils.compute_enriched_cluster_sizes(communities, enrichment_df)
 
-                cluster_stats = {
-                'partition_type': partition_type,
+                cluster_stats = clustering_utils.compute_parition_statistics(partition_type, metric_p, nn, rp, sil_score, modularity, num_clusters, cluster_sizes, partition, num_enriched_clusters, enriched_cluster_sizes, num_enriched_cluster_genes, curr_datetime)
 
-                'dimensionality': 'baseline',
-
-                'metric': metric_p,
-                'graph': 'umap_fuzzy_simplicial_set',
-                'nns': nn,
-
-                'clustering': 'leiden_cpm',
-                'parameter': rp,
-
-                'silhouette_score': sil_score,
-                'modularity': modularity,
-
-                'nclusters': num_clusters,
-                'mean_cluster_size': clustering_utils.compute_cluster_size_mean(cluster_sizes),
-                'median_cluster_size': clustering_utils.compute_cluster_size_median(cluster_sizes),
-                'sd_cluster_size': clustering_utils.compute_cluster_size_sd(cluster_sizes),
-                'q1_cluster_size': np.percentile(cluster_sizes, 25),
-                'q3_cluster_size': np.percentile(cluster_sizes, 75),
-                'max_cluster_size': np.max(cluster_sizes),
-                'min_cluster_size': np.min(cluster_sizes),
-                'ngenes': len(partition),
-
-                'nenriched_clusters': num_enriched_clusters,
-                'mean_enriched_cluster_size': clustering_utils.compute_cluster_size_mean(enriched_cluster_sizes),
-                'median_enriched_cluster_size': clustering_utils.compute_cluster_size_median(enriched_cluster_sizes),
-                'sd_enriched_cluster_size': clustering_utils.compute_cluster_size_sd(enriched_cluster_sizes),
-                'q1_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.percentile(enriched_cluster_sizes, 25),
-                'q3_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.percentile(enriched_cluster_sizes, 75),
-                'max_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.max(enriched_cluster_sizes),
-                'min_enriched_cluster_size': float('NaN') if num_enriched_clusters == 0 else np.min(enriched_cluster_sizes),
-                'nenriched_cluster_genes': num_enriched_cluster_genes,
-
-                'datetime': curr_datetime
-                }
+                if print_stats == 'y':
+                    print_utils.print_aligned_dict(cluster_stats)
 
                 for file_name, id_list in gene_lists.items():
                     cluster_stats[f'max_fraction_same_cluster_{file_name}'] = clustering_utils.fraction_max_same_cluster_genes(

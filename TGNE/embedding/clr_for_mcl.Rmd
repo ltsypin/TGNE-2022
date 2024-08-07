@@ -19,7 +19,7 @@ Sys.setenv(OMP_NUM_THREADS = 8)
 IMPORT THE FILTERED DATA AS A DATAFRAME AND TAKE THE TRANSPOSE
 
 ```{r}
-data <- read.csv("../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv", header = TRUE, row.names = 1)
+data <- read.csv("../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv", header = TRUE, row.names = 1)
 
 data_knn3 <- knnmi.all(data, k=3)
 ```

@@ -40,7 +40,7 @@ def get_EC_info(term):
 
 if __name__ == '__main__':
 
-    complete_annotation_df = pd.read_csv(os.path.join(file_dir, '../../active_fastas/annotations.csv'))
+    complete_annotation_df = pd.read_csv(os.path.join(file_dir, '../../active_files/eggnog_annotations.csv'))
 
     kegg_terms = []
 
@@ -103,8 +103,8 @@ ec_df = pd.DataFrame({
 
 print(kegg_df.shape)
 
-kegg_df.to_csv(os.path.join(file_dir, './kegg_annotations.csv'), index=False)
+kegg_df.to_csv(os.path.join(file_dir, '../../active_files/kegg_annotations.csv'), index=False)
 
 print(ec_df.shape)
 
-ec_df.to_csv(os.path.join(file_dir, './ec_annotations.csv'), index=False)
+ec_df.to_csv(os.path.join(file_dir, '../../active_files/ec_annotations.csv'), index=False)

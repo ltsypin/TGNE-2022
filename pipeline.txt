@@ -1,53 +1,47 @@
 # ENTER PYTHON CONDA ENV
 tgne_all.env
 
-# RNA_SEQ DATA ANALYSIS, FORMATTING, AND GENE FILTERING
-new_raw_data/rna_seq_processed/compute_tpm_kallisto_final_june2024.ipynb
-
-# SET THE ACTIVE GENE MODEL FASTAS (CUSTOMIZABLE)
-set_active_files.ipynb
-
-# PROBE ALIGNMENT PART 1
-TGNE/microarray_probe_alignment_and_filtering/generate_hisat2_probe_alignment_sam.ipynb
-
-TGNE/microarray_probe_alignment_and_filtering/generate_probe_mapping_ndf.ipynb
-
-TGNE/microarray_probe_alignment_and_filtering/convert_and_filter_raw_probe_data.ipynb
-
-# QUALITY CONTROL
-TGNE/microarray_QC/microarray_QC_new_data.Rmd
-
-# PROBE ALIGNMENT PART 2
-TGNE/microarray_probe_alignment_and_filtering/bin_and_export_qc_rma_data.ipynb
-
-# GENE FILTERING
-TGNE/microarray_probe_alignment_and_filtering/gene_filtering.Rmd
-
-# ANNOTATION
-TGNE/eggnog/annotation.ipynb
-
-## CLUSTERING
-#TGNE/embedding/clustering_final.ipynb
+## DOWNLOAD MICROARRAY DATA
+#download_raw_data.ipynb
 #
-## ENRICHMENT
-#TGNE/enrichment/enrichment_final.ipynb
+## MANAGE INPUT DATA
+#manage_input_data.ipynb
 #
+## DOWNLOAD EGGNOG ANNOTATION DESCRIPTIONS
+#TGNE/eggnog/download_eggnog_annotation_descriptions.py
+#
+#### RNA_SEQ DATA ANALYSIS
+## RNA_SEQ DATA ANALYSIS, FORMATTING, AND GENE FILTERING
+#TGNE/rna_seq/compute_tpm_kallisto_final_june2024.ipynb
+#### RNA_SEQ DATA ANALYSIS END
+#
+#### MICROARRAY DATA ANALYSIS
+## PROBE ALIGNMENT PART 1
+#TGNE/microarray_probe_alignment_and_filtering/generate_hisat2_probe_alignment_sam.ipynb
+#
+#TGNE/microarray_probe_alignment_and_filtering/generate_probe_mapping_ndf.ipynb
+#
+#TGNE/microarray_probe_alignment_and_filtering/convert_and_filter_raw_probe_data.ipynb
+#
+## QUALITY CONTROL
+#TGNE/microarray_QC/microarray_QC_new_data.Rmd
+#
+## PROBE ALIGNMENT PART 2
+#TGNE/microarray_probe_alignment_and_filtering/bin_and_export_qc_rma_data.ipynb
+#
+## GENE FILTERING
+#TGNE/microarray_probe_alignment_and_filtering/gene_filtering.Rmd
+#### MICROARRAY DATA ANALYSIS END
+#
+## INTERPROSCAN ANNOTATION DATA PROCESSING
+#TGNE/interproscan/extract_annot.ipynb
+#
+## ANNOTATION DATA PROCESSING
+#TGNE/eggnog/annotation.ipynb
 
-## APP
-##TGNE/embedding/app_final.ipynb
-#
-#### RNA_SEQ
-#
-## CLUSTERING
-#TGNE/embedding/clustering_final_rna_seq.ipynb
-#
-## ENRICHMENT
-#TGNE/enrichment/enrichment_final_rna_seq.ipynb
-#
-## APP
-#TGNE/embedding/app_final_rna_seq.ipynb
-#
-#### RNA_SEQ END
+# CLUSTER AND GENERATE DASHBOARDS (NOTE: HYPERPARAMETERS MUST BE MANUALLY MODIFIED HERE)
+TGNE/embedding/all_rna_seq_tabbed.ipynb
+TGNE/embedding/all_microarray_tabbed.ipynb
 
 # EXIT THE CONDA ENV
 .denv

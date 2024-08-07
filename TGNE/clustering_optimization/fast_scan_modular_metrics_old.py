@@ -24,9 +24,9 @@ p_minkowski = None
 expression_dataset = sys.argv[1]
 
 if expression_dataset == 'microarray':
-    expression_data_path = os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+    expression_data_path = os.path.join(file_dir, '../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
 elif expression_dataset == 'rna_seq':
-    expression_data_path = os.path.join(file_dir, '../../active_fastas/rna_seq.csv')
+    expression_data_path = os.path.join(file_dir, '../../active_files/rna_seq.csv')
 else:
     raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
 
@@ -82,7 +82,7 @@ for idx, iteration in enumerate(range(num_iterations)):
     print('COMPUTING', idx+1,'of', num_iterations, 'ITERATIONS')     
 
     full_filtered_df = pd.read_csv(expression_data_path)
-    full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
+    
 
     if partition_type == 'NC':
         full_filtered_df = dataframe_utils.shuffle_rows(full_filtered_df)

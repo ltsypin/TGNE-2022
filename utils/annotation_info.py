@@ -5,11 +5,11 @@ file_dir = os.path.dirname(os.path.abspath(__file__))
 
 main_dir = '../TGNE/'
 
-go_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/go_annotations.csv'))
-kegg_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/kegg_annotations.csv'))
-ec_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/ec_annotations.csv'))
-pfam_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/pfam_annotations.csv'))
-interpro_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_fastas/interpro_annotations.csv'))
+go_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_files/go_annotations.csv'))
+kegg_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_files/kegg_annotations.csv'))
+ec_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_files/ec_annotations.csv'))
+pfam_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_files/pfam_annotations.csv'))
+interpro_df = pd.read_csv(os.path.join(file_dir, main_dir, '../active_files/interpro_annotations.csv'))
 
 
 def get_GO_info(go_term):

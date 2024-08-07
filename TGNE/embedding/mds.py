@@ -37,7 +37,7 @@ def nmds_embedding(full_filtered_norm_df: pd.DataFrame, file_name: str, random_s
     mds_df.to_csv(os.path.join(file_dir, f'./{file_name}'), index=False)
 
 
-full_filtered_df = pd.read_csv(os.path.join(file_dir, '../../active_fastas/rna_seq.csv'))
+full_filtered_df = pd.read_csv(os.path.join(file_dir, '../../active_files/rna_seq.csv'))
 full_filtered_norm_df = rna_seq_utils.normalize_expression_per_gene(full_filtered_df)
 
 mds_embedding(full_filtered_norm_df, 'rna_seq_mds.csv')
@@ -45,8 +45,8 @@ mds_embedding(full_filtered_norm_df, 'rna_seq_mds.csv')
 nmds_embedding(full_filtered_norm_df, 'rna_seq_nmds.csv')
 
 
-full_filtered_df = pd.read_csv(os.path.join(file_dir, '../microarray_probe_alignment_and_filtering/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv'))
-full_filtered_df = full_filtered_df.rename(columns={'Unnamed: 0': 'TTHERM_ID'})
+full_filtered_df = pd.read_csv(os.path.join(file_dir, '../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv'))
+
 full_filtered_norm_df = microarray_utils.normalize_expression_per_gene(full_filtered_df, z=True)
 
 mds_embedding(full_filtered_norm_df, 'microarray_mds.csv')

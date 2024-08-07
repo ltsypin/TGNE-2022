@@ -2356,7 +2356,12 @@ all.good.starve <- subset(unfiltered.starve.clean, rownames(unfiltered.starve.cl
 all.good.grow <- subset(unfiltered.grow.clean, rownames(unfiltered.grow.clean) %in% all.good.genes)
 all.good.veg <- subset(unfiltered.veg.clean, rownames(unfiltered.veg.clean) %in% all.good.genes)
 
-write.csv(all.good, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+all.good <- cbind(RowNames = rownames(all.good), all.good)
+rownames(all.good) <- NULL  # Remove row names now that they've been added as a column
+
+colnames(all.good)[1] <- "TTHERM_ID"
+
+write.csv(all.good, '../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv', row.names = FALSE)
 # write.csv(all.good.starve, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
 # write.csv(all.good.sex, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
 # write.csv(all.good.grow, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')

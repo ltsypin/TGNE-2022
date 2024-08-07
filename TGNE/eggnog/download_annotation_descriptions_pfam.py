@@ -57,7 +57,7 @@ def process_pfam_chunk(annotation_df):
 
 if __name__ == '__main__':
 
-    complete_annotation_df = pd.read_csv(os.path.join(file_dir, '../../active_fastas/annotations.csv'))
+    complete_annotation_df = pd.read_csv(os.path.join(file_dir, '../../active_files/eggnog_annotations.csv'))
 
     pfam_terms = []
 
@@ -81,4 +81,4 @@ if __name__ == '__main__':
 
     print(pfam_result_df.shape)
 
-    pfam_result_df.to_csv(os.path.join(file_dir, './pfam_annotations.csv'), index=False)
+    pfam_result_df.to_csv(os.path.join(file_dir, '../../active_files/pfam_annotations.csv'), index=False)

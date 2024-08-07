@@ -12,8 +12,9 @@ import networkx as nx
 from datetime import datetime
 import pickle
 import subprocess
+from collections import OrderedDict
 
-from .file_utils import remove_file
+# from .file_utils import remove_file
 from .dataframe_utils import get_hypercube_sample, shuffle_rows
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -153,9 +154,9 @@ def compute_nns(data_df, nn, metric, random_state=42, n_jobs=-1, p_minkowski=1, 
     # return nn_idxs, nn_dists
 
 
-def compute_umap_graph(data_df, nn, metric, nn_idxs, nn_dists, return_dists=False):
+def compute_umap_graph(data_df, nn, metric, nn_idxs, nn_dists, return_dists=False, random_state=42):
     
-    result, sigmas, rhos, dists = umap.umap_.fuzzy_simplicial_set(data_df, nn, 42, metric, knn_indices=nn_idxs, knn_dists=nn_dists, return_dists=True)
+    result, sigmas, rhos, dists = umap.umap_.fuzzy_simplicial_set(data_df, nn, random_state, metric, knn_indices=nn_idxs, knn_dists=nn_dists, return_dists=True)
 
     sources, targets = result.nonzero()
     edge_list = zip(sources, targets)
@@ -190,10 +191,10 @@ def compute_communities(partition, labels):
     return communities
 
 
-def compute_silhouette_score(distance_matrix, partition):
+def compute_silhouette_score(distance_matrix, partition, random_state=42):
     ss = None
     try:
-        ss = silhouette_score(distance_matrix, partition, metric='precomputed')
+        ss = silhouette_score(distance_matrix, partition, metric='precomputed', random_state=random_state)
     except:
         ss = float('NaN')
     return ss
@@ -362,6 +363,45 @@ def compute_num_enriched_cluster_genes(edf, partition):
     
 #     return lldf, dists, sscore, modularity
 
+def compute_parition_statistics(partition_type, metric_p, nn, rp, sil_score, modularity, num_clusters, cluster_sizes, partition, num_enriched_clusters, enriched_cluster_sizes, num_enriched_cluster_genes, curr_datetime):
+    return OrderedDict([
+            ('partition_type', partition_type),
+
+            ('dimensionality', 'baseline'),
+
+            ('metric', metric_p),
+            ('graph', 'umap_fuzzy_simplicial_set'),
+            ('nns', nn),
+
+            ('clustering', 'leiden_cpm'),
+            ('parameter', rp),
+
+            ('silhouette_score', sil_score),
+            ('modularity', modularity),
+
+            ('nclusters', num_clusters),
+            ('mean_cluster_size', compute_cluster_size_mean(cluster_sizes)),
+            ('median_cluster_size', compute_cluster_size_median(cluster_sizes)),
+            ('sd_cluster_size', compute_cluster_size_sd(cluster_sizes)),
+            ('q1_cluster_size', np.percentile(cluster_sizes, 25)),
+            ('q3_cluster_size', np.percentile(cluster_sizes, 75)),
+            ('max_cluster_size', np.max(cluster_sizes)),
+            ('min_cluster_size', np.min(cluster_sizes)),
+            ('ngenes', len(partition)),
+
+            ('nenriched_clusters', num_enriched_clusters),
+            ('mean_enriched_cluster_size', compute_cluster_size_mean(enriched_cluster_sizes)),
+            ('median_enriched_cluster_size', compute_cluster_size_median(enriched_cluster_sizes)),
+            ('sd_enriched_cluster_size', compute_cluster_size_sd(enriched_cluster_sizes)),
+            ('q1_enriched_cluster_size', float('NaN') if num_enriched_clusters == 0 else np.percentile(enriched_cluster_sizes, 25)),
+            ('q3_enriched_cluster_size', float('NaN') if num_enriched_clusters == 0 else np.percentile(enriched_cluster_sizes, 75)),
+            ('max_enriched_cluster_size', float('NaN') if num_enriched_clusters == 0 else np.max(enriched_cluster_sizes)),
+            ('min_enriched_cluster_size', float('NaN') if num_enriched_clusters == 0 else np.min(enriched_cluster_sizes)),
+            ('nenriched_cluster_genes', num_enriched_cluster_genes),
+
+            ('datetime', curr_datetime),
+            ])
+
 
 def build_label_df(data_df, dataset, metric='manhattan', n_neighbors=3, resolution_param=0.5, partition_type = 'EXP', n_jobs = -1, random_state=42):
 
@@ -406,13 +446,13 @@ def build_label_df(data_df, dataset, metric='manhattan', n_neighbors=3, resoluti
         distance_matrix = get_clr_dist_arr(int(nn))
         nn_idxs, nn_dists = compute_nns(raw_data, nn, metric, random_state, n_jobs, p_minkowski, distance_matrix)
 
-    nn_graph = compute_umap_graph(raw_data, nn, metric, nn_idxs, nn_dists)
+    nn_graph = compute_umap_graph(raw_data, nn, metric, nn_idxs, nn_dists, random_state=random_state)
     
-    partition = compute_leiden_partition(nn_graph, rp, random_state)
+    partition = compute_leiden_partition(nn_graph, rp, random_state=random_state)
 
     communities = compute_communities(partition, idx_labels)
 
-    sil_score = compute_silhouette_score(distance_matrix, partition)
+    sil_score = compute_silhouette_score(distance_matrix, partition, random_state=random_state)
 
     modularity = compute_modularity(nn_graph, communities.values())
 
@@ -430,34 +470,7 @@ def build_label_df(data_df, dataset, metric='manhattan', n_neighbors=3, resoluti
 
     enriched_cluster_sizes = compute_enriched_cluster_sizes(communities, enrichment_df)
 
-    cluster_stats = {
-    'partition_type': partition_type,
-
-    'dimensionality': 'baseline',
-
-    'metric': metric_p,
-    'graph': 'umap_fuzzy_simplicial_set',
-    'nns': nn,
-
-    'clustering': 'leiden_cpm',
-    'parameter': rp,
-
-    'silhouette_score': sil_score,
-    'modularity': modularity,
-
-    'nclusters': num_clusters,
-    'mean_cluster_size': compute_cluster_size_mean(cluster_sizes),
-    'median_cluster_size': compute_cluster_size_median(cluster_sizes),
-    'sd_cluster_size': compute_cluster_size_sd(cluster_sizes),
-
-    'nenriched_clusters': num_enriched_clusters,
-    'mean_enriched_cluster_size': compute_cluster_size_mean(enriched_cluster_sizes),
-    'median_enriched_cluster_size': compute_cluster_size_median(enriched_cluster_sizes),
-    'sd_enriched_cluster_size': compute_cluster_size_sd(enriched_cluster_sizes),
-    'nenriched_cluster_genes': num_enriched_cluster_genes,
-
-    'datetime': curr_datetime
-    }
+    cluster_stats = compute_parition_statistics(partition_type, metric_p, nn, rp, sil_score, modularity, num_clusters, cluster_sizes, partition, num_enriched_clusters, enriched_cluster_sizes, num_enriched_cluster_genes, curr_datetime)
 
     return partition_df, cluster_stats, cluster_sizes, enriched_cluster_sizes
 

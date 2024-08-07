@@ -12,12 +12,15 @@ import annotation_info
 
 # ENRICHMENT_ESSENTIAL_FINAL
 
-main_dir = '../TGNE/'
+main_dir = '../'
 
-complete_annotation = pd.read_csv(os.path.join(main_dir, 'eggnog/complete_eggnog_annotation.csv'))
+complete_annotation = pd.read_csv(os.path.join(main_dir, 'active_files/complete_annotation.csv'))
 
 background_annotation = complete_annotation
-term_columns=['COG_category', 'GOs', 'KEGG_ko', 'EC', 'PFAMs', 'InterPro']
+term_columns = ['COG_category', 'GOs', 'KEGG_ko', 'EC', 'PFAMs', 'InterPro']
+
+if 'mucocysts' in list(complete_annotation.columns):
+    term_columns.append('mucocysts')
 
 def term_count_dict_from_annotation_df(annot_df, term_column):
     
@@ -45,7 +48,7 @@ def term_count_dict_from_annotation_df(annot_df, term_column):
         
     return term_count_dict
 
-def enrichment_analysis(module, label_df, background_annotation, term_column):
+def enrichment_analysis(module, label_df, background_annotation, term_column, report_counts=False):
     
     # module_ttids = np.array([id for id in list(label_df.loc[label_df[f'label'] == module]['TTHERM_ID'].values) if "TTHERM" in id])
     module_ttids = label_df.loc[label_df[f'label'] == module]['TTHERM_ID'].values
@@ -59,6 +62,10 @@ def enrichment_analysis(module, label_df, background_annotation, term_column):
     ps = []
     folds = []
     terms = []
+
+    if report_counts:
+        mcs = []
+        mss = []
     
     for t, module_count in module_term_dict.items():
         
@@ -94,12 +101,17 @@ def enrichment_analysis(module, label_df, background_annotation, term_column):
             bs.append(bonferroni)
             folds.append(fold_enrichment)
             terms.append(t)
+            if report_counts:
+                mcs.append(module_count)
+                mss.append(module_size)
             
 #         else:
 #             ps.append('')
 #             bs.append('')
 #             folds.append('')
 #             terms.append('')
+    if report_counts:
+        return ps, bs, folds, terms, mcs, mss
             
     return ps, bs, folds, terms
         
@@ -107,12 +119,18 @@ def enrichment_analysis(module, label_df, background_annotation, term_column):
 def init_pool(data):
     global lldf
     lldf = data
+    global REPORT_COUNTS
+    REPORT_COUNTS = True # FIXME
 
 def process_module(m):
     term_dfs = []
     
     for tc in term_columns:
-        ps, bs, folds, terms = enrichment_analysis(m, lldf, background_annotation, tc)
+
+        if REPORT_COUNTS:
+            ps, bs, folds, terms, mcs, mss = enrichment_analysis(m, lldf, background_annotation, tc, report_counts=REPORT_COUNTS)
+        else:
+            ps, bs, folds, terms = enrichment_analysis(m, lldf, background_annotation, tc, report_counts=REPORT_COUNTS)
 
         info = []
 
@@ -140,12 +158,22 @@ def process_module(m):
         elif tc == 'InterPro':
             for t in terms:
                 info.append(annotation_info.get_InterPro_info(t))
+
+        elif tc == 'mucocysts':
+            for t in terms:
+                if t == 'DE':
+                    info.append('differentially expressed in mucocyst regranulation dataset')
+                elif t == 'EV':
+                    info.append('experimentally validated mucocyst-associated gene')
                 
         term_df = pd.DataFrame({'module': [m]*len(terms),
                                 'term': terms,
                                 'info': info,
                                 'fold_change': folds,
-                                'bonferroni': bs})
+                                'bonferroni': bs,
+                                'term_count': mcs,
+                                'module_size': mss
+                                })
         
         term_dfs.append(term_df)
     
@@ -158,7 +186,7 @@ if __name__ == '__main__':
     lldf = pickle.loads(data_bytes)
     
     # Process data in parallel
-    with Pool(initializer=init_pool, initargs=(lldf,)) as pool:
+    with Pool(initializer=init_pool, initargs=(lldf, )) as pool:
         # module_dfs = list(tqdm.tqdm(pool.imap(process_module, sorted(lldf['label'].unique())), total=len(lldf['label'].unique())))
         module_dfs = list(pool.imap(process_module, sorted(lldf['label'].unique())))
 

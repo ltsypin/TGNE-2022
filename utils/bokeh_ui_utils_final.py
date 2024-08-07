@@ -515,7 +515,7 @@ def interactive(
     avg_tooltip_dict = {}
     for col_name in avg_df:
         if col_name not in ['x', 'y', 'color']:
-            avg_tooltip_dict[col_name] = "@{" + col_name + "}"
+            avg_tooltip_dict[col_name if col_name != 'label' else 'module'] = "@{" + col_name + "}"
     avg_tooltips = list(avg_tooltip_dict.items())
 
 
@@ -635,7 +635,7 @@ def interactive(
     # print(expr_source.data)
     
     # if normalized:
-    y_axis_label = 'Mean expression z-score'
+    y_axis_label = 'Mean normalized expression'
     y_range = (expr_min - 0.01, expr_max + 0.01)
         
     # else:

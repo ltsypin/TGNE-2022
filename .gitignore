@@ -80,7 +80,7 @@ TGNE/embedding/colors_2000_1
 
 *.pyc
 
-active_fastas/*
+active_files/*
 
 *.gz
 
@@ -92,8 +92,6 @@ TGNE/enrichment/**/*.csv
 
 *.numbers
 
-
-TGNE/clustering_optimization/clr_for_distances_??nn.Rmd
 
 /curated_clusters/*
 
@@ -137,3 +135,6 @@ TGNE/interproscan/**/*.tsv
 TGNE/interproscan/**/*.csv
 
 **/archive/*
+/input_data
+
+TGNE/clustering_optimization/*_clr_for_distances_*nn.Rmd
