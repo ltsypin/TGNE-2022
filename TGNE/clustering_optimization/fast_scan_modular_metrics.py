@@ -66,20 +66,20 @@ partition_type = args.partition_type
 # expression_dataset = 'rna_seq'
 
 # partition_type = 'EXP'
-# partition_type = 'NC'
-# partition_type = 'TNC'
+partition_type = 'NC'
+partition_type = 'TNC'
 
-scan_rps = np.arange(0, 1.005, 0.005)
+# scan_rps = np.arange(0, 1.005, 0.005)
 # print(scan_rps)
 # scan_rps = np.arange(0, 1.105, 0.005)
-# scan_rps = [0.005]
+scan_rps = [0.005]
 # scan_rps = [1.100]
 # scan_rps = [2.0]
 
 # scan_nns = np.arange[2, 13, 1]
 
-num_iterations = 1
-# num_iterations = 300
+# num_iterations = 1
+num_iterations = 1200
 
 if expression_dataset == 'microarray':
     expression_data_path = os.path.join(file_dir, '../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
