@@ -35,10 +35,35 @@ parser.add_argument('--metric',
                     type=str, 
                     help='distance metric (e.g., manhattan)')
 
-parser.add_argument('--scan_nn', 
+parser.add_argument('--scan_nn_start', 
                     required=True, 
                     type=int, 
-                    help='number of nearest neighbors to use for building the graph')
+                    help='number of nearest neighbors to use for building the graph (range start inclusive)')
+
+parser.add_argument('--scan_nn_end', 
+                    required=True, 
+                    type=int, 
+                    help='number of nearest neighbors to use for building the graph (range end exclusive)')
+
+parser.add_argument('--scan_nn_step', 
+                    required=True, 
+                    type=int, 
+                    help='number of nearest neighbors to use for building the graph (step size)')
+
+parser.add_argument('--scan_rps_start', 
+                    required=True, 
+                    type=float, 
+                    help='resolution parameter to use for Leiden network detection (range start inclusive)')
+
+parser.add_argument('--scan_rps_end', 
+                    required=True, 
+                    type=float, 
+                    help='resolution parameter to use for Leiden network detection (range end exclusive)')
+
+parser.add_argument('--scan_rps_step', 
+                    required=True, 
+                    type=float, 
+                    help='resolution parameter to use for Leiden network detection (step size)')
 
 parser.add_argument('--partition_type', 
                     required=True, 
@@ -50,6 +75,11 @@ parser.add_argument('--print_stats',
                     type=str, 
                     help='yes (\'y\') or no (\'n\')')
 
+parser.add_argument('--num_simulations', 
+                    default=1, 
+                    type=int, 
+                    help='number of simulations to run (relevant for scrambled negtive control (\'NC\') and simulated negative control (\'TNC\'))')
+
 args = parser.parse_args()
 
 print_stats = args.print_stats.lower()
@@ -58,28 +88,15 @@ expression_dataset = args.expression_dataset
 
 metrics = [args.metric]
 
-scan_nns = [args.scan_nn]
+scan_nns = np.arange(args.scan_nn_start, args.scan_nn_end, args.scan_nn_step)
+
+scan_rps = np.arange(args.scan_rps_start, args.scan_rps_end, args.scan_rps_step)
 
 partition_type = args.partition_type
 
-# expression_dataset = 'microarray'
-# expression_dataset = 'rna_seq'
+num_iterations = args.num_simulations
 
-# partition_type = 'EXP'
-partition_type = 'NC'
-partition_type = 'TNC'
-
-# scan_rps = np.arange(0, 1.005, 0.005)
-# print(scan_rps)
-# scan_rps = np.arange(0, 1.105, 0.005)
-scan_rps = [0.005]
-# scan_rps = [1.100]
-# scan_rps = [2.0]
-
-# scan_nns = np.arange[2, 13, 1]
-
-# num_iterations = 1
-num_iterations = 1200
+################################################################################
 
 if expression_dataset == 'microarray':
     expression_data_path = os.path.join(file_dir, '../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
@@ -114,6 +131,7 @@ for msf in module_subset_files:
 
 
 ################################################################################
+
 output_file = ''
 
 n_jobs = -1
@@ -124,6 +142,9 @@ if num_iterations > 1 and partition_type not in ['NC', 'TNC']:
 
 if num_iterations > 1 and partition_type in ['NC', 'TNC'] and len(scan_rps) > 1:
     raise(ValueError(f'PARTITION TYPE IS SET TO {partition_type}. {num_iterations} PARTITIONS WILL BE COMPUTED FOR {str(len(scan_rps))} RESOLUTION PARAMETERS. PLEASE SELECT A SINGLE RESOLUTION PARAMETER.'))
+
+if num_iterations == 1 and partition_type != 'EXP':
+    raise(ValueError(f'PARTITION TYPE IS SET TO {partition_type}. ONLY {num_iterations} PARTITIONS WILL BE COMPUTED FOR {str(len(scan_rps))} RESOLUTION PARAMETERS. PLEASE SET PARTITION TYPE TO \'EXP\'.'))
 
 if partition_type not in ['EXP', 'NC', 'TNC']:
     raise(ValueError(f"PARTITION TYPE IS SET TO {partition_type}. PLEASE SELECT A VALID PARTITION TYPE ('EXP', 'NC', or 'TNC')."))
