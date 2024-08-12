@@ -37,9 +37,9 @@ def rgb_to_hex(rgb):
     """
     return '#{:02x}{:02x}{:02x}'.format(int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255))
 
-microarray_data_pattern = os.path.join(file_dir, './tgd2024_jun28_avg_scan_stats_microarray/exp/*.csv')
+microarray_data_pattern = os.path.join(file_dir, './2024-08-08_microarray/exp/*.csv')
 
-rna_seq_data_pattern = os.path.join(file_dir, './tgd2024_jun28_avg_scan_stats_rna_seq/exp/*.csv')
+rna_seq_data_pattern = os.path.join(file_dir, './2024-08-08_rna_seq/exp/*.csv')
 
 microarray_stats_files = glob.glob(microarray_data_pattern)
 
