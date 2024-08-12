@@ -307,10 +307,10 @@ for idx, iteration in enumerate(range(num_iterations)):
                     print_mode=False)
                     
                 try:
-                    output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{"_".join([m for m in metrics])}_{"_".join([str(n) for n in scan_nns])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
+                    output_file = os.path.join(file_dir, (f'./{expression_dataset}_{norm_type}_{partition_type}_{"_".join([m for m in metrics])}_{"_".join([str(n) for n in scan_nns])}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
                     file_utils.write_to_csv(output_file, cluster_stats)
                 except Exception as e:
-                    output_file = os.path.join(file_dir, (f'./{expression_dataset}_{partition_type}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
+                    output_file = os.path.join(file_dir, (f'./{expression_dataset}_{norm_type}_{partition_type}_{curr_datetime.replace(" ", "_").replace(":", "-")}_scan_stats.csv'))
                     file_utils.write_to_csv(output_file, cluster_stats)
 
 if os.path.exists(output_file):
