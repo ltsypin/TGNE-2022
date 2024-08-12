@@ -30,6 +30,11 @@ parser.add_argument('--expression_dataset',
                     type=str, 
                     help='\'microarray\' or \'rna_seq\'')
 
+parser.add_argument('--norm_type', 
+                    required=True, 
+                    type=str, 
+                    help='\'z_score\' or \'min_max\'')
+
 parser.add_argument('--metric', 
                     required=True, 
                     type=str, 
@@ -85,6 +90,8 @@ args = parser.parse_args()
 print_stats = args.print_stats.lower()
 
 expression_dataset = args.expression_dataset
+
+norm_type = args.norm_type
 
 metrics = [args.metric]
 
@@ -191,10 +198,10 @@ for idx, iteration in enumerate(range(num_iterations)):
             full_filtered_df[col] = raw_data[idx].values
     
     if expression_dataset == 'microarray':
-        full_filtered_norm_df = expr_data_utils.normalize_expression_per_gene(full_filtered_df, norm_type='z_score', add_scalar=0)
+        full_filtered_norm_df = expr_data_utils.normalize_expression_per_gene(full_filtered_df, norm_type=norm_type, add_scalar=0)
         full_filtered_norm_df = expr_data_utils.mean_df_of_duplicates(full_filtered_norm_df, mean_type='arithmetic')
     elif expression_dataset == 'rna_seq':
-        full_filtered_norm_df = expr_data_utils.normalize_expression_per_gene(full_filtered_df, norm_type='z_score', add_scalar=1)
+        full_filtered_norm_df = expr_data_utils.normalize_expression_per_gene(full_filtered_df, norm_type=norm_type, add_scalar=1)
         full_filtered_norm_df = expr_data_utils.mean_df_of_duplicates(full_filtered_norm_df, mean_type='arithmetic')
     else:
         raise(ValueError(f'INVALID EXPRESSION DATASET: {expression_dataset}.'))
