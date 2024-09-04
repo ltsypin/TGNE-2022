@@ -40,6 +40,7 @@ TGNE/interproscan/extract_annot.ipynb
 TGNE/eggnog/annotation.ipynb
 
 # CLUSTER AND GENERATE DASHBOARDS (NOTE: HYPERPARAMETERS MUST BE MANUALLY MODIFIED HERE)
+TGNE/embedding/generate_colors.ipynb
 TGNE/embedding/all_rna_seq_tabbed.ipynb
 TGNE/embedding/all_microarray_tabbed.ipynb
 
