@@ -37,9 +37,12 @@ def rgb_to_hex(rgb):
     """
     return '#{:02x}{:02x}{:02x}'.format(int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255))
 
-microarray_data_pattern = os.path.join(file_dir, './2024-08-08_microarray/exp/*.csv')
+# norm_type = 'min_max'
+norm_type = 'z_score'
 
-rna_seq_data_pattern = os.path.join(file_dir, './2024-08-08_rna_seq/exp/*.csv')
+microarray_data_pattern = os.path.join(file_dir, f'./2024-08-08_microarray/{norm_type}/exp/*.csv')
+
+rna_seq_data_pattern = os.path.join(file_dir, f'./2024-08-08_rna_seq/{norm_type}/exp/*.csv')
 
 microarray_stats_files = glob.glob(microarray_data_pattern)
 
@@ -114,21 +117,27 @@ from mpl_toolkits.mplot3d import Axes3D
 # Enable interactive mode
 plt.ion()
 
+x_all_stat = 'modularity'
+
 y_all_stat = 'fraction_clusters_enriched'
 
 # y_all_stat = 'nenriched_clusters'
 
 z_all_stat = 'iqr_cluster_size'
 
-# df = microarray_stats_df
+###############
 
-df = rna_seq_stats_df
+df = microarray_stats_df
+
+# df = rna_seq_stats_df
+
+###############
 
 # dfs = [microarray_stats_df.loc[(microarray_stats_df['parameter'] > 0) & (microarray_stats_df['parameter'] < 1)].reset_index(), 
 #        rna_seq_stats_df.loc[(rna_seq_stats_df['parameter'] > 0) & (rna_seq_stats_df['parameter'] < 1)].reset_index()]
 
 
-x_all = df['modularity'].values
+x_all = df[x_all_stat].values
 
 y_all = df[y_all_stat].values
 
@@ -155,9 +164,16 @@ ax.scatter(x_all[max_point_idxs], y_all[max_point_idxs], z_all[max_point_idxs], 
 
 max_modularity_idx = np.argmax(x_all[max_point_idxs])
 
-center_x = x_all[max_point_idxs][max_modularity_idx]
-center_y = y_all[max_point_idxs][max_modularity_idx]
-center_z = z_all[max_point_idxs][max_modularity_idx]
+optimal_idx = None
+
+for idx, val in enumerate(z_all[max_point_idxs]):
+    if val > 10:
+        optimal_idx = idx
+        break
+
+center_x = x_all[max_point_idxs][optimal_idx]
+center_y = y_all[max_point_idxs][optimal_idx]
+center_z = z_all[max_point_idxs][optimal_idx]
 ax.scatter([center_x], [center_y], [center_z], facecolors='none', edgecolor='#47EA00', linewidth=2, s=200, zorder=1
             #  label='chosen parition'
             )
@@ -189,7 +205,7 @@ y_exterme = y_all.max() if y_all.max() > abs(y_all.min()) else y_all.min()
 #      group_df = group.copy(deep=True).sort_values(by='modularity')
 #      ax.plot(group_df['modularity'], group_df[y_all_stat], color='grey', linestyle='-', linewidth=1, zorder=-1)
 
-ax.set_xlabel('x='+'modularity')
+ax.set_xlabel('x='+x_all_stat)
 ax.set_ylabel('y='+y_all_stat)
 ax.set_zlabel('z='+z_all_stat)
 

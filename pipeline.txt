@@ -1,43 +1,43 @@
 # ENTER PYTHON CONDA ENV
 tgne_all.env
 
-## DOWNLOAD MICROARRAY DATA
-#download_raw_data.ipynb
-#
-## MANAGE INPUT DATA
-#manage_input_data.ipynb
-#
-## DOWNLOAD EGGNOG ANNOTATION DESCRIPTIONS
-#TGNE/eggnog/download_eggnog_annotation_descriptions.py
-#
-#### RNA_SEQ DATA ANALYSIS
-## RNA_SEQ DATA ANALYSIS, FORMATTING, AND GENE FILTERING
-#TGNE/rna_seq/compute_tpm_kallisto_final_june2024.ipynb
-#### RNA_SEQ DATA ANALYSIS END
-#
-#### MICROARRAY DATA ANALYSIS
-## PROBE ALIGNMENT PART 1
-#TGNE/microarray_probe_alignment_and_filtering/generate_hisat2_probe_alignment_sam.ipynb
-#
-#TGNE/microarray_probe_alignment_and_filtering/generate_probe_mapping_ndf.ipynb
-#
-#TGNE/microarray_probe_alignment_and_filtering/convert_and_filter_raw_probe_data.ipynb
-#
-## QUALITY CONTROL
-#TGNE/microarray_QC/microarray_QC_new_data.Rmd
-#
-## PROBE ALIGNMENT PART 2
-#TGNE/microarray_probe_alignment_and_filtering/bin_and_export_qc_rma_data.ipynb
-#
-## GENE FILTERING
-#TGNE/microarray_probe_alignment_and_filtering/gene_filtering.Rmd
-#### MICROARRAY DATA ANALYSIS END
-#
-## INTERPROSCAN ANNOTATION DATA PROCESSING
-#TGNE/interproscan/extract_annot.ipynb
-#
-## ANNOTATION DATA PROCESSING
-#TGNE/eggnog/annotation.ipynb
+# DOWNLOAD MICROARRAY DATA
+download_raw_data.ipynb
+
+# MANAGE INPUT DATA
+manage_input_data.ipynb
+
+# DOWNLOAD EGGNOG ANNOTATION DESCRIPTIONS
+TGNE/eggnog/download_eggnog_annotation_descriptions.py
+
+### RNA_SEQ DATA ANALYSIS
+# RNA_SEQ DATA ANALYSIS, FORMATTING, AND GENE FILTERING
+TGNE/rna_seq/compute_tpm_kallisto_final_june2024.ipynb
+### RNA_SEQ DATA ANALYSIS END
+
+### MICROARRAY DATA ANALYSIS
+# PROBE ALIGNMENT PART 1
+TGNE/microarray_probe_alignment_and_filtering/generate_hisat2_probe_alignment_sam.ipynb
+
+TGNE/microarray_probe_alignment_and_filtering/generate_probe_mapping_ndf.ipynb
+
+TGNE/microarray_probe_alignment_and_filtering/convert_and_filter_raw_probe_data.ipynb
+
+# QUALITY CONTROL
+TGNE/microarray_QC/microarray_QC_new_data.Rmd
+
+# PROBE ALIGNMENT PART 2
+TGNE/microarray_probe_alignment_and_filtering/bin_and_export_qc_rma_data.ipynb
+
+# GENE FILTERING
+TGNE/microarray_probe_alignment_and_filtering/gene_filtering.Rmd
+### MICROARRAY DATA ANALYSIS END
+
+# INTERPROSCAN ANNOTATION DATA PROCESSING
+TGNE/interproscan/extract_annot.ipynb
+
+# ANNOTATION DATA PROCESSING
+TGNE/eggnog/annotation.ipynb
 
 # CLUSTER AND GENERATE DASHBOARDS (NOTE: HYPERPARAMETERS MUST BE MANUALLY MODIFIED HERE)
 TGNE/embedding/all_rna_seq_tabbed.ipynb

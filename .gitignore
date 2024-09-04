@@ -138,3 +138,5 @@ TGNE/interproscan/**/*.csv
 /input_data
 
 TGNE/clustering_optimization/*_clr_for_distances_*nn.Rmd
+
+*.svg
