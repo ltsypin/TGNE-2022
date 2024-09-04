@@ -1,3 +1,5 @@
+source ~/.bash_profile
+
 conda clean --all
 
 CONDA_SUBDIR=osx-64 conda create -n tgne_all.env python=3.8.16 -c conda-forge --override-channels
