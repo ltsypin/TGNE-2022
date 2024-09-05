@@ -1,5 +1,5 @@
 # ENTER PYTHON CONDA ENV
-tgne_all.env
+tgne.env
 
 # DOWNLOAD MICROARRAY DATA
 download_raw_data.ipynb
