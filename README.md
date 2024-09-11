@@ -6,10 +6,14 @@ Analysis for and development of the Tetrahymena Gene Network Explorer
 ### Building the conda environment for python and R. Navigate to the top level directory and run on of the following:
 
 Mac – Apple Silicon ([Rosetta](https://support.apple.com/en-us/102527) required):
-```bash build_tgne_env_silicon.sh```
+```
+bash build_tgne_env_silicon.sh
+```
 
 Linux or Mac – Intel:
-```bash build_tgne_env.sh```
+```
+bash build_tgne_env.sh
+```
 
 ### Building the TGNE from [precomputed data](LINK):
 
@@ -17,14 +21,18 @@ Download the precomputed data
 
 Deposit the file in the folders
 
-```bash s-execute-pipeline.sh pipeline_precomputed.txt```
+```
+bash s-execute-pipeline.sh pipeline_precomputed.txt
+```
 
 ### Building the TGNE from raw data:
 
 
 1) Download the [RNA-seq data from SRA](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA861835&o=acc_s%3Aa):
 
-```prefetch PRJNA861835```
+```
+prefetch PRJNA861835
+```
 
 ```
 num_cores=<NUMBER OF CORES TO USE>
