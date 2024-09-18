@@ -28,6 +28,7 @@ eggnog_compiled_2024_jun28.annotations -> input_data/eggnog_annotations_file/
 ```
 interproscan_compiled.tsv
 input_data/interproscan_tsv_file/
+```
 
 ```
 allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv -> active_files/
