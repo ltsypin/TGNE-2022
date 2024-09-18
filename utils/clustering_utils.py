@@ -37,7 +37,9 @@ def min_max_scale_2d_arr(arr: np.array):
     return scaled_arr
 
 def get_clr_dist_arr(nn: str, folder: str):
-    clr_df = pd.read_csv(os.path.join(file_dir, main_dir, 'clustering_optimization', folder, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
+    path = os.path.join(file_dir, main_dir, 'clustering_optimization', folder, f'./clr_network_for_distances_{nn}.csv.gz')
+    print(path)
+    clr_df = pd.read_csv(path, compression='gzip')
     clr_df.rename(columns={'Unnamed: 0':'TTHERM_ID'}, inplace=True)
 
     zscore_arr = clr_df.loc[:,clr_df.columns[1:]].to_numpy()
@@ -53,7 +55,9 @@ def get_clr_dist_arr(nn: str, folder: str):
     return clr_dist_arr
 
 def get_clr_dist_arr_lev(nn: str, folder: str):
-    clr_df = pd.read_csv(os.path.join(file_dir, main_dir, 'clustering_optimization', folder, f'./clr_network_for_distances_{nn}.csv.gz'), compression='gzip')
+    path = os.path.join(file_dir, main_dir, 'clustering_optimization', folder, f'./clr_network_for_distances_{nn}.csv.gz')
+    print(path)
+    clr_df = pd.read_csv(path, compression='gzip')
     clr_df.rename(columns={'Unnamed: 0':'TTHERM_ID'}, inplace=True)
 
     zscore_arr = clr_df.loc[:,clr_df.columns[1:]].to_numpy()

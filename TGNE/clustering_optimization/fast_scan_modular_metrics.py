@@ -240,11 +240,11 @@ for idx, iteration in enumerate(range(num_iterations)):
                 clr_networks_folder = 'microarray_clr_networks'
 
             if metric == 'clr':
-                distance_matrix = clustering_utils.get_clr_dist_arr(int(nn), clr_networks_folder)
+                distance_matrix = clustering_utils.get_clr_dist_arr(int(nn), os.path.join(clr_networks_folder, norm_type))
                 nn_idxs, nn_dists = clustering_utils.compute_nns(raw_data, max(scan_nns), metric, random_state, n_jobs, p_minkowski, distance_matrix)
 
             if metric == 'clr_lev':
-                distance_matrix = clustering_utils.get_clr_dist_arr_lev(int(nn), clr_networks_folder)
+                distance_matrix = clustering_utils.get_clr_dist_arr_lev(int(nn), os.path.join(clr_networks_folder, norm_type))
                 nn_idxs, nn_dists = clustering_utils.compute_nns(raw_data, max(scan_nns), metric, random_state, n_jobs, p_minkowski, distance_matrix)
 
             nn_graph = clustering_utils.compute_umap_graph(raw_data, nn, metric, nn_idxs, nn_dists, random_state=random_state)

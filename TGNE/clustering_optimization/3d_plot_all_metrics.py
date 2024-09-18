@@ -5,6 +5,7 @@ import sys
 import distinctipy
 import glob
 import os
+from collections import OrderedDict
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -14,8 +15,8 @@ from utils import dataframe_utils, clustering_utils
 
 ##########################
 
-# norm_type = 'min_max'
-norm_type = 'z_score'
+norm_type = 'min_max'
+# norm_type = 'z_score'
 
 dataset = 'microarray'
 # dataset = 'rna_seq'
@@ -125,63 +126,43 @@ z_all_stat = 'iqr_cluster_size'
 ###############
 
 if dataset == 'microarray':
-    df = microarray_stats_df.loc[microarray_stats_df['metric'] == 'manhattan']
+    df = microarray_stats_df
 
 if dataset == 'rna_seq':
-    df = rna_seq_stats_df.loc[rna_seq_stats_df['metric'] == 'manhattan']
+    df = rna_seq_stats_df
 
 df = df.reset_index()
 
+data_dict = OrderedDict()
+
+colors = ['#FFB000', '#785EF0', '#648FFF', '#DC267F', '#FE6100']
+
+for idx, m in enumerate(df['metric'].unique()):
+
+    filtered_df = df.loc[df['metric'] == m]
+
+    x_all = filtered_df[x_all_stat].values
+
+    y_all = filtered_df[y_all_stat].values
+
+    z_all = filtered_df[z_all_stat].values
+
+    data_dict[m] = {'x': x_all, 
+                    'y': y_all, 
+                    'z': z_all, 
+                    'color': colors[idx]}
+
 ###############
 
-# dfs = [microarray_stats_df.loc[(microarray_stats_df['parameter'] > 0) & (microarray_stats_df['parameter'] < 1)].reset_index(), 
-#        rna_seq_stats_df.loc[(rna_seq_stats_df['parameter'] > 0) & (rna_seq_stats_df['parameter'] < 1)].reset_index()]
-
-
-x_all = df[x_all_stat].values
-
-y_all = df[y_all_stat].values
-
-z_all = df[z_all_stat].values
-
-df_idxs = df.index.tolist()
-
-points = zip(x_all, y_all, z_all, df_idxs)
-
-max_points = np.array(pareto_optimal_points(points))
-max_point_idxs = [int(pt[3]) for pt in max_points]
-
-other_idxs = list(set(df_idxs) - set(max_point_idxs))
-
-global_s = 30
+global_s = 10
 
 fig = plt.figure()
 
 ax = fig.add_subplot(111, projection='3d')
 
-ax.scatter(x_all[other_idxs], y_all[other_idxs], z_all[other_idxs], color='black', marker='x', s=global_s, label='filtered out', zorder=1)
+for plot_metric, plot_dict in data_dict.items():
 
-ax.scatter(x_all[max_point_idxs], y_all[max_point_idxs], z_all[max_point_idxs], color='red', marker='*', s=global_s, label='Pareto efficient', zorder=1)
-
-max_modularity_idx = np.argmax(x_all[max_point_idxs])
-
-optimal_idx = None
-
-for idx, val in enumerate(z_all[max_point_idxs]):
-    if val > 10:
-        optimal_idx = idx
-        break
-
-center_x = x_all[max_point_idxs][optimal_idx]
-center_y = y_all[max_point_idxs][optimal_idx]
-center_z = z_all[max_point_idxs][optimal_idx]
-ax.scatter([center_x], [center_y], [center_z], facecolors='none', edgecolor='#47EA00', linewidth=2, s=200, zorder=1,
-                # label=f'({round(center_x, 2)}, {round(center_y, 2)}, {round(center_z, 2)})'
-            )
-
-label = f'({round(center_x, 2)}, {round(center_y, 2)}, {round(center_z, 2)})'
-ax.text(center_x + 0.04, center_y + 0.04, center_z + 4, label, color='black', fontsize=8, ha='left')
-
+    ax.scatter(plot_dict['x'], plot_dict['y'], plot_dict['z'], color=plot_dict['color'], s=global_s, label=plot_metric, zorder=1)
 
 # plt.annotate('', xy=(center_x, center_y), xytext=(center_x, center_y),
 #              arrowprops=dict(facecolor='#47EA00', 
