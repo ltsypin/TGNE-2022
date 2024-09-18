@@ -26,8 +26,7 @@ eggnog_compiled_2024_jun28.annotations -> input_data/eggnog_annotations_file/
 ```
 
 ```
-interproscan_compiled.tsv
-input_data/interproscan_tsv_file/
+interproscan_compiled.tsv -> input_data/interproscan_tsv_file/
 ```
 
 ```
