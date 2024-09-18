@@ -15,11 +15,27 @@ Linux or Mac – Intel:
 bash build_tgne_env.sh
 ```
 
-### Building the TGNE from [precomputed data](LINK):
+### Building the TGNE from precomputed data:
 
-Download the precomputed data
+Download the [precomputed data](LINK # FIXME).
 
-Deposit the file in the folders
+Place each of the following files in the specificed directory:
+
+```
+eggnog_compiled_2024_jun28.annotations -> input_data/eggnog_annotations_file/
+```
+
+```
+interproscan_compiled.tsv
+input_data/interproscan_tsv_file/
+
+```
+allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv -> active_files/
+```
+
+```
+rna_seq.csv -> active_files/
+```
 
 ```
 bash s-execute-pipeline.sh pipeline_precomputed.txt

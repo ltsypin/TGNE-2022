@@ -15,8 +15,8 @@ from utils import dataframe_utils, clustering_utils
 
 ##########################
 
-norm_type = 'min_max'
-# norm_type = 'z_score'
+# norm_type = 'min_max'
+norm_type = 'z_score'
 
 dataset = 'microarray'
 # dataset = 'rna_seq'
@@ -185,7 +185,7 @@ y_exterme = y_all.max() if y_all.max() > abs(y_all.min()) else y_all.min()
 
 #   ax.xlabel('Modularity')
 #   ax.ylabel('# of Enriched Clusters' if y_all_stat == 'nenriched_clusters' else 'Fraction of All Clusters Enriched')
-#   ax.legend()
+ax.legend()
 
 #   for nns_value, group in df.groupby('nns'):
 #      group_df = group.copy(deep=True).sort_values(by='modularity')
