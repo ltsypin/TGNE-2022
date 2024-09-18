@@ -39,7 +39,7 @@ rna_seq.csv -> active_files/
 ```
 
 ```
-bash s-execute-pipeline.sh pipeline_precomputed.txt
+bash s-execute-pipeline.sh -> pipeline_precomputed.txt
 ```
 
 ### Building the TGNE from raw data:
