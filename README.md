@@ -86,7 +86,7 @@ for i in {12..29}; do
 done
 ```
 
-OR (IF YOU HAVE [PIGZ](https://zlib.net/pigz/) INSTALLED):
+Or (if you have [pigz](https://zlib.net/pigz/) installed):
 
 ```
 num_cores=<NUMBER OF CORES TO USE>
