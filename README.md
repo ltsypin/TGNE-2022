@@ -125,26 +125,94 @@ done
 
 Move the samples to a new folder:
 ```
-mkdir raw
+mkdir -p raw/
 mv *.fastq.gz raw/
 ```
 
-
-
 Install FastQC.
+
+Run FastQC on each of the fastq.gz files:
+```
+cd raw
+mkdir -p qc/
+fastqc --threads <NUM_THREADS> --outdir ./qc/ ./<FILE_NAME>
+```
 
 Install MultiQC.
 
+Compile the FastQC results with MultiQC:
+```
+multiqc ./qc/ -o ./qc/
+```
+
 Install Trimmomatic.
+
+Run Trimmomatic on each pair of fastq.gz files: 
+```
+output_folder="trimmed/"
+
+mkdir -p ${output_folder}
+
+trimmomatic_path=<PATH TO Trimmomatic-0.39>
+
+file_name_1=<FILE_NAME_1>
+file_name_2=<FILE_NAME_2>
+
+java -jar ${trimmomatic_path%/}/trimmomatic-0.39.jar PE ${FASTQ_DIR%/}/${file_name_1} ${FASTQ_DIR%/}/${file_name_2} ${output_folder%/}/p_trimmed_${file_name_1} ${output_folder%/}/up_trimmed_${file_name_1} ${output_folder%/}/p_trimmed_${file_name_2} ${output_folder%/}/up_trimmed_${file_name_2} ILLUMINACLIP:${trimmomatic_path%/}/adapters/TruSeq3-PE.fa:2:30:10:2:True LEADING:3 TRAILING:3 MINLEN:36 -threads <NUM_THREADS>
+```
+
+Move the unpaired reads to a new folder:
+```
+cd trimmed/
+
+mkdir -p up/
+
+mv up_trimmed_* up/
+```
+
+Run FastQC on each of the trimmed fastq.gz files:
+```
+mkdir -p qc/
+fastqc --threads <NUM_THREADS> --outdir ./qc/ ./<FILE_NAME>
+```
+
+Install MultiQC.
+
+Compile the FastQC results with MultiQC:
+```
+multiqc ./qc/ -o ./qc/
+```
 
 Install Kallisto.
 
-Set paths and SLURM details in scripts 
-FastQC MultiQC
-Trim the reads
-FastQC MultiQC
-Index the CDS
-Kallisto
+Download the latest CDS file:
+```
+mkdir -p cds_index/
+curl -o ./cds_index/cds.fasta https://github.com/yefei521/Tetrahymena_Genome_annotation_V2024/releases/download/V2024.2/Tetrahymena_Genome_annotation_V2024_CDS.fasta
+```
+
+Index the latest CDS file with Kallisto:
+```
+kallisto index --index ./cds_index/kallisto_cds_index ./cds_index/cds.fasta
+```
+
+Run Kallisto on each pair of trimmed fastq.gz files: 
+```
+output_folder="counts/"
+
+mkdir -p ${output_folder}
+
+trimmomatic_path=<PATH TO Trimmomatic-0.39>
+
+file_name_1=<FILE_NAME_1>
+file_name_2=<FILE_NAME_2>
+
+file_basename=basename="${file_name_1%_*}"
+
+kallisto quant -t {num_cores} -o ${output_folder%/}/kallisto_quant_${file_basename} -i ./cds_index/kallisto_cds_index ${file_name_1} ${file_name_2}
+```
+
+Place each of the resulting Kallisto output folders in the ```counts/``` directory in the ```input_data/kallisto_data_folders``` directory.
 
 2) Eggnog:
 
