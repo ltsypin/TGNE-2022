@@ -43,133 +43,102 @@ bash s-execute-pipeline.sh -> pipeline_precomputed.txt
 
 ### Building the TGNE from raw data:
 
+1) Kallisto:
 
-1) Download the [RNA-seq data from SRA](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA861835&o=acc_s%3Aa):
+Install the [SRA Toolkit](https://github.com/ncbi/sra-tools/wiki/01.-Downloading-SRA-Toolkit).
+
+Download the [RNA-seq data from SRA](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA861835&o=acc_s%3Aa):
 
 ```
 prefetch PRJNA861835
 ```
 
 ```
-num_cores=<NUMBER OF CORES TO USE>
+declare -A time_points=(
+    [SRR20576712]="240min_B"
+    [SRR20576713]="240min_A"
+    [SRR20576714]="210min_B"
+    [SRR20576715]="210min_A"
+    [SRR20576716]="180min_B"
+    [SRR20576717]="180min_A"
+    [SRR20576718]="150min_B"
+    [SRR20576719]="150min_A"
+    [SRR20576720]="120min_B"
+    [SRR20576721]="120min_A"
+    [SRR20576722]="090min_B"
+    [SRR20576723]="090min_A"
+    [SRR20576724]="060min_B"
+    [SRR20576725]="060min_A"
+    [SRR20576726]="030min_B"
+    [SRR20576727]="030min_A"
+    [SRR20576728]="000min_B"
+    [SRR20576729]="000min_A"
+)
 
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576712
-gzip ./SRR20576712*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576713
-gzip ./SRR20576713*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576714
-gzip ./SRR20576714*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576715
-gzip ./SRR20576715*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576716
-gzip ./SRR20576716*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576717
-gzip ./SRR20576717*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576718
-gzip ./SRR20576718*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576719
-gzip ./SRR20576719*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576720
-gzip ./SRR20576720*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576721
-gzip ./SRR20576721*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576722
-gzip ./SRR20576722*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576723
-gzip ./SRR20576723*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576724
-gzip ./SRR20576724*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576725
-gzip ./SRR20576725*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576726
-gzip ./SRR20576726*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576727
-gzip ./SRR20576727*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576728
-gzip ./SRR20576728*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576729
-gzip ./SRR20576729*.fastq
+for i in {12..29}; do
+    srr_id="SRR205767${i}"
+    
+    time_sample="${time_points[$srr_id]}"
+    
+    fasterq-dump -e ${num_cores} -o ${time_sample}_# -S $srr_id
+    
+    gzip ./${time_sample}*.fastq
+done
 ```
 
-OR 
+OR (IF YOU HAVE [PIGZ](https://zlib.net/pigz/) INSTALLED):
 
 ```
 num_cores=<NUMBER OF CORES TO USE>
 
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576712
-pigz -p ${num_cores} ./SRR20576712*.fastq
+declare -A time_points=(
+    [SRR20576712]="240min_B"
+    [SRR20576713]="240min_A"
+    [SRR20576714]="210min_B"
+    [SRR20576715]="210min_A"
+    [SRR20576716]="180min_B"
+    [SRR20576717]="180min_A"
+    [SRR20576718]="150min_B"
+    [SRR20576719]="150min_A"
+    [SRR20576720]="120min_B"
+    [SRR20576721]="120min_A"
+    [SRR20576722]="090min_B"
+    [SRR20576723]="090min_A"
+    [SRR20576724]="060min_B"
+    [SRR20576725]="060min_A"
+    [SRR20576726]="030min_B"
+    [SRR20576727]="030min_A"
+    [SRR20576728]="000min_B"
+    [SRR20576729]="000min_A"
+)
 
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576713
-pigz -p ${num_cores} ./SRR20576713*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576714
-pigz -p ${num_cores} ./SRR20576714*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576715
-pigz -p ${num_cores} ./SRR20576715*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576716
-pigz -p ${num_cores} ./SRR20576716*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576717
-pigz -p ${num_cores} ./SRR20576717*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576718
-pigz -p ${num_cores} ./SRR20576718*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576719
-pigz -p ${num_cores} ./SRR20576719*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576720
-pigz -p ${num_cores} ./SRR20576720*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576721
-pigz -p ${num_cores} ./SRR20576721*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576722
-pigz -p ${num_cores} ./SRR20576722*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576723
-pigz -p ${num_cores} ./SRR20576723*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576724
-pigz -p ${num_cores} ./SRR20576724*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576725
-pigz -p ${num_cores} ./SRR20576725*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576726
-pigz -p ${num_cores} ./SRR20576726*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576727
-pigz -p ${num_cores} ./SRR20576727*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576728
-pigz -p ${num_cores} ./SRR20576728*.fastq
-
-fasterq-dump -e ${num_cores} --outdir ./ SRR20576729
-pigz -p ${num_cores} ./SRR20576729*.fastq
+for i in {12..29}; do
+    srr_id="SRR205767${i}"
+    
+    time_sample="${time_points[$srr_id]}"
+    
+    fasterq-dump -e ${num_cores} -o ${time_sample}_# -S $srr_id
+    
+    pigz -p ${num_cores} ./${time_sample}*.fastq
+done
 ```
 
-2) Kallisto:
-Install FastQC, MultiQC, Trimmomatic, and Kallisto
+Move the samples to a new folder:
+```
+mkdir raw
+mv *.fastq.gz raw/
+```
+
+
+
+Install FastQC.
+
+Install MultiQC.
+
+Install Trimmomatic.
+
+Install Kallisto.
+
 Set paths and SLURM details in scripts 
 FastQC MultiQC
 Trim the reads
@@ -177,8 +146,10 @@ FastQC MultiQC
 Index the CDS
 Kallisto
 
-3) Eggnog:
+2) Eggnog:
 
 
-4) InterProScan:
+3) InterProScan:
+
+
 
