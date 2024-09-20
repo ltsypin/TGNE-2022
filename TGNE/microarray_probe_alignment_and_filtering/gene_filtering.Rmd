@@ -765,7 +765,6 @@ now follow the log-gamma distribution after filtering.
 ```{r}
 fit.ks.df <- data.frame(as.numeric(unfiltered.fits.lgam[1, ]), as.numeric(masigpro.fits.lgam[1, ]), as.numeric(greedy.fits.lgam[1, ]), as.numeric(all.good.fits.lgam[1, ]))
 fit.kstest.df <- data.frame(unfiltered.fits.lgam[2, ], masigpro.fits.lgam[2, ], greedy.fits.lgam[2, ], all.good.fits.lgam[2, ])
-boxplot(fit.ks.df, names=c('unfiltered', 'maSigPro', 'Greedy', '"All Good"'))
 fit.kstest.df
 ```
 
