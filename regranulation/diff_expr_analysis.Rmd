@@ -1,0 +1,264 @@
+---
+title: "Performing RMA on corrected probes"
+author: "Lev Tsypin"
+date: "11/7/2021"
+output: html_document
+---
+
+```{r}
+library(oligo) # Install with BiocManager
+library(pdInfoBuilder) # Install with BiocManager
+library(ggplot2)
+
+library(bigmemory)
+library(snow)
+
+setwd('./')
+set.seed(42)
+```
+
+```{r}
+# This step should be done with the original .ndf before mapping probes to
+# 2021 gene annotations because we need to track each individual probes
+# (rather than lump them into genes they map to)
+conflicting_directory <- './pd.filtered.tetexpr/'
+
+unlink(conflicting_directory, recursive = TRUE)
+
+seed <- new("NgsExpressionPDInfoPkgSeed",
+              ndfFile='./Microarray\ raw\ data/AuxillaryData/DesignFiles/filtered_tetexpr.ndf',
+              xysFile='./Microarray\ raw\ data/5294_XYS/1772502_532.xys',
+              author='Michael Bertagna',
+              email='michael3bertagna@gmail.com',
+              biocViews='Annotation Data',
+              species='Tetrahymena thermophila')
+
+makePdInfoPackage(seed, destDir = '.')
+```
+
+
+```{r}
+install.packages('./pd.filtered.tetexpr/', repos=NULL, type='source')
+```
+
+```{r}
+library(pd.filtered.tetexpr)
+```
+
+```{r}
+xysFiles <- list.files('./Microarray raw data/5294_XYS', pattern = "\\.xys$", full.names = TRUE)
+expression.feature.set <- read.xysfiles(xysFiles, pkgname = 'pd.filtered.tetexpr')
+```
+
+```{r}
+raw.expression <- exprs(expression.feature.set)
+boxplot(expression.feature.set, las=2)
+hist(expression.feature.set)
+```
+
+```{r}
+# take a look at the chips which passed qc
+image(expression.feature.set, transfo=rank)
+```
+
+```{r}
+# fit <- fitProbeLevelModel(expression.feature.set)
+# NUSE(fit, names=xysFiles, las=2, cex=0.001)
+```
+
+```{r}
+# THIS WILL CRASH RStudio (MUST RUN VIA RScript on the command line)
+fit <- fitProbeLevelModel(expression.feature.set)
+NUSE(fit, names=xysFiles, las=2, cex=0.001)
+```
+
+Problematic chips have a median NUSE (normalized unscaled standard error) > 1 
+or have a large interquartile range. In general, keeping chips with IQR crossing
+1 so long as they look okay visually.
+Validate against chips that look bad in the plots above.
+```{r}
+# Bad chip
+xysFiles[c(7)]
+```
+
+```{r}
+xysFiles[-c(7)]
+```
+
+
+```{r}
+qc.files <- xysFiles[-c(7)]
+qc.files
+```
+
+```{r}
+qc.featureset <- read.xysfiles(qc.files, pkgname = 'pd.filtered.tetexpr')
+qc.raw.expression <- exprs(qc.featureset)
+boxplot(qc.featureset, las=2)
+hist(qc.featureset)
+```
+
+```{r}
+dim(qc.raw.expression)
+```
+
+
+```{r}
+qc.rma.corrected <- rma(qc.featureset, background=TRUE, normalize=TRUE, subset=NULL)
+boxplot(qc.rma.corrected, transfo=identity, las=2)
+hist(qc.rma.corrected, transfo=identity)
+```
+
+```{r}
+myExpressionSet <- qc.rma.corrected
+
+# Define metadata (example)
+metadata <- data.frame(
+  SampleID = colnames(exprs(myExpressionSet)),  # Assuming SampleID corresponds to column names
+  Condition = c(rep("Control", 6), rep("Treatment", (6) - 1)),  # Example data
+  Time = c(rep("0h", 3), rep("1h", 3), rep("0h", (3) - 1), rep("1h", 3))  # Example data
+)
+
+# Assign metadata to phenoData slot
+pData(myExpressionSet) <- metadata
+
+# View the updated ExpressionSet
+myExpressionSet
+
+```
+
+
+```{r}
+qc.rma.expression <- exprs(qc.rma.corrected)
+write.csv(qc.rma.expression, './QC_probe_rma_values.csv')
+```
+
+
+
+```{r}
+nuse <- NUSE(fit, type='values')
+nuse.df <- stack(as.data.frame(nuse))
+ggplot(nuse.df, aes(ind, values)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle=90)) +
+  scale_y_continuous(limits=c(0.95, 1.1)) +
+  geom_hline(yintercept=1, linetype='solid', color='red', linewidth=0.5)
+```
+
+
+```{r}
+data <- myExpressionSet
+data
+```
+
+```{r}
+table(data$Condition)
+```
+
+```{r}
+table(data$Time)
+```
+
+```{r}
+table(data$SampleID)
+```
+
+```{r}
+# Load necessary libraries
+library(limma)
+library(ggplot2)
+library(dplyr)
+library(ggrepel)
+
+ourData1h <- data[, data$Time %in% c("1h")]
+ourData1h$Condition <- factor(ourData1h$Condition)
+
+ourData0h <- data[, data$Time %in% c("0h")]
+ourData0h$Condition <- factor(ourData0h$Condition)
+```
+
+```{r}
+design <- model.matrix(~ ourData1h$Condition)
+design
+```
+
+```{r}
+sampleInfo <- pData(data)
+sampleInfo$Group <- factor(paste(sampleInfo$Condition, sampleInfo$Time, sep="_"))
+
+design <- model.matrix(~ 0 + Group, data=sampleInfo)
+colnames(design) <- levels(sampleInfo$Group)
+```
+
+```{r}
+print(sampleInfo[, c("SampleID", "Condition", "Time")])
+```
+
+
+```{r}
+fit <- lmFit(data, design)
+
+design
+
+fit
+```
+
+```{r}
+fit$coefficients[which(rownames(fit$coefficients) == 'TTHERM_00261850'), ]
+```
+
+```{r}
+cont.dif <- makeContrasts(
+    Dif1hr = (Control_1h - Control_0h) - (Treatment_1h - Treatment_0h),
+    levels = design
+)
+```
+
+```{r}
+fit2 <- contrasts.fit(fit, cont.dif)
+fit2 <- eBayes(fit2)
+topTable(fit2, adjust="BH")
+```
+
+```{r}
+tt = topTable(fit2, number=Inf, adjust="BH")
+
+# Add -log10 p-value for better visualization
+tt$negLogPValue <- -log10(tt$adj.P.Val)
+
+tt
+```
+
+```{r}
+range(tt$logFC)
+range(tt$P.Value)
+
+topRight <- tt %>%
+  filter(logFC > 1) %>%
+  arrange(desc(negLogPValue)) %>%
+  head(5)
+
+ggplot(tt, aes(x=logFC, y=negLogPValue)) +
+  geom_point(alpha=0.5) +
+  theme_minimal() +
+  xlab("Log2 Fold Change") +
+  ylab("-log10 P-value") +
+  ggtitle("Volcano Plot - 1h Time Point") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "blue") +
+  geom_text_repel(data=topRight, aes(label=rownames(topRight)), size=3, max.overlaps = 10)
+```
+
+```{r}
+filtered_data <- tt %>%
+  filter(logFC > 0.5) %>% # FC = 4
+  filter(negLogPValue > 4) %>% # p = 0.0001
+  arrange(desc(logFC))
+
+# Write filtered and arranged data to CSV
+write.csv(filtered_data, file = "filtered_tt.csv")
+
+write.csv(tt, file = "tt.csv")
+```
+
+

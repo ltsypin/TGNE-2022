@@ -142,10 +142,12 @@ TGNE/clustering_optimization/*_clr_for_distances_*nn.Rmd
 regranulation/**/*.fasta
 regranulation/**/*.pdf
 regranulation/**/*.doc
+regranulation/**/*.xlsx
 regranulation/**/*.csv
 regranulation/hisat2*/**/*
-regranulation/
 regranulation/Microarray raw data/*
+/regranulation/pd.tetexpr/**/*
+
 
 new_raw_data/rna_seq_processed/**/*
 
@@ -157,3 +159,4 @@ TGNE/embedding/*.txt
 TGNE/embedding/*.Rmd
 TGNE/embedding/*.sh
 TGNE/embedding/*.py
+/regranulation/pd.filtered.tetexpr
