@@ -152,3 +152,8 @@ new_raw_data/rna_seq_processed/**/*
 new_raw_data/tgd2024/**/*
 
 new_raw_data/*.ipynb
+
+TGNE/embedding/*.txt
+TGNE/embedding/*.Rmd
+TGNE/embedding/*.sh
+TGNE/embedding/*.py
