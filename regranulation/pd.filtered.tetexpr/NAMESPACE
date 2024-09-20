@@ -1,7 +1,0 @@
-import(DBI)
-import(RSQLite)
-export(
-       'pd.filtered.tetexpr'
-       )
-importFrom("Biostrings", "DNAStringSet")
-importFrom("S4Vectors", "DataFrame")
