@@ -38,19 +38,25 @@ def min_max_scale_2d_arr(arr: np.array):
 
 def get_clr_dist_arr(nn: str, folder: str):
     path = os.path.join(file_dir, main_dir, 'clustering_optimization', folder, f'./clr_network_for_distances_{nn}.csv.gz')
-    print(path)
     clr_df = pd.read_csv(path, compression='gzip')
     clr_df.rename(columns={'Unnamed: 0':'TTHERM_ID'}, inplace=True)
 
     zscore_arr = clr_df.loc[:,clr_df.columns[1:]].to_numpy()
 
+    print(np.sum(np.isnan(zscore_arr)))
+
     info = np.finfo(np.float64)
     smallest_float = info.eps
 
     scaled_zscore_arr = min_max_scale_2d_arr(zscore_arr)
+    print(np.sum(np.isnan(scaled_zscore_arr)))
     clr_dist_arr = np.sqrt(2 * (1 - scaled_zscore_arr)) + smallest_float
 
+    print(np.sum(np.isnan(clr_dist_arr)))
+
     np.fill_diagonal(clr_dist_arr, 0)
+
+    print(np.sum(np.isnan(clr_dist_arr)))
 
     return clr_dist_arr
 

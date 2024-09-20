@@ -1,6 +1,6 @@
 ### DB DOWNLOAD COMMANDS
 
-download_eggnog_data.py --data_dir /project2/apturkew/ -P -H -d 2759 --dbname '2759'
+download_eggnog_data.py --data_dir /project2/apturkew/ -s -P -H -d 2759 --dbname '2759'
 
 Download main annotation database? [y,n] y
 Downloading "eggnog.db" at /project2/apturkew...

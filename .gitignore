@@ -140,3 +140,11 @@ TGNE/interproscan/**/*.csv
 TGNE/clustering_optimization/*_clr_for_distances_*nn.Rmd
 
 *.svg
+
+regranulation/**/*.fasta
+regranulation/**/*.pdf
+regranulation/**/*.doc
+regranulation/**/*.csv
+regranulation/hisat2*/**/*
+regranulation/
+regranulation/Microarray raw data/*
