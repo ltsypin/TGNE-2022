@@ -109,8 +109,6 @@ new_raw_data/**/*.tar
 
 new_raw_data/**/*.out
 
-new_raw_data/**/*.json
-
 new_raw_data/**/*.csv
 
 new_raw_data/**/*.tsv
@@ -148,3 +146,6 @@ regranulation/**/*.csv
 regranulation/hisat2*/**/*
 regranulation/
 regranulation/Microarray raw data/*
+
+new_raw_data/rna_seq_processed/**/*
+
