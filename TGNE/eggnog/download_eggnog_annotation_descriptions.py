@@ -17,6 +17,6 @@ if not all([
         os.path.exists(os.path.join(file_dir, '../../active_files/pfam_annotations.csv')), 
         ]):
     
-    for script in download_scripts:  # FIXME test this
+    for script in download_scripts:
         print(f'EXECUTING: {script}')
         subprocess.run([sys.executable, os.path.join(file_dir, script)])
