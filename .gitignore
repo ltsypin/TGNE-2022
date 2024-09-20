@@ -149,3 +149,6 @@ regranulation/Microarray raw data/*
 
 new_raw_data/rna_seq_processed/**/*
 
+new_raw_data/tgd2024/**/*
+
+new_raw_data/*.ipynb
