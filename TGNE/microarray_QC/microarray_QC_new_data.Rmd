@@ -65,8 +65,11 @@ us straight to the chips that should be thrown away.
 
 
 ```{r}
+# Gets stuck here when running in RStudio sometimes, but always works through
+# commandline pipeline.
 fit <- fitProbeLevelModel(expression.feature.set)
 ```
+
 ```{r}
 NUSE(fit, names=xysFiles, las=2, cex=0.001)
 ```
