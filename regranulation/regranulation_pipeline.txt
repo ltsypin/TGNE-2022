@@ -1,0 +1,15 @@
+# ENTER PYTHON CONDA ENV
+tgne.env
+
+# DOWNLOAD DATA
+regranulation/download_data.ipynb
+
+# FORMAT DATA
+regranulation/generate_hisat2_probe_alignment_sam.ipynb
+regranulation/generate_probe_mapping_ndf.ipynb
+
+# ANALYZE DATA
+regranulation/diff_expr_analysis.Rmd
+
+# EXIT THE CONDA ENV
+.denv

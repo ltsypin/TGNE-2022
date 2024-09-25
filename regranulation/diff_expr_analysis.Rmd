@@ -26,8 +26,8 @@ conflicting_directory <- './pd.filtered.tetexpr/'
 unlink(conflicting_directory, recursive = TRUE)
 
 seed <- new("NgsExpressionPDInfoPkgSeed",
-              ndfFile='./Microarray\ raw\ data/AuxillaryData/DesignFiles/filtered_tetexpr.ndf',
-              xysFile='./Microarray\ raw\ data/5294_XYS/1772502_532.xys',
+              ndfFile='./raw_data/filtered_tetexpr.ndf',
+              xysFile='./raw_data/expression/1772502_532.xys',
               author='Michael Bertagna',
               email='michael3bertagna@gmail.com',
               biocViews='Annotation Data',
@@ -46,7 +46,7 @@ library(pd.filtered.tetexpr)
 ```
 
 ```{r}
-xysFiles <- list.files('./Microarray raw data/5294_XYS', pattern = "\\.xys$", full.names = TRUE)
+xysFiles <- list.files('./raw_data/expression/', pattern = "\\.xys$", full.names = TRUE)
 expression.feature.set <- read.xysfiles(xysFiles, pkgname = 'pd.filtered.tetexpr')
 ```
 

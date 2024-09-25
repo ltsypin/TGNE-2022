@@ -160,3 +160,4 @@ TGNE/embedding/*.Rmd
 TGNE/embedding/*.sh
 TGNE/embedding/*.py
 /regranulation/pd.filtered.tetexpr
+/regranulation/raw_data
