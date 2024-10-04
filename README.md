@@ -3,7 +3,9 @@ Analysis for and development of the Tetrahymena Gene Network Explorer
 
 ## User Guide:
 
-### Building the conda environment for python and R. Navigate to the top level directory and run on of the following:
+### Building the conda environment for python and R: 
+
+Navigate to the top level directory and run one of the following:
 
 Mac – Apple Silicon ([Rosetta](https://support.apple.com/en-us/102527) required):
 ```
@@ -46,7 +48,7 @@ rna_seq.csv -> active_files/
 ```
 
 ```
-bash s-execute-pipeline.sh -> pipeline_precomputed.txt
+bash s-execute-pipeline.sh pipeline_precomputed.txt
 ```
 
 ### Building the TGNE from raw data:
@@ -342,4 +344,12 @@ path_to_interproscan=<PATH TO interproscan-5.68-100.0/>
 ${path_to_interproscan%/}/interproscan.sh -i pep_cleaned.fasta -f tsv -d ./ -cpu <NUM_CPUS>
 ```
 
+### Mucocyst regranulation analysis:
 
+Build the TGNE following "Building the TGNE from precomputed data" or "Building the TGNE from raw data."
+
+Navigate to the top level directory and run the following:
+
+```
+bash s-execute-pipeline.sh ./regranulation/regranulation_pipeline.txt
+```
