@@ -1,8 +1,15 @@
-#!/bin/bash
+#!/bin/bash -i
 
 set -e
 
-source ~/.bash_profile
+files=(~/.bashrc ~/.bash_profile ~/.profile ~/.zshrc ~/.bash_login ~/.zprofile ~/.bash_aliases)
+
+for file in "${files[@]}"; do
+    if [ -f "$file" ]; then
+        echo "Sourcing $file"
+        source "$file"
+    fi
+done
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <pipeline_file> [rscript_command]"

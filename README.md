@@ -19,6 +19,14 @@ bash build_tgne_env.sh
 
 Download the [precomputed data](LINK # FIXME).
 
+Create necessary directories within the top level directory:
+
+```
+mkdir -p input_data/eggnog_annotations_file/
+mkdir -p input_data/interproscan_tsv_file/
+mkdir -p active_files/
+```
+
 Place each of the following files in the specificed directory:
 
 ```
