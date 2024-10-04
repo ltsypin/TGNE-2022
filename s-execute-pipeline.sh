@@ -1,7 +1,5 @@
 #!/bin/bash -i
 
-set -e
-
 files=(~/.bashrc ~/.bash_profile ~/.profile ~/.zshrc ~/.bash_login ~/.zprofile ~/.bash_aliases)
 
 for file in "${files[@]}"; do
@@ -10,6 +8,8 @@ for file in "${files[@]}"; do
         source "$file"
     fi
 done
+
+set -e
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <pipeline_file> [rscript_command]"
