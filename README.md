@@ -29,23 +29,13 @@ mkdir -p input_data/interproscan_tsv_file/
 mkdir -p active_files/
 ```
 
-Place each of the following files in the specificed directory:
+Place ```eggnog_compiled_2024_jun28.annotations``` in the ```input_data/eggnog_annotations_file/``` directory.
 
-```
-eggnog_compiled_2024_jun28.annotations -> input_data/eggnog_annotations_file/
-```
+Place ```interproscan_compiled.tsv``` in the ```input_data/interproscan_tsv_file/``` directory.
 
-```
-interproscan_compiled.tsv -> input_data/interproscan_tsv_file/
-```
+Place ```allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv``` in the ```active_files/``` directory.
 
-```
-allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv -> active_files/
-```
-
-```
-rna_seq.csv -> active_files/
-```
+Place ```rna_seq.csv``` in the ```active_files/``` directory.
 
 ```
 bash s-execute-pipeline.sh pipeline_precomputed.txt
@@ -54,6 +44,12 @@ bash s-execute-pipeline.sh pipeline_precomputed.txt
 ### Building the TGNE from raw data:
 
 1) Kallisto:
+
+Create necessary directories within the top level directory:
+
+```
+mkdir -p input_data/kallisto_data_folders
+```
 
 Build the conda environment.
 
@@ -224,6 +220,12 @@ Place each of the resulting Kallisto output folders in the ```counts/``` directo
 
 2) Eggnog:
 
+Create necessary directories within the top level directory:
+
+```
+mkdir -p input_data/eggnog_annotations_file
+```
+
 Build the conda environment.
 
 Activate the conda environment:
@@ -237,20 +239,11 @@ curl -o ./pep.fasta https://github.com/yefei521/Tetrahymena_Genome_annotation_V2
 ```
 
 Prepare the latest protein sequences file:
+
+Place ```scripts/eggnog_pep_prep.py``` in your current directory.
+
 ```
-python
-```
-```
-from Bio import SeqIO
-
-with open(fasta_file, 'r') as f:
-    seq_list = list(SeqIO.parse('./pep.fasta', 'fasta'))
-
-SeqIO.write(seq_list, './pep.fasta', 'fasta')
-
-# Reading and writing the file ensures that the gene names are correctly annotated within the file
-
-exit()
+python eggnog_pep_prep.py
 ```
 
 Download the Eggnog database:
@@ -282,6 +275,12 @@ Place the resulting Eggnog output file, ```pep_b.emapper.annotations```, in the 
 
 3) InterProScan:
 
+Create necessary directories within the top level directory:
+
+```
+mkdir -p input_data/eggnog_annotations_file
+```
+
 Install [InterProScan](https://interproscan-docs.readthedocs.io/en/latest/HowToDownload.html) (Linux only).
 
 Build the conda environment.
@@ -297,52 +296,34 @@ curl -o ./pep.fasta https://github.com/yefei521/Tetrahymena_Genome_annotation_V2
 ```
 
 Prepare the latest protein sequences file:
+
+Place ```scripts/interproscan_pep_prep.py``` in your current directory.
+
 ```
-python
-```
-```
-from Bio import SeqIO
-import sys
-
-with open('pep.fasta', 'r') as f:
-    pep_records = list(SeqIO.parse(f, 'fasta'))
-
-    num_total_records = len(pep_records)
-
-    odd_pep_record_idxs = []
-
-    for idx, r in enumerate(pep_records):
-        r.id = r.id.split('|')[0]  # Clean up the record ID
-
-        if '*' in r.seq:
-            astr_idxs = [i for i, c in enumerate(r.seq) if c == '*']
-
-            if len(astr_idxs) > 1 or len(r.seq) - 1 != astr_idxs[-1]:
-                print(r.id, f'has a \'*\' at amino acid {", ".join([str(i) for i in astr_idxs])}.')
-                odd_pep_record_idxs.append(idx)
-            else:
-                # Remove trailing '*' from the sequence
-                r.seq = r.seq[:-1]
-
-    for i in sorted(odd_pep_record_idxs, reverse=True):
-        odd_pep_record_seq_split = pep_records[i].seq.split('*')
-        # Find the longest subsequence
-        pep_records[i].seq = max(odd_pep_record_seq_split, key=len)
-
-    print(' TOTAL RECORDS:', num_total_records)
-    print('NORMAL RECORDS:', len(pep_records) - len(odd_pep_record_idxs))
-    print('   ODD RECORDS:', len(odd_pep_record_idxs))
-
-    SeqIO.write(pep_records, 'pep_cleaned.fasta', 'fasta')
-
-exit()
+python interproscan_pep_prep.py
 ```
 
 ```
-path_to_interproscan=<PATH TO interproscan-5.68-100.0/>
+path_to_interproscan=<PATH TO AND INLCUDING interproscan-5.68-100.0/>
 
 ${path_to_interproscan%/}/interproscan.sh -i pep_cleaned.fasta -f tsv -d ./ -cpu <NUM_CPUS>
 ```
+
+Place the resulting InterProScan output file, ```pep_cleaned.fasta.tsv```, in the ```input_data/eggnog_annotations_file/``` directory.
+
+4. Build the TGNE:
+
+Create necessary directories within the top level directory:
+
+```
+mkdir -p active_files/
+```
+
+```
+bash s-execute-pipeline.sh pipeline_precomputed.txt
+```
+
+
 
 ### Mucocyst regranulation analysis:
 
