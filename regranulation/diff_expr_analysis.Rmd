@@ -13,6 +13,19 @@ library(ggplot2)
 library(bigmemory)
 library(snow)
 
+library(geneplotter)
+library(RColorBrewer)
+library(maSigPro)
+library(actuar)
+library(fitdistrplus)
+library(ggplot2)
+library(Hmisc)
+library(WGCNA)
+options(stringsAsFactors = FALSE)
+allowWGCNAThreads()
+
+library(genefilter)
+
 setwd('./')
 set.seed(42)
 ```
@@ -164,16 +177,174 @@ table(data$SampleID)
 ```
 
 ```{r}
+sampleTree = hclust(dist(t(qc.rma.expression)), method = "average")
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "unfiltered, all chips", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+
+```
+These chips cluster by timepoint and then by genotype, as expected.
+
+```{r}
+log.qc.rma.expression = log(qc.rma.expression)
+# par(mar = c(1, 1, 1, 1))
+
+h <- hist(log.qc.rma.expression, main='Log Expression Hist', breaks=sqrt(length(qc.rma.expression)))
+
+plot(h)
+
+```
+
+```{r}
+wei.range.fun <- function(v) {
+        return(max(v) - min(v))
+}
+
+maxfold.fun <- function(v) {
+        return(max(v) / min(v))
+}
+
+geom.mean.fun <- function(v) {
+  return(exp(mean(log(v))))
+}
+
+geom.cv.fun <- function(v) {
+  return(sqrt(exp(sd(log(v))^2)-1))
+}
+
+expr.wei.range <- apply(qc.rma.expression, 1, wei.range.fun)
+expr.maxfold <- apply(qc.rma.expression, 1, maxfold.fun)
+expr.mean <- apply(qc.rma.expression, 1, mean)
+expr.geom.mean <- apply(qc.rma.expression, 1, geom.mean.fun)
+expr.geom.cv <- apply(qc.rma.expression, 1, geom.cv.fun)
+expr.sd <- apply(qc.rma.expression, 1, sd)
+expr.cv <- expr.sd / expr.mean
+expr.iqr <- apply(qc.rma.expression, 1, IQR)
+expr.med <- apply(qc.rma.expression, 1, median)
+expr.mad <- apply(qc.rma.expression, 1, mad)
+```
+
+```{r}
+# sizeGrWindow(12,9)
+hist(log(expr.geom.mean), main='Geometric mean expression hist', breaks=sqrt(length(expr.geom.mean)))
+abline(v=quantile(log(expr.geom.mean), probs=c(0.25)), lwd=1, col='red')
+abline(v=median(log(expr.geom.mean)), lwd=1, col='blue')
+```
+
+```{r}
+# Just the geometric mean
+filt.geom.mean <- expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))
+
+# Main filter by the mean, but also allow some exceptionally well-behaved
+# genes with a low expression
+filt.greedy.med.only <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))) | ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) & expr.iqr/expr.med >= quantile(expr.iqr/expr.med, probs=c(0.5)))
+
+filt.greedy.mad.only <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.5))) | ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) & expr.mad/expr.med >= quantile(expr.mad/expr.med, probs=c(0.5)))
+
+filt.greedy <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))) | 
+  ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & 
+     (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) &
+     (
+       expr.iqr/expr.med >= quantile(expr.iqr/expr.med, probs=c(0.5)) |
+       expr.mad/expr.med >= quantile(expr.mad/expr.med, probs=c(0.5))
+        )
+   )
+
+
+greedy.filtered <- qc.rma.expression[filt.greedy, ]
+
+greedy.filtered.expr.geom.mean <- apply(greedy.filtered, 1, geom.mean.fun)
+# greedy.filtered.expr.sd <- apply(greedy.filtered, 1, sd)
+greedy.filtered.expr.geom.cv <- apply(greedy.filtered, 1, geom.cv.fun)
+greedy.filtered.expr.maxfold <- apply(greedy.filtered, 1, maxfold.fun)
+
+
+```
+
+
+```{r}
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.geom.mean),
+                 log(expr.geom.cv),
+                 colramp=blues.ramp)
+plot(expr.geom.mean, expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of unfiltered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(greedy.filtered.expr.geom.mean),
+                 log(greedy.filtered.expr.geom.cv),
+                 colramp=blues.ramp)
+plot(greedy.filtered.expr.geom.mean, greedy.filtered.expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of greedily filtered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+```
+
+```{r}
+microarray.edesign <- read.csv('./regranulation_microarray_experiment_design_for_maSigPro.csv',
+                              row.names = 1)
+
+microarray.edesign <- subset(microarray.edesign, rownames(microarray.edesign) %in% colnames(qc.rma.expression))
+head(microarray.edesign)
+```
+
+
+```{r}
+design <- make.design.matrix(microarray.edesign, degree=1)
+
+```
+
+```{r}
+# DIFFERENCE OCCURING HERE aarch64-apple-darwin20 (64-bit) vs. x86_64-apple-darwin13.4.0 (64-bit)
+fit <- p.vector(qc.rma.expression, design, Q = 0.001, MT.adjust = "BH")
+```
+```{r}
+fit$i # DIFFERENT
+de.genes <- rownames(fit$SELEC)
+head(fit$SELEC)
+```
+```{r}
+greedy <- names(filt.greedy[filt.greedy])
+length(greedy)
+length(de.genes)
+only.masigpro <- setdiff(de.genes, greedy)
+only.greedy <- setdiff(greedy, de.genes)
+length(only.masigpro)
+length(only.greedy)
+```
+Looks like MaSigPro recovers an additional 24 genes
+
+```{r}
+all.good.genes <- union(de.genes, greedy)
+length(all.good.genes)
+```
+
+```{r}
+expressionset.filter.func <- function(v) {
+        res <- v %in% all.good.genes
+        return(res)
+}
+```
+
+```{r}
+expressionset.filter.func(c('TTHERM_00036990', 'blah'))
+```
+
+```{r}
+featureNames(data) %in% all.good.genes
+
+all.good.data <- data[(featureNames(data) %in% all.good.genes), ]
+```
+
+
+
+```{r}
 # Load necessary libraries
 library(limma)
 library(ggplot2)
 library(dplyr)
 library(ggrepel)
 
-ourData1h <- data[, data$Time %in% c("1h")]
+ourData1h <- all.good.data[, data$Time %in% c("1h")]
 ourData1h$Condition <- factor(ourData1h$Condition)
 
-ourData0h <- data[, data$Time %in% c("0h")]
+ourData0h <- all.good.data[, data$Time %in% c("0h")]
 ourData0h$Condition <- factor(ourData0h$Condition)
 ```
 
@@ -183,7 +354,7 @@ design
 ```
 
 ```{r}
-sampleInfo <- pData(data)
+sampleInfo <- pData(all.good.data)
 sampleInfo$Group <- factor(paste(sampleInfo$Condition, sampleInfo$Time, sep="_"))
 
 design <- model.matrix(~ 0 + Group, data=sampleInfo)
@@ -196,7 +367,7 @@ print(sampleInfo[, c("SampleID", "Condition", "Time")])
 
 
 ```{r}
-fit <- lmFit(data, design)
+fit <- lmFit(all.good.data, design)
 
 design
 
