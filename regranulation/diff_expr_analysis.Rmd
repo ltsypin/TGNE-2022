@@ -292,7 +292,7 @@ design <- make.design.matrix(microarray.edesign, degree=1)
 
 ```{r}
 # DIFFERENCE OCCURING HERE aarch64-apple-darwin20 (64-bit) vs. x86_64-apple-darwin13.4.0 (64-bit)
-fit <- p.vector(qc.rma.expression, design, Q = 0.001, MT.adjust = "BH")
+fit <- p.vector(qc.rma.expression, design, Q = 0.01, MT.adjust = "BH")
 ```
 ```{r}
 fit$i # DIFFERENT
@@ -308,7 +308,7 @@ only.greedy <- setdiff(greedy, de.genes)
 length(only.masigpro)
 length(only.greedy)
 ```
-Looks like MaSigPro recovers an additional 24 genes
+Looks like MaSigPro recovers an additional 148 genes
 
 ```{r}
 all.good.genes <- union(de.genes, greedy)
@@ -386,8 +386,9 @@ cont.dif <- makeContrasts(
 ```
 
 ```{r}
+# set prior based on MaSigPro result (6472 genes out of the original 23662--27%)
 fit2 <- contrasts.fit(fit, cont.dif)
-fit2 <- eBayes(fit2)
+fit2 <- eBayes(fit2, proportion = 0.27)
 topTable(fit2, adjust="BH")
 ```
 
@@ -421,13 +422,13 @@ ggplot(tt, aes(x=logFC, y=negLogPValue)) +
 ```
 
 ```{r}
-filtered_data <- tt %>%
-  filter(logFC > 0.5) %>% # FC = 4
-  filter(negLogPValue > 4) %>% # p = 0.0001
-  arrange(desc(logFC))
-
-# Write filtered and arranged data to CSV
-write.csv(filtered_data, file = "filtered_tt.csv")
+# filtered_data <- tt %>%
+#   filter(logFC > 0.5) %>% # FC = 4
+#   filter(negLogPValue > 4) %>% # p = 0.0001
+#   arrange(desc(logFC))
+# 
+# # Write filtered and arranged data to CSV
+# write.csv(filtered_data, file = "filtered_tt.csv")
 
 write.csv(tt, file = "tt.csv")
 ```
