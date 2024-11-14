@@ -231,7 +231,30 @@ def interactive(
     radius=None, # My contribution
 #     subset_points=None,
     interactive_text_search=False,
-    interactive_text_search_columns=['TTHERM_ID', 'PFAMs', 'Description', 'TGD2021_description', 'module', 'InterPro_description'],
+    interactive_text_search_columns=[
+        'TTHERM_ID', 
+        'Description', 
+        'TGD2021_description',
+        'InterPro_description',
+        'module', 
+        'common_name', 
+        'Preferred_name'
+    ],
+    interactive_text_search_columns2=[
+        'COG_category',
+        'EC',
+        'GOs',
+        'PFAMs',
+        'KEGG_ko',
+        'InterPro',
+        'KEGG_Pathway',
+        'KEGG_Module',
+        'KEGG_Reaction',
+        'KEGG_rclass',
+        'BRITE',
+        'KEGG_TC',
+        'CAZy',
+        'BiGG_Reaction'],
     interactive_text_search_alpha_contrast=0.999,
     alpha=None,
     expr_min = 0,
@@ -351,7 +374,14 @@ def interactive(
     -------
     """
     if 'TTHERM_IDs' in list(embedding_df.columns):
-        interactive_text_search_columns=['TTHERM_ID', 'TTHERM_IDs', 'PFAMs', 'Description', 'TGD2021_description', 'module', 'InterPro_description']
+        interactive_text_search_columns=[
+        'TTHERM_ID', 
+        'Description', 
+        'TGD2021_description', 
+        'module', 
+        'common_name', 
+        'Preferred_name'
+    ]
 
     if theme is not None:
         cmap = _themes[theme]["cmap"]
@@ -715,6 +745,7 @@ def interactive(
         "peptide": 100,
         "TGD2021_description": 300,
         "Description": 300,
+        'InterPro_description': 300,
         "Preferred_name": 150,
         "max_annot_lvl": 100,
         "COG_category": 100,
@@ -723,7 +754,6 @@ def interactive(
         "PFAMs": 300,
         "KEGG_ko": 300,
         "InterPro": 300,
-        'InterPro_description': 300,
         "KEGG_Pathway": 300,
         "KEGG_Module": 300,
         "KEGG_Reaction": 300,
@@ -795,7 +825,8 @@ def interactive(
 
 
     if interactive_text_search:
-        text_input = TextInput(value="", placeholder=f'Search comma-separated module(s), TTHERM_ID(s), or functional term(s), for example: m{str(int(3)).zfill(len(str(int(max(labels)))))}, TTHERM_00825460, Histone', sizing_mode=search_sizing_mode)
+        text_input = TextInput(value="", placeholder=f'Search comma-separated descriptive terms like module(s), TTHERM_ID(s), gene names, or annotations. For example: m{str(int(3)).zfill(len(str(int(max(labels)))))}, TTHERM_00825460, histone', sizing_mode=search_sizing_mode)
+        text_input2 = TextInput(value="", placeholder=f'Search comma-separatedfunctional term(s) like GOs, KEGGs, PFAMs, and InterPro. For example: K11253, GO:1902494, Histone', sizing_mode=search_sizing_mode)
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -812,7 +843,7 @@ def interactive(
 
         else:
             
-
+            # Descriptive search
             callback = CustomJS(
                 args=dict(
                     s1=data_source,
@@ -1078,6 +1109,272 @@ def interactive(
             # text_input.js_on_change("value", callback)
             text_input.js_on_event(events.ValueSubmit, callback)
 
+            # Functional term search
+            callback2 = CustomJS(
+                args=dict(
+                    s1=data_source,
+                    s2=s2,
+                    table=table,
+                    matching_alpha=interactive_text_search_alpha_contrast,
+                    non_matching_alpha=1 - interactive_text_search_alpha_contrast,
+                    search_columns=interactive_text_search_columns2,
+                    default_radius=radius,
+                    default_alpha=alpha,
+
+                    s_expr=expr_source,
+
+                    s_hm=hm_cds,
+                    cols=x,
+
+                    s_enrich=enrich_cds,
+                    s_avg=avg_data_source,
+                ),
+                code="""
+                var d1 = s1.data; // embedding
+                var d2 = s2.data; // table
+                var d_avg = s_avg.data
+
+                var d_expr = s_expr.data; // expression plot
+                var d_hm = s_hm.data; // heatmap
+                var d_enrich = s_enrich.data; // enrichment plot
+
+                var selected_ttherm_id = "";
+
+                var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
+                const num_cols = cols.length;
+
+                var text_search = cb_obj.value;
+                var search_terms = text_search.split(',');
+
+                d2['module'] = []
+                d2['ID'] = []
+
+
+                // JS INITIALIZE
+
+                // EMBEDDING
+                // Start by making everything tiny and pale
+                d1['alpha'] = Array(d1['ID'].length).fill(0.01)
+                d1['line_alpha'] = Array(d1['ID'].length).fill(0.01)
+                d1['radius'] = Array(d1['ID'].length).fill(0.0001)
+
+                // TABLE
+                d2['ID'] = []
+                // d2['YF_ID'] = []
+
+                \n"""+'\n'.join([f"d2['{tc}'] = []" for tc in table_columns])+"""\n
+                
+                // d2['KEGG_TC'] = []
+                // d2['CAZy'] = []
+                // d2['BiGG_Reaction'] = []
+
+                // EXPRESSION
+                d_expr['TTHERM_ID'] = ['blah']
+                d_expr['module'] = ['blah']
+                d_expr['ID'] = [['blah']]
+                d_expr['expr_xs'] = [['Ll']]
+                d_expr['expr_ys'] = [[0]]
+                d_expr['alpha'] = [0]
+                d_expr['color'] = ['black']
+                d_expr['line_dash'] = ['solid']
+
+                // HEATMAP
+                d_hm['fill_alpha'] = []
+                d_hm['line_alpha'] = []
+                
+                d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+                d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+                
+                s_avg.selected.indices = []
+
+                d_avg['alpha'] = Array(d_avg['alpha'].length).fill(default_radius)
+                d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius)
+                d_avg['line_color'] = Array(d_avg['line_color'].length).fill("black")
+
+                // JS SEARCH
+
+                var search_columns_dict = {}
+                for (var col in search_columns){
+                    search_columns_dict[col] = search_columns[col]
+                }
+
+                // ENRICHMENT                
+                s_enrich.selected.indices = []
+
+                d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.3)
+                d_enrich['size'] = Array(d_enrich['size'].length).fill(7)
+                d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill("black")
+
+
+                s1.selected.indices = []
+
+                // Run search
+                if (text_search.length > 0){
+                    
+                    // HEATMAP deselect all
+                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+
+                    // Loop over columns and values
+                    // If there is no match for any column for a given row, change the alpha value
+                    var string_match = false;
+                    for (var i = 0; i < d1.x.length; i++) {
+                        string_match = false
+                        for (var j in search_columns_dict) {
+                            if (search_terms.some(t => String(d1[search_columns_dict[j]][i]).includes(t.trim()))) {
+                                string_match = true
+                            }
+                        }
+                        if (string_match){
+                            // d1['alpha'][i] = matching_alpha
+                            // d1['radius'][i] = 1
+                            // d2['YF_ID'].push(d1['YF_ID'][i])
+
+                            // d3['xs'].push(ref_expr['xs'][i])
+                            // d3['ys'].push(ref_expr['ys'][i])
+
+                            // So that these points are actually considered selected
+                            s1.selected.indices.push(i)
+
+                            // TABLE
+                            d2['ID'].push(d1['ID'][i])
+                            // d2['YF_ID'].push(d1['YF_ID'][i])
+
+                            \n"""+'\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns])+"""\n
+
+                            // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
+                            // d2['CAZy'].push(d1['CAZy'][i])
+                            // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
+                            
+                            // EMBEDDING
+                            // d1['alpha'][i] = 1
+                            // d1['line_alpha'][i] = 1
+                            // d1['radius'][i] = 100
+
+                            // EXPRESSION
+                            d_expr['TTHERM_ID'].push(d1['ID'][i])
+                            d_expr['module'].push(d1['module'][i])
+                            d_expr['ID'].push(Array(18).fill(d1['ID'][i]))
+                            d_expr['expr_xs'].push(d1['expr_xs'][i])
+                            d_expr['expr_ys'].push(d1['expr_ys'][i])
+                            d_expr['color'].push(d1['color'][i])
+                            d_expr['line_dash'].push('solid')
+                            // console.log(d_expr)
+                            // console.log(i)
+                            // console.log(
+                            //     d_expr['ID'].length, 
+                            //     d_expr['expr_xs'].length, 
+                            //     d_expr['expr_ys'].length
+                            // )
+
+                            // HEATMAP
+                            // selected_ttherm_id = d1['ID'][i];
+                            // var match = (element) => element == selected_ttherm_id;
+                            var gene_index = i;
+
+                            for (var k = 0; k < num_cols; k++) {
+                                d_hm['fill_alpha'][gene_index] = 0.7
+                                d_hm['line_alpha'][gene_index] = 0.7
+
+                                gene_index = gene_index + ttids.length
+                            }
+
+                        }else{
+                            // d1['alpha'][i] = non_matching_alpha
+                            // d1['radius'][i] = 0.01
+                        }
+                    }
+                }
+
+                d_expr['alpha'].push.apply(d_expr['alpha'],
+                    Array(d2['ID'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)))
+                );
+
+                var avg_mods = d_avg['label'].slice(0);
+                var selected_mods = d2['module'].slice(0);
+                
+                var avg_nmod_str = ""
+                var avg_nmod = -1
+                
+                for (let mod of selected_mods){
+                    let avg_nmod_str = mod.slice(1);
+                    let avg_nmod = +avg_nmod_str;
+                    // console.log(avg_nmod);
+                    avg_mods.forEach((item, index) => {
+                        if (item === avg_nmod) {
+                            // console.log("IN");
+                            // console.log(index);
+                            s_avg.selected.indices.push(index);
+                        }
+                    });
+                }
+
+                if (selected_mods.length > 0 && s_avg.selected.indices.length == 0){
+                    d_avg['alpha'] = Array(d_avg['alpha'].length).fill(0.05)
+                    // d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius/20)
+                    d_avg['line_color'] = Array(d_avg['line_color'].length).fill(null)
+                }
+
+
+                var enrich_mods = d_enrich['module'].slice(0);
+
+                // console.log("selected_mods")
+                // console.log(selected_mods)
+                
+                var enrich_mod_idx = -1
+                var nmod_str = ""
+                var nmod = -1
+
+                // console.log(s_enrich.selected.indices);
+                
+                for (let mod of selected_mods){
+                    let nmod_str = mod.slice(1);
+                    let nmod = +nmod_str;
+                    // console.log(nmod);
+                    enrich_mods.forEach((item, index) => {
+                        if (item === nmod) {
+                            // console.log("IN");
+                            // console.log(index);
+                            s_enrich.selected.indices.push(index);
+                        }
+                    });
+                }
+                
+                // console.log(s_enrich.selected.indices.length);
+                // console.log(s_enrich.selected.indices);
+
+                if (selected_mods.length > 0 && s_enrich.selected.indices.length == 0){
+                    // console.log("NONE");
+                    d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.05)
+                    // d_enrich['size'] = Array(d_enrich['size'].length).fill(1)
+                    d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill(null)
+                }
+
+                // console.log(s_enrich.selected.indices);
+
+                s1.change.emit();
+                s2.change.emit();
+                table.change.emit();
+
+
+                s_expr.change.emit();
+                    
+                s_hm.change.emit();
+
+                s_enrich.change.emit()
+
+                s_avg.change.emit()
+
+                console.log("RAN search");
+                // console.log(s1.selected.indices.length);
+                // console.log(s1.selected.indices);
+
+            """,
+            )
+
+            # text_input.js_on_change("value", callback)
+            text_input2.js_on_event(events.ValueSubmit, callback2)
+
     module_list = list(hover_data['module'].values)
     sorted_module_list = sorted(module_list)
     max_label_num_str = (sorted_module_list[len(module_list) - 1]).replace('m', '')
@@ -1154,23 +1451,23 @@ def interactive(
 
 
         # FIXME: IMPLEMENT
-        text_search2 = TextInput(value="ENRICHMENT TERM SEARCH (UNDER CONSTRUCTION)", sizing_mode='stretch_width')
+        # text_search2 = TextInput(value="ENRICHMENT TERM SEARCH (UNDER CONSTRUCTION)", sizing_mode='stretch_width')
 
-        # FIXME: IMPLEMENT
-        data_module_stats = {'Module': [1, 2, 3, 4],
-                            'Stats': ['A', 'B', 'C', 'D']}
-        source_module_stats = ColumnDataSource(data=data_module_stats)
-        columns_module_stats = [TableColumn(field="Module", title="Module"),
-                                TableColumn(field="Stats", title="Stats")]
-        module_stats_table = DataTable(source=source_module_stats, columns=columns_module_stats)
+        # # FIXME: IMPLEMENT
+        # data_module_stats = {'Module': [1, 2, 3, 4],
+        #                     'Stats': ['A', 'B', 'C', 'D']}
+        # source_module_stats = ColumnDataSource(data=data_module_stats)
+        # columns_module_stats = [TableColumn(field="Module", title="Module"),
+        #                         TableColumn(field="Stats", title="Stats")]
+        # module_stats_table = DataTable(source=source_module_stats, columns=columns_module_stats)
 
 
-        spinner_text_html = """
-        <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
-            <p style="text-align: center;">MODULE #:</p>
-        </div>
-        """
-        spinner_custom_text = Div(text=spinner_text_html)
+        # spinner_text_html = """
+        # <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+        #     <p style="text-align: center;">MODULE #:</p>
+        # </div>
+        # """
+        # spinner_custom_text = Div(text=spinner_text_html)
 
         cola_sizing_mode = 'stretch_width'
         colb_sizing_mode = 'stretch_width'
@@ -1187,14 +1484,14 @@ def interactive(
             expr_fig, height=800) 
         col3a.sizing_mode = cola_sizing_mode
 
-        col1b = column(module_stats_table, height=800, max_width=450)
-        col1b.sizing_mode = colb_sizing_mode
+        # col1b = column(module_stats_table, height=800, max_width=450)
+        # col1b.sizing_mode = colb_sizing_mode
         col2b = column(table, height=800, max_width=100000)
         col2b.sizing_mode = colb_sizing_mode
 
         rows_sizing_mode = 'stretch_width'
 
-        row_search = row(text_input, download_button1, download_button2, sizing_mode='stretch_width')
+        row_search = row(text_input, text_input2, download_button1, download_button2, sizing_mode='stretch_width')
         rowa = row(row(col1a, col2a, sizing_mode=rows_sizing_mode), col3a)
         rowa.sizing_mode = rows_sizing_mode
         rowb = row(col2b)
