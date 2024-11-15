@@ -711,10 +711,11 @@ def interactive(
     all_columns = [
         'module',
         'common_name',
-        'peptide',
         'TGD2021_description',
         'Description',
+        'InterPro_description',
         'Preferred_name',
+        'peptide',
         'max_annot_lvl',
         'COG_category',
         'EC',
@@ -722,7 +723,6 @@ def interactive(
         'PFAMs',
         'KEGG_ko',
         'InterPro',
-        'InterPro_description',
         'KEGG_Pathway',
         'KEGG_Module',
         'KEGG_Reaction',
@@ -825,8 +825,8 @@ def interactive(
 
 
     if interactive_text_search:
-        text_input = TextInput(value="", placeholder=f'Search comma-separated descriptive terms like module(s), TTHERM_ID(s), gene names, or annotations. For example: m{str(int(3)).zfill(len(str(int(max(labels)))))}, TTHERM_00825460, histone', sizing_mode=search_sizing_mode)
-        text_input2 = TextInput(value="", placeholder=f'Search comma-separatedfunctional term(s) like GOs, KEGGs, PFAMs, and InterPro. For example: K11253, GO:1902494, Histone', sizing_mode=search_sizing_mode)
+        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or annotations', sizing_mode=search_sizing_mode)
+        text_input2 = TextInput(value="", placeholder=f'Comma-separated functional term(s) like GOs, KEGGs, PFAMs, and InterPro', sizing_mode=search_sizing_mode)
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
