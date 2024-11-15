@@ -144,24 +144,53 @@ y_all = df[y_all_stat].values
 
 z_all = df[z_all_stat].values
 
+# df_idxs = df.index.tolist()
+
+# points = zip(x_all, y_all, z_all, df_idxs)
+
+# max_points = np.array(pareto_optimal_points(points))
+# max_point_idxs = [int(pt[3]) for pt in max_points]
+
+# other_idxs = list(set(df_idxs) - set(max_point_idxs))
+
+global_s = 30
+
+
+fig = plt.figure()
+
+ax = fig.add_subplot(111, projection='3d')
+
+for nn in df['nns'].unique():
+    # print(nn)
+    mini_df = df.loc[df['nns'] == nn]
+    mini_x_all = mini_df[x_all_stat].values
+    
+    mini_y_all = mini_df[y_all_stat].values
+    
+    mini_z_all = mini_df[z_all_stat].values
+
+    mini_df = mini_df.reset_index()
+    
+    mini_df_idxs = mini_df.index.tolist()
+    
+    mini_points = zip(mini_x_all, mini_y_all, mini_z_all, mini_df_idxs)
+    
+    max_points = np.array(pareto_optimal_points(mini_points))
+    max_point_idxs = [int(pt[3]) for pt in max_points]
+    
+    other_idxs = list(set(mini_df_idxs) - set(max_point_idxs))
+    
+    ax.plot(mini_x_all[mini_df_idxs[1:]], mini_y_all[mini_df_idxs[1:]], mini_z_all[mini_df_idxs[1:]], color='black', label='filtered out', zorder=1)
+
+    ax.scatter(mini_x_all[max_point_idxs], mini_y_all[max_point_idxs], mini_z_all[max_point_idxs], color='red', marker='*', s=global_s, label='Pareto efficient', zorder=1)
+
+
 df_idxs = df.index.tolist()
 
 points = zip(x_all, y_all, z_all, df_idxs)
 
 max_points = np.array(pareto_optimal_points(points))
 max_point_idxs = [int(pt[3]) for pt in max_points]
-
-other_idxs = list(set(df_idxs) - set(max_point_idxs))
-
-global_s = 30
-
-fig = plt.figure()
-
-ax = fig.add_subplot(111, projection='3d')
-
-ax.scatter(x_all[other_idxs], y_all[other_idxs], z_all[other_idxs], color='black', marker='x', s=global_s, label='filtered out', zorder=1)
-
-ax.scatter(x_all[max_point_idxs], y_all[max_point_idxs], z_all[max_point_idxs], color='red', marker='*', s=global_s, label='Pareto efficient', zorder=1)
 
 max_modularity_idx = np.argmax(x_all[max_point_idxs])
 
@@ -214,6 +243,70 @@ ax.set_xlabel('x='+x_all_stat)
 ax.set_ylabel('y='+y_all_stat)
 ax.set_zlabel('z='+z_all_stat)
 
-plt.savefig(f'3d_{dataset}_{norm_type}.svg', format='svg')
+plt.savefig(f'test_3d_{dataset}_{norm_type}.svg', format='svg')
 
 plt.show(block=True)
+
+
+# fig = plt.figure()
+
+# ax = fig.add_subplot(111, projection='3d')
+
+# ax.scatter(x_all[other_idxs], y_all[other_idxs], z_all[other_idxs], color='black', marker='x', s=global_s, label='filtered out', zorder=1)
+
+# ax.scatter(x_all[max_point_idxs], y_all[max_point_idxs], z_all[max_point_idxs], color='red', marker='*', s=global_s, label='Pareto efficient', zorder=1)
+
+# max_modularity_idx = np.argmax(x_all[max_point_idxs])
+
+# optimal_idx = None
+
+# for idx, val in enumerate(z_all[max_point_idxs]):
+#     if val > 10:
+#         optimal_idx = idx
+#         break
+
+# center_x = x_all[max_point_idxs][optimal_idx]
+# center_y = y_all[max_point_idxs][optimal_idx]
+# center_z = z_all[max_point_idxs][optimal_idx]
+# ax.scatter([center_x], [center_y], [center_z], facecolors='none', edgecolor='#47EA00', linewidth=2, s=200, zorder=1,
+#                 # label=f'({round(center_x, 2)}, {round(center_y, 2)}, {round(center_z, 2)})'
+#             )
+
+# label = f'({round(center_x, 2)}, {round(center_y, 2)}, {round(center_z, 2)})'
+# ax.text(center_x + 0.04, center_y + 0.04, center_z + 4, label, color='black', fontsize=8, ha='left')
+
+
+# # plt.annotate('', xy=(center_x, center_y), xytext=(center_x, center_y),
+# #              arrowprops=dict(facecolor='#47EA00', 
+# #                              arrowstyle="->",
+# #                             #  shrink=0.05
+# #                              ),
+# #             #  rotation=45
+# #              )
+
+# x_extreme = x_all.max() if x_all.max() > abs(x_all.min()) else x_all.min()
+# y_exterme = y_all.max() if y_all.max() > abs(y_all.min()) else y_all.min()
+
+# #   ax.annotate('optimal', xy=(center_x + x_extreme*0.02, center_y + y_exterme/100), xytext=(center_x + x_extreme*0.1, center_y + y_exterme/20), zorder=1,
+# #               arrowprops=dict(
+# #                  #  color='#47EA00', 
+# #                  arrowstyle="->", 
+# #                  relpos=(1, 1), 
+# #                  lw=1.5,
+# #                  ))
+
+# #   ax.xlabel('Modularity')
+# #   ax.ylabel('# of Enriched Clusters' if y_all_stat == 'nenriched_clusters' else 'Fraction of All Clusters Enriched')
+# #   ax.legend()
+
+# #   for nns_value, group in df.groupby('nns'):
+# #      group_df = group.copy(deep=True).sort_values(by='modularity')
+# #      ax.plot(group_df['modularity'], group_df[y_all_stat], color='grey', linestyle='-', linewidth=1, zorder=-1)
+
+# ax.set_xlabel('x='+x_all_stat)
+# ax.set_ylabel('y='+y_all_stat)
+# ax.set_zlabel('z='+z_all_stat)
+
+# plt.savefig(f'3d_{dataset}_{norm_type}.svg', format='svg')
+
+# plt.show(block=True)
