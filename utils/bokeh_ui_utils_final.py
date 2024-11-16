@@ -1096,7 +1096,7 @@ def interactive(
 
                 if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0){
                     // console.log("NONE");
-                    d_enrich2['alpha'] = Array2(d_enrich['alpha'].length).fill(0.05)
+                    d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.05)
                     // d_enrich2['size'] = Array(d_enrich2['size'].length).fill(1)
                     d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null)
                 }
