@@ -241,7 +241,7 @@ def interactive(
         'Preferred_name'
     ],
     interactive_text_search_columns2=[
-        'COG_category',
+        # 'COG_category',
         'EC',
         'GOs',
         'PFAMs',
@@ -251,10 +251,11 @@ def interactive(
         'KEGG_Module',
         'KEGG_Reaction',
         'KEGG_rclass',
-        'BRITE',
+        # 'BRITE',
         'KEGG_TC',
-        'CAZy',
-        'BiGG_Reaction'],
+        # 'CAZy',
+        # 'BiGG_Reaction'
+    ],
     interactive_text_search_alpha_contrast=0.999,
     alpha=None,
     expr_min = 0,
@@ -373,6 +374,8 @@ def interactive(
     Returns
     -------
     """
+    import textwrap
+    
     if 'TTHERM_IDs' in list(embedding_df.columns):
         interactive_text_search_columns=[
         'TTHERM_ID', 
@@ -819,14 +822,24 @@ def interactive(
     enrich_df['alpha'] = enrich_df.shape[0] * [0.3]
     enrich_df['size'] = enrich_df.shape[0] * [7]
     enrich_df['line_color'] = enrich_df.shape[0] * ['black']
+
+    enrich_df['info'] = enrich_df['info'].astype('str')
+
+    enrich_df2 = enrich_df.copy()
+    
     
     enrich_cds = bokeh.models.ColumnDataSource(enrich_df)
-    enrich_p = plot_enrichment(enrich_cds, plot_sizing_mode=plot_sizing_mode)
+
+    # For the hovertools to not get overwhelmed by the length of annotation text.
+    enrich_df2['info'] = enrich_df2['info'].apply(textwrap.shorten, width=50)
+    enrich_cds2 = bokeh.models.ColumnDataSource(enrich_df2)
+    
+    enrich_p = plot_enrichment(enrich_cds2, plot_sizing_mode=plot_sizing_mode)
 
 
     if interactive_text_search:
-        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or annotations', sizing_mode=search_sizing_mode)
-        text_input2 = TextInput(value="", placeholder=f'Comma-separated functional term(s) like GOs, KEGGs, PFAMs, and InterPro', sizing_mode=search_sizing_mode)
+        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', sizing_mode=search_sizing_mode)
+        text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes', sizing_mode=search_sizing_mode)
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -861,6 +874,7 @@ def interactive(
                     cols=x,
 
                     s_enrich=enrich_cds,
+                    s_enrich2=enrich_cds2,
                     s_avg=avg_data_source,
                 ),
                 code="""
@@ -870,7 +884,8 @@ def interactive(
 
                 var d_expr = s_expr.data; // expression plot
                 var d_hm = s_hm.data; // heatmap
-                var d_enrich = s_enrich.data; // enrichment plot
+                var d_enrich = s_enrich.data; // enrichment table
+                var d_enrich2 = s_enrich2.data // enrichment plot
 
                 var selected_ttherm_id = "";
 
@@ -932,12 +947,13 @@ def interactive(
                     search_columns_dict[col] = search_columns[col]
                 }
 
-                // ENRICHMENT                
+                // ENRICHMENT
                 s_enrich.selected.indices = []
+                s_enrich2.selected.indices = []
 
-                d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.3)
-                d_enrich['size'] = Array(d_enrich['size'].length).fill(7)
-                d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill("black")
+                d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.3)
+                d_enrich2['size'] = Array(d_enrich2['size'].length).fill(7)
+                d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill("black")
 
 
                 s1.selected.indices = []
@@ -1070,6 +1086,7 @@ def interactive(
                             // console.log("IN");
                             // console.log(index);
                             s_enrich.selected.indices.push(index);
+                            s_enrich2.selected.indices.push(index);
                         }
                     });
                 }
@@ -1077,11 +1094,11 @@ def interactive(
                 // console.log(s_enrich.selected.indices.length);
                 // console.log(s_enrich.selected.indices);
 
-                if (selected_mods.length > 0 && s_enrich.selected.indices.length == 0){
+                if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0){
                     // console.log("NONE");
-                    d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.05)
-                    // d_enrich['size'] = Array(d_enrich['size'].length).fill(1)
-                    d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill(null)
+                    d_enrich2['alpha'] = Array2(d_enrich['alpha'].length).fill(0.05)
+                    // d_enrich2['size'] = Array(d_enrich2['size'].length).fill(1)
+                    d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null)
                 }
 
                 // console.log(s_enrich.selected.indices);
@@ -1095,9 +1112,10 @@ def interactive(
                     
                 s_hm.change.emit();
 
-                s_enrich.change.emit()
+                s_enrich.change.emit();
+                s_enrich2.change.emit();
 
-                s_avg.change.emit()
+                s_avg.change.emit();
 
                 console.log("RAN search");
                 // console.log(s1.selected.indices.length);
@@ -1125,8 +1143,8 @@ def interactive(
 
                     s_hm=hm_cds,
                     cols=x,
-
                     s_enrich=enrich_cds,
+                    s_enrich2=enrich_cds2,
                     s_avg=avg_data_source,
                 ),
                 code="""
@@ -1136,7 +1154,8 @@ def interactive(
 
                 var d_expr = s_expr.data; // expression plot
                 var d_hm = s_hm.data; // heatmap
-                var d_enrich = s_enrich.data; // enrichment plot
+                var d_enrich = s_enrich.data; // enrichment table
+                var d_enrich2 = s_enrich2.data; // enrichment plot
 
                 var selected_ttherm_id = "";
 
@@ -1198,12 +1217,13 @@ def interactive(
                     search_columns_dict[col] = search_columns[col]
                 }
 
-                // ENRICHMENT                
+                // ENRICHMENT  
                 s_enrich.selected.indices = []
+                s_enrich2.selected.indices = []
 
-                d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.3)
-                d_enrich['size'] = Array(d_enrich['size'].length).fill(7)
-                d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill("black")
+                d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.3)
+                d_enrich2['size'] = Array(d_enrich2['size'].length).fill(7)
+                d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill("black")
 
 
                 s1.selected.indices = []
@@ -1336,6 +1356,7 @@ def interactive(
                             // console.log("IN");
                             // console.log(index);
                             s_enrich.selected.indices.push(index);
+                            s_enrich2.selected.indices.push(index);
                         }
                     });
                 }
@@ -1343,11 +1364,11 @@ def interactive(
                 // console.log(s_enrich.selected.indices.length);
                 // console.log(s_enrich.selected.indices);
 
-                if (selected_mods.length > 0 && s_enrich.selected.indices.length == 0){
+                if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0){
                     // console.log("NONE");
-                    d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.05)
-                    // d_enrich['size'] = Array(d_enrich['size'].length).fill(1)
-                    d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill(null)
+                    d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.05)
+                    // d_enrich2['size'] = Array(d_enrich2['size'].length).fill(1)
+                    d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null)
                 }
 
                 // console.log(s_enrich.selected.indices);
@@ -1361,9 +1382,10 @@ def interactive(
                     
                 s_hm.change.emit();
 
-                s_enrich.change.emit()
+                s_enrich.change.emit();
+                s_enrich2.change.emit();
 
-                s_avg.change.emit()
+                s_avg.change.emit();
 
                 console.log("RAN search");
                 // console.log(s1.selected.indices.length);
@@ -1519,6 +1541,7 @@ def interactive(
                 cols=x,
 
                 s_enrich=enrich_cds,
+                s_enrich2=enrich_cds2,
 
                 s_avg=avg_data_source,
 
@@ -1533,7 +1556,8 @@ def interactive(
 
             var d_expr = s_expr.data; // expression plot
             var d_hm = s_hm.data; // heatmap
-            var d_enrich = s_enrich.data; // enrichment plot
+            var d_enrich = s_enrich.data; // enrichment table
+            var d_enrich2 = s_enrich2.data; // enrichment plot
 
             var selected_ttherm_id = "";
 
@@ -1581,10 +1605,11 @@ def interactive(
 
             // ENRICHMENT
             s_enrich.selected.indices = []
+            s_enrich2.selected.indices = []
 
-            d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.3)
-            d_enrich['size'] = Array(d_enrich['size'].length).fill(7)
-            d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill("black")
+            d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.3)
+            d_enrich2['size'] = Array(d_enrich2['size'].length).fill(7)
+            d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill("black")
 
             // HEATMAP deselect all
             d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
@@ -1678,14 +1703,15 @@ def interactive(
                 enrich_mods.forEach((item, index) => {
                     if (item === nmod) {
                         s_enrich.selected.indices.push(index);
+                        s_enrich2.selected.indices.push(index);
                     }
                 });
             }
 
-            if (selected_mods.length > 0 && s_enrich.selected.indices.length == 0){
-                d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.05)
-                // d_enrich['size'] = Array(d_enrich['size'].length).fill(1)
-                d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill(null)
+            if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0){
+                d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.05)
+                // d_enrich2['size'] = Array(d_enrich2['size'].length).fill(1)
+                d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null)
             }
 
 
@@ -1698,9 +1724,10 @@ def interactive(
                 
             s_hm.change.emit();
 
-            s_enrich.change.emit()
+            s_enrich.change.emit();
+            s_enrich2.change.emit();
 
-            // s_avg.change.emit()
+            // s_avg.change.emit();
 
             console.log("RAN AVG selection");
             // console.log(idxs.length);
@@ -1731,8 +1758,8 @@ def interactive(
 
                 s_hm=hm_cds,
                 cols=x,
-
                 s_enrich=enrich_cds,
+                s_enrich2=enrich_cds2,
 
                 s_avg=avg_data_source,
                 plot_tabs=plot_tabs,
@@ -1745,7 +1772,8 @@ def interactive(
 
             var d_expr = s_expr.data; // expression plot
             var d_hm = s_hm.data; // heatmap
-            var d_enrich = s_enrich.data; // enrichment plot
+            var d_enrich = s_enrich.data; // enrichment table
+            var d_enrich2 = s_enrich2.data; // enrichment plot
 
             var selected_ttherm_id = "";
 
@@ -1793,10 +1821,11 @@ def interactive(
 
             // ENRICHMENT
             s_enrich.selected.indices = []
+            s_enrich2.selected.indices = []
 
-            d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.3)
-            d_enrich['size'] = Array(d_enrich['size'].length).fill(7)
-            d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill("black")
+            d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.3)
+            d_enrich2['size'] = Array(d_enrich2['size'].length).fill(7)
+            d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill("black")
 
             // HEATMAP deselect all
             d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
@@ -1911,14 +1940,15 @@ def interactive(
                 enrich_mods.forEach((item, index) => {
                     if (item === nmod) {
                         s_enrich.selected.indices.push(index);
+                        s_enrich2.selected.indices.push(index);
                     }
                 });
             }
 
-            if (selected_mods.length > 0 && s_enrich.selected.indices.length == 0){
-                d_enrich['alpha'] = Array(d_enrich['alpha'].length).fill(0.05)
-                // d_enrich['size'] = Array(d_enrich['size'].length).fill(1)
-                d_enrich['line_color'] = Array(d_enrich['line_color'].length).fill(null)
+            if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0){
+                d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.05)
+                // d_enrich2['size'] = Array(d_enrich2['size'].length).fill(1)
+                d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null)
             }
 
 
@@ -1931,9 +1961,10 @@ def interactive(
                 
             s_hm.change.emit();
 
-            s_enrich.change.emit()
+            s_enrich.change.emit();
+            s_enrich2.change.emit();
 
-            s_avg.change.emit()
+            s_avg.change.emit();
 
             console.log("RAN selection");
             // console.log(idxs.length);
