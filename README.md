@@ -60,12 +60,13 @@ conda activate tgne.env
 
 Install the [SRA Toolkit](https://github.com/ncbi/sra-tools/wiki/01.-Downloading-SRA-Toolkit).
 
-Download the [RNA-seq data from SRA](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA861835&o=acc_s%3Aa):
+Download the [RNA-seq data from SRA](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA861835&o=acc_s%3Aa) (this will take a few hours):
 
 ```
 prefetch PRJNA861835
 ```
 
+The declare -A flag requires bash version > 4.
 ```
 declare -A time_points=(
     [SRR20576712]="240min_B"
