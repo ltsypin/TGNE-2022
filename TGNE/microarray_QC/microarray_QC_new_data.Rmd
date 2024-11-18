@@ -58,9 +58,9 @@ hist(expression.feature.set)
 This takes a while to run (and you have to hit <return> for every plot), but it helps to validate that the NUSE plot points
 us straight to the chips that should be thrown away.
 ```{r}
-# # devAskNewPage(ask = FALSE)
-# par(ask=FALSE)
-# image(expression.feature.set, transfo=rank)
+# devAskNewPage(ask = FALSE)
+par(ask=FALSE)
+image(expression.feature.set, transfo=rank)
 ```
 
 
