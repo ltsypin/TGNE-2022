@@ -58,14 +58,15 @@ Activate the conda environment:
 conda activate tgne.env
 ```
 
-Install the [SRA Toolkit](https://github.com/ncbi/sra-tools/wiki/01.-Downloading-SRA-Toolkit).
+Install the [SRA Toolkit](https://github.com/ncbi/sra-tools/wiki/01.-Downloading-SRA-Toolkit). Ensure that the toolkit is in your system path.
 
-Download the [RNA-seq data from SRA](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA861835&o=acc_s%3Aa):
+Download the [RNA-seq data from SRA](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA861835&o=acc_s%3Aa) (this will take a few hours):
 
 ```
 prefetch PRJNA861835
 ```
 
+The ```declare -A``` flag requires bash version > 4.
 ```
 declare -A time_points=(
     [SRR20576712]="240min_B"
@@ -146,7 +147,7 @@ Run FastQC on each of the fastq.gz files:
 ```
 cd raw
 mkdir -p qc/
-fastqc --threads <NUM_THREADS> --outdir ./qc/ ./<FILE_NAME>
+for filename in *.fastq.gz; do fastqc --threads 16 --outdir ./qc $filename; done
 ```
 
 Compile the FastQC results with MultiQC:
@@ -193,8 +194,13 @@ multiqc ./qc/ -o ./qc/
 
 Download the latest CDS file:
 ```
-mkdir -p cds_index/
-curl -o ./cds_index/cds.fasta https://github.com/yefei521/Tetrahymena_Genome_annotation_V2024/releases/download/V2024.2/Tetrahymena_Genome_annotation_V2024_CDS.fasta
+# Uncomment the two lines below if on a cluster
+# mkdir -p cds_index/
+# curl -o ./cds_index/cds.fasta https://github.com/yefei521/Tetrahymena_Genome_annotation_V2024/releases/download/V2024.2/Tetrahymena_Genome_annotation_V2024_CDS.fasta
+
+# Comment two three lines below if on a cluster
+wget https://github.com/yefei521/Tetrahymena_Genome_annotation_V2024/releases/download/V2024.2/Tetrahymena_Genome_annotation_V2024_CDS.fasta
+mv ./Tetrahymena_Genome_annotation_V2024_CDS.fasta ./cds_index/cds.fasta
 ```
 
 Index the latest CDS file with Kallisto:
