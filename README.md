@@ -147,7 +147,7 @@ Run FastQC on each of the fastq.gz files:
 ```
 cd raw
 mkdir -p qc/
-fastqc --threads <NUM_THREADS> --outdir ./qc/ ./*.fastq.gz
+for filename in *.fastq.gz; do fastqc --threads 16 --outdir ./qc $filename; done
 ```
 
 Compile the FastQC results with MultiQC:
