@@ -194,8 +194,13 @@ multiqc ./qc/ -o ./qc/
 
 Download the latest CDS file:
 ```
-mkdir -p cds_index/
-curl -o ./cds_index/cds.fasta https://github.com/yefei521/Tetrahymena_Genome_annotation_V2024/releases/download/V2024.2/Tetrahymena_Genome_annotation_V2024_CDS.fasta
+# Uncomment the two lines below if on a cluster
+# mkdir -p cds_index/
+# curl -o ./cds_index/cds.fasta https://github.com/yefei521/Tetrahymena_Genome_annotation_V2024/releases/download/V2024.2/Tetrahymena_Genome_annotation_V2024_CDS.fasta
+
+# Comment two three lines below if on a cluster
+wget https://github.com/yefei521/Tetrahymena_Genome_annotation_V2024/releases/download/V2024.2/Tetrahymena_Genome_annotation_V2024_CDS.fasta
+mv ./Tetrahymena_Genome_annotation_V2024_CDS.fasta ./cds_index/cds.fasta
 ```
 
 Index the latest CDS file with Kallisto:
