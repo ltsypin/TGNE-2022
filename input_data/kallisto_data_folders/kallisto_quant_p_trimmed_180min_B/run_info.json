@@ -1,0 +1,13 @@
+{
+	"n_targets": 26687,
+	"n_bootstraps": 0,
+	"n_processed": 56578968,
+	"n_pseudoaligned": 53591875,
+	"n_unique": 53538705,
+	"p_pseudoaligned": 94.7,
+	"p_unique": 94.6,
+	"kallisto_version": "0.44.0",
+	"index_version": 10,
+	"start_time": "Tue Jul  2 16:33:34 2024",
+	"call": "kallisto quant -t 12 -o kallisto_quant_p_trimmed_180min_B -i /project2/apturkew/michael/git/TGNE-2022/new_raw_data/tgd2024_jun28/tgd2024_jun28_cds_idx /project2/apturkew/michael/raw/trimmed/p_trimmed_180min_B_1.fastq.gz /project2/apturkew/michael/raw/trimmed/p_trimmed_180min_B_2.fastq.gz"
+}

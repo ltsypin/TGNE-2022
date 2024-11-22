@@ -133,7 +133,9 @@ TGNE/interproscan/**/*.tsv
 TGNE/interproscan/**/*.csv
 
 **/archive/*
-/input_data
+input_data/eggnog_annotations_file
+input_data/genome_model
+input_data/interproscan_tsv_file
 
 TGNE/clustering_optimization/*_clr_for_distances_*nn.Rmd
 
