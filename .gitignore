@@ -56,7 +56,7 @@ TGNE/embedding/mcl_rcl/*.txt
 
 archived_pipelines/*
 
-TGNE/clustering_optimization/**/*.csv
+# TGNE/clustering_optimization/**/*.csv
 
 *.db
 
