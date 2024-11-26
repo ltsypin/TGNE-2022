@@ -265,6 +265,10 @@ def plotter(dataset, norm_type, distance_metric):
     ax.set_xlabel('x='+x_all_stat)
     ax.set_ylabel('y='+y_all_stat)
     ax.set_zlabel('z='+z_all_stat)
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_zlim(0, 80)
     
     plt.savefig(f'./plots/3d_{dataset}_{norm_type}_{distance_metric}.svg', format='svg')
     
