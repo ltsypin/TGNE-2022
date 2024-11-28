@@ -893,7 +893,8 @@ def interactive(
                 const num_cols = cols.length;
 
                 var text_search = cb_obj.value;
-                var search_terms = text_search.split(',');
+                var search_terms = text_search.toLowerCase().split(',');
+                console.log(search_terms);
 
                 d2['module'] = []
                 d2['ID'] = []
@@ -903,8 +904,8 @@ def interactive(
 
                 // EMBEDDING
                 // Start by making everything tiny and pale
-                d1['alpha'] = Array(d1['ID'].length).fill(0.01)
-                d1['line_alpha'] = Array(d1['ID'].length).fill(0.01)
+                d1['alpha'] = Array(d1['ID'].length).fill(0.0001)
+                d1['line_alpha'] = Array(d1['ID'].length).fill(0.0001)
                 d1['radius'] = Array(d1['ID'].length).fill(0.0001)
 
                 // TABLE
@@ -962,8 +963,8 @@ def interactive(
                 if (text_search.length > 0){
                     
                     // HEATMAP deselect all
-                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
-                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.001)
+                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.001)
 
                     // Loop over columns and values
                     // If there is no match for any column for a given row, change the alpha value
@@ -971,10 +972,12 @@ def interactive(
                     for (var i = 0; i < d1.x.length; i++) {
                         string_match = false
                         for (var j in search_columns_dict) {
-                            if (search_terms.some(t => String(d1[search_columns_dict[j]][i]).includes(t.trim()))) {
+                            var target = String(d1[search_columns_dict[j]][i]).toLowerCase();
+                            if (search_terms.some(t => target.includes(t.trim()))) {
                                 string_match = true
                             }
                         }
+                        
                         if (string_match){
                             // d1['alpha'][i] = matching_alpha
                             // d1['radius'][i] = 1
@@ -1061,7 +1064,7 @@ def interactive(
 
                 if (selected_mods.length > 0 && s_avg.selected.indices.length == 0){
                     d_avg['alpha'] = Array(d_avg['alpha'].length).fill(0.05)
-                    // d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius/20)
+                    d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius/20)
                     d_avg['line_color'] = Array(d_avg['line_color'].length).fill(null)
                 }
 
@@ -1163,7 +1166,8 @@ def interactive(
                 const num_cols = cols.length;
 
                 var text_search = cb_obj.value;
-                var search_terms = text_search.split(',');
+                var search_terms = text_search.toLowerCase().split(',');
+                console.log(search_terms);
 
                 d2['module'] = []
                 d2['ID'] = []
@@ -1173,8 +1177,8 @@ def interactive(
 
                 // EMBEDDING
                 // Start by making everything tiny and pale
-                d1['alpha'] = Array(d1['ID'].length).fill(0.01)
-                d1['line_alpha'] = Array(d1['ID'].length).fill(0.01)
+                d1['alpha'] = Array(d1['ID'].length).fill(0.0001)
+                d1['line_alpha'] = Array(d1['ID'].length).fill(0.0001)
                 d1['radius'] = Array(d1['ID'].length).fill(0.0001)
 
                 // TABLE
@@ -1232,8 +1236,8 @@ def interactive(
                 if (text_search.length > 0){
                     
                     // HEATMAP deselect all
-                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
-                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.01)
+                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.001)
+                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.001)
 
                     // Loop over columns and values
                     // If there is no match for any column for a given row, change the alpha value
@@ -1241,10 +1245,12 @@ def interactive(
                     for (var i = 0; i < d1.x.length; i++) {
                         string_match = false
                         for (var j in search_columns_dict) {
-                            if (search_terms.some(t => String(d1[search_columns_dict[j]][i]).includes(t.trim()))) {
+                            var target = String(d1[search_columns_dict[j]][i]).toLowerCase();
+                            if (search_terms.some(t => target.includes(t.trim()))) {
                                 string_match = true
                             }
                         }
+                        
                         if (string_match){
                             // d1['alpha'][i] = matching_alpha
                             // d1['radius'][i] = 1
