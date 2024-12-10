@@ -963,8 +963,8 @@ def interactive(
                 if (text_search.length > 0){
                     
                     // HEATMAP deselect all
-                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.001)
-                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.001)
+                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005)
+                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005)
 
                     // Loop over columns and values
                     // If there is no match for any column for a given row, change the alpha value
@@ -1236,8 +1236,8 @@ def interactive(
                 if (text_search.length > 0){
                     
                     // HEATMAP deselect all
-                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.001)
-                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.001)
+                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005)
+                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005)
 
                     // Loop over columns and values
                     // If there is no match for any column for a given row, change the alpha value
