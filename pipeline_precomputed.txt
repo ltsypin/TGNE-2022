@@ -1,0 +1,22 @@
+# ENTER PYTHON CONDA ENV
+tgne.env
+
+# MANAGE INPUT DATA
+manage_input_data_precomputed.ipynb
+
+# DOWNLOAD EGGNOG ANNOTATION DESCRIPTIONS
+TGNE/eggnog/download_eggnog_annotation_descriptions.py
+
+# INTERPROSCAN ANNOTATION DATA PROCESSING
+TGNE/interproscan/extract_annot.ipynb
+
+# ANNOTATION DATA PROCESSING
+TGNE/eggnog/annotation.ipynb
+
+# CLUSTER AND GENERATE DASHBOARDS (NOTE: HYPERPARAMETERS MUST BE MANUALLY MODIFIED HERE)
+TGNE/embedding/generate_colors.ipynb
+TGNE/embedding/all_rna_seq_tabbed.ipynb
+TGNE/embedding/all_microarray_tabbed.ipynb
+
+# EXIT THE CONDA ENV
+.denv

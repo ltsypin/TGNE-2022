@@ -1,0 +1,436 @@
+---
+title: "Performing RMA on corrected probes"
+author: "Lev Tsypin"
+date: "11/7/2021"
+output: html_document
+---
+
+```{r}
+library(oligo) # Install with BiocManager
+library(pdInfoBuilder) # Install with BiocManager
+library(ggplot2)
+
+library(bigmemory)
+library(snow)
+
+library(geneplotter)
+library(RColorBrewer)
+library(maSigPro)
+library(actuar)
+library(fitdistrplus)
+library(ggplot2)
+library(Hmisc)
+library(WGCNA)
+options(stringsAsFactors = FALSE)
+allowWGCNAThreads()
+
+library(genefilter)
+
+setwd('./')
+set.seed(42)
+```
+
+```{r}
+# This step should be done with the original .ndf before mapping probes to
+# 2021 gene annotations because we need to track each individual probes
+# (rather than lump them into genes they map to)
+conflicting_directory <- './pd.filtered.tetexpr/'
+
+unlink(conflicting_directory, recursive = TRUE)
+
+seed <- new("NgsExpressionPDInfoPkgSeed",
+              ndfFile='./raw_data/filtered_tetexpr.ndf',
+              xysFile='./raw_data/expression/1772502_532.xys',
+              author='Michael Bertagna',
+              email='michael3bertagna@gmail.com',
+              biocViews='Annotation Data',
+              species='Tetrahymena thermophila')
+
+makePdInfoPackage(seed, destDir = '.')
+```
+
+
+```{r}
+install.packages('./pd.filtered.tetexpr/', repos=NULL, type='source')
+```
+
+```{r}
+library(pd.filtered.tetexpr)
+```
+
+```{r}
+xysFiles <- list.files('./raw_data/expression/', pattern = "\\.xys$", full.names = TRUE)
+expression.feature.set <- read.xysfiles(xysFiles, pkgname = 'pd.filtered.tetexpr')
+```
+
+```{r}
+raw.expression <- exprs(expression.feature.set)
+boxplot(expression.feature.set, las=2)
+hist(expression.feature.set)
+```
+
+```{r}
+# take a look at the chips which passed qc
+image(expression.feature.set, transfo=rank)
+```
+
+```{r}
+# fit <- fitProbeLevelModel(expression.feature.set)
+# NUSE(fit, names=xysFiles, las=2, cex=0.001)
+```
+
+```{r}
+# THIS WILL CRASH RStudio (MUST RUN VIA RScript on the command line)
+fit <- fitProbeLevelModel(expression.feature.set)
+NUSE(fit, names=xysFiles, las=2, cex=0.001)
+```
+
+Problematic chips have a median NUSE (normalized unscaled standard error) > 1 
+or have a large interquartile range. In general, keeping chips with IQR crossing
+1 so long as they look okay visually.
+Validate against chips that look bad in the plots above.
+```{r}
+# Bad chip
+xysFiles[c(7)]
+```
+
+```{r}
+xysFiles[-c(7)]
+```
+
+
+```{r}
+qc.files <- xysFiles[-c(7)]
+qc.files
+```
+
+```{r}
+qc.featureset <- read.xysfiles(qc.files, pkgname = 'pd.filtered.tetexpr')
+qc.raw.expression <- exprs(qc.featureset)
+boxplot(qc.featureset, las=2)
+hist(qc.featureset)
+```
+
+```{r}
+dim(qc.raw.expression)
+```
+
+
+```{r}
+qc.rma.corrected <- rma(qc.featureset, background=TRUE, normalize=TRUE, subset=NULL)
+boxplot(qc.rma.corrected, transfo=identity, las=2)
+hist(qc.rma.corrected, transfo=identity)
+```
+
+```{r}
+myExpressionSet <- qc.rma.corrected
+
+# Define metadata (example)
+metadata <- data.frame(
+  SampleID = colnames(exprs(myExpressionSet)),  # Assuming SampleID corresponds to column names
+  Condition = c(rep("Control", 6), rep("Treatment", (6) - 1)),  # Example data
+  Time = c(rep("0h", 3), rep("1h", 3), rep("0h", (3) - 1), rep("1h", 3))  # Example data
+)
+
+# Assign metadata to phenoData slot
+pData(myExpressionSet) <- metadata
+
+# View the updated ExpressionSet
+myExpressionSet
+
+```
+
+
+```{r}
+qc.rma.expression <- exprs(qc.rma.corrected)
+write.csv(qc.rma.expression, './QC_probe_rma_values.csv')
+```
+
+
+
+```{r}
+nuse <- NUSE(fit, type='values')
+nuse.df <- stack(as.data.frame(nuse))
+ggplot(nuse.df, aes(ind, values)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle=90)) +
+  scale_y_continuous(limits=c(0.95, 1.1)) +
+  geom_hline(yintercept=1, linetype='solid', color='red', linewidth=0.5)
+```
+
+
+```{r}
+data <- myExpressionSet
+data
+```
+
+```{r}
+table(data$Condition)
+```
+
+```{r}
+table(data$Time)
+```
+
+```{r}
+table(data$SampleID)
+```
+
+```{r}
+sampleTree = hclust(dist(t(qc.rma.expression)), method = "average")
+par(cex = 0.6)
+par(mar = c(0,4,2,0))
+plot(sampleTree, main = "unfiltered, all chips", sub="", xlab="", cex.lab = 1.5,cex.axis = 1.5, cex.main = 2)
+
+```
+These chips cluster by timepoint and then by genotype, as expected.
+
+```{r}
+log.qc.rma.expression = log(qc.rma.expression)
+# par(mar = c(1, 1, 1, 1))
+
+h <- hist(log.qc.rma.expression, main='Log Expression Hist', breaks=sqrt(length(qc.rma.expression)))
+
+plot(h)
+
+```
+
+```{r}
+wei.range.fun <- function(v) {
+        return(max(v) - min(v))
+}
+
+maxfold.fun <- function(v) {
+        return(max(v) / min(v))
+}
+
+geom.mean.fun <- function(v) {
+  return(exp(mean(log(v))))
+}
+
+geom.cv.fun <- function(v) {
+  return(sqrt(exp(sd(log(v))^2)-1))
+}
+
+expr.wei.range <- apply(qc.rma.expression, 1, wei.range.fun)
+expr.maxfold <- apply(qc.rma.expression, 1, maxfold.fun)
+expr.mean <- apply(qc.rma.expression, 1, mean)
+expr.geom.mean <- apply(qc.rma.expression, 1, geom.mean.fun)
+expr.geom.cv <- apply(qc.rma.expression, 1, geom.cv.fun)
+expr.sd <- apply(qc.rma.expression, 1, sd)
+expr.cv <- expr.sd / expr.mean
+expr.iqr <- apply(qc.rma.expression, 1, IQR)
+expr.med <- apply(qc.rma.expression, 1, median)
+expr.mad <- apply(qc.rma.expression, 1, mad)
+```
+
+```{r}
+# sizeGrWindow(12,9)
+hist(log(expr.geom.mean), main='Geometric mean expression hist', breaks=sqrt(length(expr.geom.mean)))
+abline(v=quantile(log(expr.geom.mean), probs=c(0.25)), lwd=1, col='red')
+abline(v=median(log(expr.geom.mean)), lwd=1, col='blue')
+```
+
+```{r}
+# Just the geometric mean
+filt.geom.mean <- expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))
+
+# Main filter by the mean, but also allow some exceptionally well-behaved
+# genes with a low expression
+filt.greedy.med.only <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))) | ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) & expr.iqr/expr.med >= quantile(expr.iqr/expr.med, probs=c(0.5)))
+
+filt.greedy.mad.only <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.5))) | ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) & expr.mad/expr.med >= quantile(expr.mad/expr.med, probs=c(0.5)))
+
+filt.greedy <- (expr.geom.mean >= quantile(expr.geom.mean, probs=c(0.25))) | 
+  ((expr.geom.cv >= quantile(expr.geom.cv, probs=c(0.5))) & 
+     (expr.maxfold >= quantile(expr.maxfold, probs=c(0.5))) &
+     (
+       expr.iqr/expr.med >= quantile(expr.iqr/expr.med, probs=c(0.5)) |
+       expr.mad/expr.med >= quantile(expr.mad/expr.med, probs=c(0.5))
+        )
+   )
+
+
+greedy.filtered <- qc.rma.expression[filt.greedy, ]
+
+greedy.filtered.expr.geom.mean <- apply(greedy.filtered, 1, geom.mean.fun)
+# greedy.filtered.expr.sd <- apply(greedy.filtered, 1, sd)
+greedy.filtered.expr.geom.cv <- apply(greedy.filtered, 1, geom.cv.fun)
+greedy.filtered.expr.maxfold <- apply(greedy.filtered, 1, maxfold.fun)
+
+
+```
+
+
+```{r}
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(expr.geom.mean),
+                 log(expr.geom.cv),
+                 colramp=blues.ramp)
+plot(expr.geom.mean, expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of unfiltered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+
+blues.ramp <- colorRampPalette(brewer.pal(9,"Blues")[-1])
+dCol <- densCols(log(greedy.filtered.expr.geom.mean),
+                 log(greedy.filtered.expr.geom.cv),
+                 colramp=blues.ramp)
+plot(greedy.filtered.expr.geom.mean, greedy.filtered.expr.geom.cv, main='Geom. Coef. Var. vs. Geom. Mean Expr. of greedily filtered data', log='xy', col=dCol, pch=16, cex=0.1, xlim=c(4,16), ylim=c(0.01, 500))
+```
+
+```{r}
+microarray.edesign <- read.csv('./regranulation_microarray_experiment_design_for_maSigPro.csv',
+                              row.names = 1)
+
+microarray.edesign <- subset(microarray.edesign, rownames(microarray.edesign) %in% colnames(qc.rma.expression))
+head(microarray.edesign)
+```
+
+
+```{r}
+design <- make.design.matrix(microarray.edesign, degree=1)
+
+```
+
+```{r}
+# DIFFERENCE OCCURING HERE aarch64-apple-darwin20 (64-bit) vs. x86_64-apple-darwin13.4.0 (64-bit)
+fit <- p.vector(qc.rma.expression, design, Q = 0.01, MT.adjust = "BH")
+```
+```{r}
+fit$i # DIFFERENT
+de.genes <- rownames(fit$SELEC)
+head(fit$SELEC)
+```
+```{r}
+greedy <- names(filt.greedy[filt.greedy])
+length(greedy)
+length(de.genes)
+only.masigpro <- setdiff(de.genes, greedy)
+only.greedy <- setdiff(greedy, de.genes)
+length(only.masigpro)
+length(only.greedy)
+```
+Looks like MaSigPro recovers an additional 148 genes
+
+```{r}
+all.good.genes <- union(de.genes, greedy)
+length(all.good.genes)
+```
+
+```{r}
+expressionset.filter.func <- function(v) {
+        res <- v %in% all.good.genes
+        return(res)
+}
+```
+
+```{r}
+expressionset.filter.func(c('TTHERM_00036990', 'blah'))
+```
+
+```{r}
+featureNames(data) %in% all.good.genes
+
+all.good.data <- data[(featureNames(data) %in% all.good.genes), ]
+```
+
+
+
+```{r}
+# Load necessary libraries
+library(limma)
+library(ggplot2)
+library(dplyr)
+library(ggrepel)
+
+ourData1h <- all.good.data[, data$Time %in% c("1h")]
+ourData1h$Condition <- factor(ourData1h$Condition)
+
+ourData0h <- all.good.data[, data$Time %in% c("0h")]
+ourData0h$Condition <- factor(ourData0h$Condition)
+```
+
+```{r}
+design <- model.matrix(~ ourData1h$Condition)
+design
+```
+
+```{r}
+sampleInfo <- pData(all.good.data)
+sampleInfo$Group <- factor(paste(sampleInfo$Condition, sampleInfo$Time, sep="_"))
+
+design <- model.matrix(~ 0 + Group, data=sampleInfo)
+colnames(design) <- levels(sampleInfo$Group)
+```
+
+```{r}
+print(sampleInfo[, c("SampleID", "Condition", "Time")])
+```
+
+
+```{r}
+fit <- lmFit(all.good.data, design)
+
+design
+
+fit
+```
+
+```{r}
+fit$coefficients[which(rownames(fit$coefficients) == 'TTHERM_00261850'), ]
+```
+
+```{r}
+cont.dif <- makeContrasts(
+    Dif1hr = (Control_1h - Control_0h) - (Treatment_1h - Treatment_0h),
+    levels = design
+)
+```
+
+```{r}
+# set prior based on MaSigPro result (6472 genes out of the original 23662--27%)
+fit2 <- contrasts.fit(fit, cont.dif)
+fit2 <- eBayes(fit2, proportion = 0.27)
+topTable(fit2, adjust="BH")
+```
+
+```{r}
+tt = topTable(fit2, number=Inf, adjust="BH")
+
+# Add -log10 p-value for better visualization
+tt$negLogPValue <- -log10(tt$adj.P.Val)
+
+tt
+```
+
+```{r}
+range(tt$logFC)
+range(tt$P.Value)
+
+topRight <- tt %>%
+  filter(logFC > 1) %>%
+  arrange(desc(negLogPValue)) %>%
+  head(5)
+
+ggplot(tt, aes(x=logFC, y=negLogPValue)) +
+  geom_point(alpha=0.5) +
+  theme_minimal() +
+  xlab("Log2 Fold Change") +
+  ylab("-log10 P-value") +
+  ggtitle("Volcano Plot - 1h Time Point") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "blue") +
+  geom_text_repel(data=topRight, aes(label=rownames(topRight)), size=3, max.overlaps = 10)
+```
+
+```{r}
+# filtered_data <- tt %>%
+#   filter(logFC > 0.5) %>% # FC = 4
+#   filter(negLogPValue > 4) %>% # p = 0.0001
+#   arrange(desc(logFC))
+# 
+# # Write filtered and arranged data to CSV
+# write.csv(filtered_data, file = "filtered_tt.csv")
+
+write.csv(tt, file = "tt.csv")
+```
+
+

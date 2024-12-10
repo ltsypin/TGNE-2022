@@ -1,0 +1,152 @@
+---
+title: "Performing RMA on corrected probes"
+author: "Lev Tsypin"
+date: "11/7/2021"
+output: html_document
+---
+
+```{r}
+library(oligo) # Install with BiocManager
+library(pdInfoBuilder) # Install with BiocManager
+library(ggplot2)
+
+library(bigmemory)
+library(snow)
+
+setwd('~/git/TGNE-2022/TGNE/microarray_QC/')
+set.seed(42)
+```
+
+```{r}
+# This step should be done with the original .ndf before mapping probes to
+# 2021 gene annotations because we need to track each individual probes
+# (rather than lump them into genes they map to)
+conflicting_directory <- './pd.filtered.gpl6759.ndf.gz/'
+
+unlink(conflicting_directory, recursive = TRUE)
+
+seed <- new("NgsExpressionPDInfoPkgSeed",
+              ndfFile='../../new_raw_data/GSE11300/filtered_GPL6759.ndf.gz',
+              xysFile='./C0_GSM285570.xys',
+              author='Lev Tsypin',
+              email='ltsypin@gmail.com',
+              biocViews='Annotation Data',
+              species='Tetrahymena thermophila')
+
+makePdInfoPackage(seed, destDir = '.')
+```
+
+
+```{r}
+install.packages('./pd.filtered.gpl6759.ndf.gz/', repos=NULL, type='source')
+```
+
+```{r}
+library(pd.filtered.gpl6759.ndf.gz)
+```
+
+```{r}
+xysFiles <- list.xysfiles('.')
+expression.feature.set <- read.xysfiles(xysFiles, pkgname = 'pd.filtered.gpl6759.ndf.gz')
+```
+
+```{r}
+raw.expression <- exprs(expression.feature.set)
+boxplot(expression.feature.set, las=2)
+hist(expression.feature.set)
+```
+This takes a while to run (and you have to hit <return> for every plot), but it helps to validate that the NUSE plot points
+us straight to the chips that should be thrown away.
+```{r}
+# devAskNewPage(ask = FALSE)
+par(ask=FALSE)
+image(expression.feature.set, transfo=rank)
+```
+
+
+```{r}
+fit <- fitProbeLevelModel(expression.feature.set)
+```
+```{r}
+NUSE(fit, names=xysFiles, las=2, cex=0.001)
+```
+
+Problematic chips have a median NUSE (normalized unscaled standard error) > 1 
+or have a large interquartile range. In general, keeping chips with IQR crossing
+1 so long as they look okay visually.
+Validate against chips that look bad in the plots above.
+```{r}
+# Bad chips
+xysFiles[c(2, 6, 20, 21, 27, 31, 44, 47, 48, 50, 55, 56, 64)]
+```
+
+```{r}
+xysFiles[-c(2, 6, 20, 21, 27, 31, 44, 47, 48, 50, 55, 56, 64)]
+```
+
+
+Removing these chips will leave, C2, S12, S24, and c15m (as was initially the case) 
+without replicates. I think that they should be removed as well, for rigor 
+of the analysis.
+```{r}
+xysFiles[c(13, 22, 49)]
+```
+
+```{r}
+qc.files <- xysFiles[-c(2, 6, 13, 20, 21, 22, 27, 31, 44, 47, 48, 49, 50, 55, 56, 64)]
+qc.files
+```
+
+```{r}
+qc.featureset <- read.xysfiles(qc.files, pkgname = 'pd.filtered.gpl6759.ndf.gz')
+qc.raw.expression <- exprs(qc.featureset)
+boxplot(qc.featureset, las=2)
+hist(qc.featureset)
+```
+
+```{r}
+dim(qc.raw.expression)
+```
+
+```{r}
+bad.files = xysFiles[c(2, 6, 20, 21, 27, 31, 44, 47, 48, 50, 55, 56, 64, 13, 22, 49)]
+bad.featureset <- read.xysfiles(bad.files, pkgname = 'pd.filtered.gpl6759.ndf.gz')
+# take a look at the chips which DID NOT pass qc
+# image(qc.featureset, transfo=rank)
+```
+
+```{r}
+# take a look at the chips which passed qc
+# image(qc.featureset, transfo=rank)
+```
+
+```{r}
+qc.rma.corrected <- rma(qc.featureset, background=TRUE, normalize=TRUE, subset=NULL)
+boxplot(qc.rma.corrected, transfo=identity, las=2)
+hist(qc.rma.corrected, transfo=identity)
+```
+What is this one chip that's not like the rest?
+
+
+```{r}
+qc.rma.expression <- exprs(qc.rma.corrected)
+write.csv(qc.rma.expression, './QC_probe_rma_values.csv')
+```
+
+
+
+
+
+
+```{r}
+nuse <- NUSE(fit, type='values')
+nuse.df <- stack(as.data.frame(nuse))
+ggplot(nuse.df, aes(ind, values)) + 
+  geom_boxplot() + 
+  theme(axis.text.x = element_text(angle=90)) + 
+  scale_y_continuous(limits=c(0.95, 1.1)) +
+  geom_hline(yintercept=1, linetype='solid', color='red', linewidth=0.5)
+```
+
+
+
