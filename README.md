@@ -41,7 +41,7 @@ Place ```rna_seq.csv``` in the ```active_files/``` directory.
 bash s-execute-pipeline.sh pipeline_precomputed.txt
 ```
 
-### Building the TGNE from raw data:
+### Building the TGNE from raw data (required access to High Performance Computing):
 
 1) Kallisto:
 
@@ -52,6 +52,10 @@ mkdir -p input_data/kallisto_data_folders
 ```
 
 Build the conda environment.
+
+```
+bash build_tgne_env.sh
+```
 
 Activate the conda environment:
 ```
