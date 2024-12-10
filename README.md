@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/451236604.svg)](https://doi.org/10.5281/zenodo.14353373)
+
+
 # TGNE-2022
 Analysis for and development of the Tetrahymena Gene Network Explorer
 
