@@ -82,6 +82,9 @@ TGNE/embedding/colors_2000_1
 
 active_files/*
 
+!active_files/rna_seq.csv
+!active_files/microarray.csv
+
 *.gz
 
 TGNE/enrichment/**/*.csv
@@ -133,9 +136,12 @@ TGNE/interproscan/**/*.tsv
 TGNE/interproscan/**/*.csv
 
 **/archive/*
-input_data/eggnog_annotations_file
-input_data/genome_model
-input_data/interproscan_tsv_file
+input_data/eggnog_annotations_file/*
+input_data/genome_model/*
+input_data/interproscan_tsv_file/*
+
+!input_data/eggnog_annotations_file/eggnog_compiled_2024_jun28.annotations
+!input_data/interproscan_tsv_file/interproscan_compiled.tsv.gz
 
 TGNE/clustering_optimization/*_clr_for_distances_*nn.Rmd
 

@@ -31,9 +31,9 @@ mkdir -p active_files/
 
 Place ```eggnog_compiled_2024_jun28.annotations``` in the ```input_data/eggnog_annotations_file/``` directory.
 
-Place ```interproscan_compiled.tsv``` in the ```input_data/interproscan_tsv_file/``` directory.
+Place ```interproscan_compiled.tsv.gz``` in the ```input_data/interproscan_tsv_file/``` directory.
 
-Place ```allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv``` in the ```active_files/``` directory.
+Place ```microarray.csv``` in the ```active_files/``` directory.
 
 Place ```rna_seq.csv``` in the ```active_files/``` directory.
 
@@ -315,7 +315,11 @@ path_to_interproscan=<PATH TO AND INLCUDING interproscan-5.68-100.0/>
 ${path_to_interproscan%/}/interproscan.sh -i pep_cleaned.fasta -f tsv -d ./ -cpu <NUM_CPUS>
 ```
 
-Place the resulting InterProScan output file, ```pep_cleaned.fasta.tsv```, in the ```input_data/eggnog_annotations_file/``` directory.
+```
+gzip pep_cleaned.fasta.tsv
+```
+
+Place the resulting InterProScan output file, ```pep_cleaned.fasta.tsv.gz```, in the ```input_data/eggnog_annotations_file/``` directory.
 
 4. Build the TGNE:
 

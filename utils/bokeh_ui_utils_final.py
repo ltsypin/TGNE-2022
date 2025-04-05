@@ -265,6 +265,7 @@ def interactive(
     search_sizing_mode = 'stretch_both',
     avg_df=None,
     avg_radius=None,
+    text_input=None, text_input2=None
 ):
     """Create an interactive bokeh plot of a UMAP embedding.
     While static plots are useful, sometimes a plot that
@@ -627,7 +628,7 @@ def interactive(
     #     if x_heatmap_profile[idx] in rna_seq_phase_dict:
     #         x_heatmap_profile[idx] = rna_seq_phase_dict[x_heatmap_profile[idx]]
 
-    # for FIXME add the rna seq phases
+    # add the rna seq phases
     
     # if normalized:
     hm_min = expr_min
@@ -793,25 +794,26 @@ def interactive(
     
 
     callback = CustomJS(args=dict(s_expr=expr_source, s2=s2), code="""
-    var inds = cb_obj.indices;
-    // console.log(inds);
-    var d_expr = s_expr.data;
-    var d2 = s2.data;
+        var inds = cb_obj.indices;
+        var d_expr = s_expr.data;
+        var d2 = s2.data;
 
-    d_expr['line_dash'] = Array(d_expr['line_dash'].length).fill('solid');
-    
-    d_expr['alpha'] = Array(d_expr['alpha'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)));
-    
-    
-    if (inds.length > 0) {
+        // Reset all lines to default
         d_expr['line_dash'] = Array(d_expr['line_dash'].length).fill('solid');
-        d_expr['line_dash'][inds[0]+1] = 'solid';
-                        
-        d_expr['alpha'] = Array(d_expr['alpha'].length).fill(Math.min(1/3, Math.max(7/(d2['ID'].length)/3, 0.05)));
-        d_expr['alpha'][inds[0]+1] = 1;
-    }
-                        
-    s_expr.change.emit();    
+        d_expr['alpha'] = Array(d_expr['alpha'].length).fill(Math.min(1, Math.max(7 / (d2['ID'].length), 0.05)));
+
+        if (inds.length > 0) {
+            // Reduce transparency for all
+            d_expr['alpha'] = Array(d_expr['alpha'].length).fill(Math.min(1/3, Math.max(7 / (d2['ID'].length) / 3, 0.05)));
+            
+            // Highlight all selected indices
+            inds.forEach(i => {
+                d_expr['line_dash'][i + 1] = 'solid';
+                d_expr['alpha'][i + 1] = 1;
+            });
+        }
+
+        s_expr.change.emit();
     """)
 
     s2.selected.js_on_change('indices', callback)
@@ -838,8 +840,8 @@ def interactive(
 
 
     if interactive_text_search:
-        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', sizing_mode=search_sizing_mode)
-        text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes', sizing_mode=search_sizing_mode)
+        text_input = text_input
+        text_input2 = text_input2
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -1128,7 +1130,7 @@ def interactive(
             )
 
             # text_input.js_on_change("value", callback)
-            text_input.js_on_event(events.ValueSubmit, callback)
+            text_input.js_on_event(events.ValueSubmit, callback) # FIXME search persistance
 
             # Functional term search
             callback2 = CustomJS(
@@ -1425,7 +1427,7 @@ def interactive(
 
 
     # Lifted from https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content   + "\t" + 
-    download_button1 = Button(label='💾 Data Table', button_type="success")
+    download_button1 = Button(label='💾 Annotations', button_type="success")
     download_button1.js_on_click(
         CustomJS(
             args=dict(source_data=data_source),
@@ -1471,17 +1473,41 @@ def interactive(
             elem.click();
             document.body.removeChild(elem);
             """))  
-    
+
+    download_button3 = Button(label='💾 Expression', button_type="success")
+    download_button3.js_on_click(
+        CustomJS(
+            args=dict(source_data=data_source),
+            code="""
+            var inds = source_data.selected.indices;
+            var data = source_data.data;
+
+            var out = "TTHERM_ID\tmodule\t" + data['expr_xs'][0].join('\\t') + "\\n"; 
+
+            for (var i = 0; i < inds.length; i++) {
+                out += data['ID'][inds[i]] + "\\t" + 
+                    data['module'][inds[i]] + "\\t" + 
+                    data['expr_ys'][inds[i]].join('\\t') + "\\n";
+            }
+
+            var file = new Blob([out], { type: 'text/plain' });
+            var elem = document.createElement('a');
+            elem.href = URL.createObjectURL(file);
+            elem.download = 'selected-expression-data.tsv';
+            document.body.appendChild(elem);
+            elem.click();
+            document.body.removeChild(elem);
+            """))  
     
     
     
     if interactive_text_search:
 
 
-        # FIXME: IMPLEMENT
+        # IMPLEMENT
         # text_search2 = TextInput(value="ENRICHMENT TERM SEARCH (UNDER CONSTRUCTION)", sizing_mode='stretch_width')
 
-        # # FIXME: IMPLEMENT
+        # IMPLEMENT
         # data_module_stats = {'Module': [1, 2, 3, 4],
         #                     'Stats': ['A', 'B', 'C', 'D']}
         # source_module_stats = ColumnDataSource(data=data_module_stats)
@@ -1519,7 +1545,7 @@ def interactive(
 
         rows_sizing_mode = 'stretch_width'
 
-        row_search = row(text_input, text_input2, download_button1, download_button2, sizing_mode='stretch_width')
+        row_search = row(text_input, text_input2, download_button1, download_button2, download_button3, sizing_mode='stretch_width')
         rowa = row(row(col1a, col2a, sizing_mode=rows_sizing_mode), col3a)
         rowa.sizing_mode = rows_sizing_mode
         rowb = row(col2b)
@@ -1529,7 +1555,7 @@ def interactive(
         plot.sizing_mode = 'stretch_width'
 
     else:
-        plot = column(row(column(plot, expr_fig), hm, enrich_p), row(download_button1, download_button2), table)
+        plot = column(row(column(plot, expr_fig), hm, enrich_p), row(download_button1, download_button2, download_button3), table)
 
 
     a_s_callback = CustomJS(args=dict(
@@ -1553,7 +1579,7 @@ def interactive(
 
                 plot_tabs=plot_tabs,
                 ), code="""
-            // console.log(plot_tabs.active);
+            // console.log(plot_tabs.active); # FIXME use for tab persistance
             if (plot_tabs.active == 0){
             var avg_idxs = cb_obj.indices;
             var d1 = s1.data; // embedding
@@ -2156,7 +2182,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     return arranged_df
 
 
-def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None, avg_df=None, avg_radius=None):
+def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None, avg_df=None, avg_radius=None, text_input=None, text_input2=None):
     
     """
     Function to plot the UMAP of expression data.
@@ -2326,6 +2352,7 @@ def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_
                     expr_max=expr_max,
                     avg_df=avg_df,
                     avg_radius=avg_radius,
+                    text_input=text_input, text_input2=text_input2
                    )
     
     #p.children[1].title = title
@@ -2337,7 +2364,7 @@ def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_
 def compute_2d_embedding_point_radius(embedding_df, const=339.30587926495537):
     return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / const
 
-def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None):
+def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None, text_input=None, text_input2=None):
        
     data = expression_df[list(expression_df.columns)[1:]].values
     
@@ -2361,7 +2388,7 @@ def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, pale
 
     avg_radius = compute_2d_embedding_point_radius(avg_umap_df)
     
-    p = plot_embedding(expression_df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius)
+    p = plot_embedding(expression_df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius, text_input=text_input, text_input2=text_input2)
 
     return p
 
@@ -2386,6 +2413,9 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
         tabs = []
 
+        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', sizing_mode='stretch_both')
+        text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes', sizing_mode='stretch_both')
+
         for idx in range(num_elements_list[0]):
             expression_df = expression_dfs[idx]
             enrich_df = enrich_dfs[idx]
@@ -2397,7 +2427,7 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
             tab_label = tab_labels[idx]
 
-            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df)
+            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2)
 
             tabs.append(TabPanel(child=p, title=tab_label))
 
@@ -2411,7 +2441,7 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
         return tabbed_plot
 
-def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: list, annotation_df: pd.DataFrame, label_dfs: list, phase, palettes, title, n_neighbors=5, n_components=2, random_state=42, expr_mins=[], expr_maxs=[], embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_dfs=None):
+def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: list, annotation_df: pd.DataFrame, label_dfs: list, phase, palettes, title, n_neighbors=5, n_components=2, random_state=42, expr_mins=[], expr_maxs=[], embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_dfs=None, text_input=None, text_input2=None):
         if avg_dfs is None:
             avg_dfs = [None for _ in range(len(expression_dfs))]
 
@@ -2421,6 +2451,9 @@ def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: lis
             raise ValueError('The following parameters must all have the same length: expression_dfs, tab_labels, enrich_dfs, label_dfs, and avg_dfs.')
 
         tabs = []
+
+        # text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', sizing_mode='stretch_both')
+        # text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes', sizing_mode='stretch_both')
 
         for idx in range(num_elements_list[0]):
             expression_df = expression_dfs[idx]
@@ -2433,7 +2466,7 @@ def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: lis
 
             tab_label = tab_labels[idx]
 
-            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df)
+            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2)
 
             tabs.append(TabPanel(child=p, title=tab_label))
 

@@ -106,7 +106,7 @@ num_iterations = args.num_simulations
 ################################################################################
 
 if expression_dataset == 'microarray':
-    expression_data_path = os.path.join(file_dir, '../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv')
+    expression_data_path = os.path.join(file_dir, '../../active_files/microarray.csv')
 elif expression_dataset == 'rna_seq':
     expression_data_path = os.path.join(file_dir, '../../active_files/rna_seq.csv')
 else:

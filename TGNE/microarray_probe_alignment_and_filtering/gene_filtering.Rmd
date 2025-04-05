@@ -752,7 +752,7 @@ rownames(all.good) <- NULL  # Remove row names now that they've been added as a 
 
 colnames(all.good)[1] <- "TTHERM_ID"
 
-write.csv(all.good, '../../active_files/allgood_filt_agg_tidy_2021aligned_qc_rma_expression_full.csv', row.names = FALSE)
+write.csv(all.good, '../../active_files/microarray.csv', row.names = FALSE)
 # write.csv(all.good.starve, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_starve.csv')
 # write.csv(all.good.sex, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_sex.csv')
 # write.csv(all.good.grow, './allgood_filt_agg_tidy_2021aligned_qc_rma_expression_grow.csv')
