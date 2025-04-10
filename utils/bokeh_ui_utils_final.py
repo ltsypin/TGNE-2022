@@ -12,7 +12,7 @@ from bokeh.events import Reset
 from bokeh.plotting import show as show_interactive
 from bokeh.plotting import output_file, output_notebook
 from bokeh.layouts import column, row
-from bokeh.models import ResetTool, TabPanel, Tabs, Circle, Div, ColumnDataSource, CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem, Spinner
+from bokeh.models import ResetTool, TabPanel, Tabs, Circle, Div, ColumnDataSource, CustomJS, TextInput, LassoSelectTool, Select, MultiSelect, ColorBar, Legend, LegendItem, Spinner, RadioButtonGroup
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn, Button, HTMLTemplateFormatter
 from bokeh.events import SelectionGeometry
 from bokeh.transform import linear_cmap, jitter
@@ -236,7 +236,7 @@ def interactive(
         'Description', 
         'TGD2021_description',
         'InterPro_description',
-        'module', 
+        # 'module', 
         'common_name', 
         'Preferred_name'
     ],
@@ -265,7 +265,7 @@ def interactive(
     search_sizing_mode = 'stretch_both',
     avg_df=None,
     avg_radius=None,
-    text_input=None, text_input2=None
+    text_input=None, text_input2=None, text_input3=None, filter_logic=None
 ):
     """Create an interactive bokeh plot of a UMAP embedding.
     While static plots are useful, sometimes a plot that
@@ -842,6 +842,7 @@ def interactive(
     if interactive_text_search:
         text_input = text_input
         text_input2 = text_input2
+        text_input3 = text_input3
 
         if interactive_text_search_columns is None:
             interactive_text_search_columns = []
@@ -857,553 +858,289 @@ def interactive(
             )
 
         else:
+            module_list = list(hover_data['module'].values)
+            sorted_module_list = sorted(module_list)
+            max_label_num_str = (sorted_module_list[len(module_list) - 1]).replace('m', '')
+            max_label_num_len = len(max_label_num_str)
             
-            # Descriptive search
-            callback = CustomJS(
+            # Combined callback for all three search inputs with AND/OR logic
+            combined_callback = CustomJS(
                 args=dict(
                     s1=data_source,
                     s2=s2,
                     table=table,
                     matching_alpha=interactive_text_search_alpha_contrast,
                     non_matching_alpha=1 - interactive_text_search_alpha_contrast,
-                    search_columns=interactive_text_search_columns,
+                    search_columns1=interactive_text_search_columns,  # First search bar columns
+                    search_columns2=interactive_text_search_columns2, # Second search bar columns
+                    search_column3="module",                          # Third search bar column
                     default_radius=radius,
                     default_alpha=alpha,
-
                     s_expr=expr_source,
-
-                    s_hm=hm_cds,
-                    cols=x,
-
-                    s_enrich=enrich_cds,
-                    s_enrich2=enrich_cds2,
-                    s_avg=avg_data_source,
-                ),
-                code="""
-                var d1 = s1.data; // embedding
-                var d2 = s2.data; // table
-                var d_avg = s_avg.data
-
-                var d_expr = s_expr.data; // expression plot
-                var d_hm = s_hm.data; // heatmap
-                var d_enrich = s_enrich.data; // enrichment table
-                var d_enrich2 = s_enrich2.data // enrichment plot
-
-                var selected_ttherm_id = "";
-
-                var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
-                const num_cols = cols.length;
-
-                var text_search = cb_obj.value;
-                var search_terms = text_search.toLowerCase().split(',');
-                console.log(search_terms);
-
-                d2['module'] = []
-                d2['ID'] = []
-
-
-                // JS INITIALIZE
-
-                // EMBEDDING
-                // Start by making everything tiny and pale
-                d1['alpha'] = Array(d1['ID'].length).fill(0.0001)
-                d1['line_alpha'] = Array(d1['ID'].length).fill(0.0001)
-                d1['radius'] = Array(d1['ID'].length).fill(0.0001)
-
-                // TABLE
-                d2['ID'] = []
-                // d2['YF_ID'] = []
-
-                \n"""+'\n'.join([f"d2['{tc}'] = []" for tc in table_columns])+"""\n
-                
-                // d2['KEGG_TC'] = []
-                // d2['CAZy'] = []
-                // d2['BiGG_Reaction'] = []
-
-                // EXPRESSION
-                d_expr['TTHERM_ID'] = ['blah']
-                d_expr['module'] = ['blah']
-                d_expr['ID'] = [['blah']]
-                d_expr['expr_xs'] = [['Ll']]
-                d_expr['expr_ys'] = [[0]]
-                d_expr['alpha'] = [0]
-                d_expr['color'] = ['black']
-                d_expr['line_dash'] = ['solid']
-
-                // HEATMAP
-                d_hm['fill_alpha'] = []
-                d_hm['line_alpha'] = []
-                
-                d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
-                d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
-                
-                s_avg.selected.indices = []
-
-                d_avg['alpha'] = Array(d_avg['alpha'].length).fill(default_radius)
-                d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius)
-                d_avg['line_color'] = Array(d_avg['line_color'].length).fill("black")
-
-                // JS SEARCH
-
-                var search_columns_dict = {}
-                for (var col in search_columns){
-                    search_columns_dict[col] = search_columns[col]
-                }
-
-                // ENRICHMENT
-                s_enrich.selected.indices = []
-                s_enrich2.selected.indices = []
-
-                d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.3)
-                d_enrich2['size'] = Array(d_enrich2['size'].length).fill(7)
-                d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill("black")
-
-
-                s1.selected.indices = []
-
-                // Run search
-                if (text_search.length > 0){
-                    
-                    // HEATMAP deselect all
-                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005)
-                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005)
-
-                    // Loop over columns and values
-                    // If there is no match for any column for a given row, change the alpha value
-                    var string_match = false;
-                    for (var i = 0; i < d1.x.length; i++) {
-                        string_match = false
-                        for (var j in search_columns_dict) {
-                            var target = String(d1[search_columns_dict[j]][i]).toLowerCase();
-                            if (search_terms.some(t => target.includes(t.trim()))) {
-                                string_match = true
-                            }
-                        }
-                        
-                        if (string_match){
-                            // d1['alpha'][i] = matching_alpha
-                            // d1['radius'][i] = 1
-                            // d2['YF_ID'].push(d1['YF_ID'][i])
-
-                            // d3['xs'].push(ref_expr['xs'][i])
-                            // d3['ys'].push(ref_expr['ys'][i])
-
-                            // So that these points are actually considered selected
-                            s1.selected.indices.push(i)
-
-                            // TABLE
-                            d2['ID'].push(d1['ID'][i])
-                            // d2['YF_ID'].push(d1['YF_ID'][i])
-
-                            \n"""+'\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns])+"""\n
-
-                            // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
-                            // d2['CAZy'].push(d1['CAZy'][i])
-                            // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
-                            
-                            // EMBEDDING
-                            // d1['alpha'][i] = 1
-                            // d1['line_alpha'][i] = 1
-                            // d1['radius'][i] = 100
-
-                            // EXPRESSION
-                            d_expr['TTHERM_ID'].push(d1['ID'][i])
-                            d_expr['module'].push(d1['module'][i])
-                            d_expr['ID'].push(Array(18).fill(d1['ID'][i]))
-                            d_expr['expr_xs'].push(d1['expr_xs'][i])
-                            d_expr['expr_ys'].push(d1['expr_ys'][i])
-                            d_expr['color'].push(d1['color'][i])
-                            d_expr['line_dash'].push('solid')
-                            // console.log(d_expr)
-                            // console.log(i)
-                            // console.log(
-                            //     d_expr['ID'].length, 
-                            //     d_expr['expr_xs'].length, 
-                            //     d_expr['expr_ys'].length
-                            // )
-
-                            // HEATMAP
-                            // selected_ttherm_id = d1['ID'][i];
-                            // var match = (element) => element == selected_ttherm_id;
-                            var gene_index = i;
-
-                            for (var k = 0; k < num_cols; k++) {
-                                d_hm['fill_alpha'][gene_index] = 0.7
-                                d_hm['line_alpha'][gene_index] = 0.7
-
-                                gene_index = gene_index + ttids.length
-                            }
-
-                        }else{
-                            // d1['alpha'][i] = non_matching_alpha
-                            // d1['radius'][i] = 0.01
-                        }
-                    }
-                }
-
-                d_expr['alpha'].push.apply(d_expr['alpha'],
-                    Array(d2['ID'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)))
-                );
-
-                var avg_mods = d_avg['label'].slice(0);
-                var selected_mods = d2['module'].slice(0);
-                
-                var avg_nmod_str = ""
-                var avg_nmod = -1
-                
-                for (let mod of selected_mods){
-                    let avg_nmod_str = mod.slice(1);
-                    let avg_nmod = +avg_nmod_str;
-                    // console.log(avg_nmod);
-                    avg_mods.forEach((item, index) => {
-                        if (item === avg_nmod) {
-                            // console.log("IN");
-                            // console.log(index);
-                            s_avg.selected.indices.push(index);
-                        }
-                    });
-                }
-
-                if (selected_mods.length > 0 && s_avg.selected.indices.length == 0){
-                    d_avg['alpha'] = Array(d_avg['alpha'].length).fill(0.05)
-                    d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius/20)
-                    d_avg['line_color'] = Array(d_avg['line_color'].length).fill(null)
-                }
-
-
-                var enrich_mods = d_enrich['module'].slice(0);
-
-                // console.log("selected_mods")
-                // console.log(selected_mods)
-                
-                var enrich_mod_idx = -1
-                var nmod_str = ""
-                var nmod = -1
-
-                // console.log(s_enrich.selected.indices);
-                
-                for (let mod of selected_mods){
-                    let nmod_str = mod.slice(1);
-                    let nmod = +nmod_str;
-                    // console.log(nmod);
-                    enrich_mods.forEach((item, index) => {
-                        if (item === nmod) {
-                            // console.log("IN");
-                            // console.log(index);
-                            s_enrich.selected.indices.push(index);
-                            s_enrich2.selected.indices.push(index);
-                        }
-                    });
-                }
-                
-                // console.log(s_enrich.selected.indices.length);
-                // console.log(s_enrich.selected.indices);
-
-                if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0){
-                    // console.log("NONE");
-                    d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.05)
-                    // d_enrich2['size'] = Array(d_enrich2['size'].length).fill(1)
-                    d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null)
-                }
-
-                // console.log(s_enrich.selected.indices);
-
-                s1.change.emit();
-                s2.change.emit();
-                table.change.emit();
-
-
-                s_expr.change.emit();
-                    
-                s_hm.change.emit();
-
-                s_enrich.change.emit();
-                s_enrich2.change.emit();
-
-                s_avg.change.emit();
-
-                console.log("RAN search");
-                // console.log(s1.selected.indices.length);
-                // console.log(s1.selected.indices);
-
-            """,
-            )
-
-            # text_input.js_on_change("value", callback)
-            text_input.js_on_event(events.ValueSubmit, callback) # FIXME search persistance
-
-            # Functional term search
-            callback2 = CustomJS(
-                args=dict(
-                    s1=data_source,
-                    s2=s2,
-                    table=table,
-                    matching_alpha=interactive_text_search_alpha_contrast,
-                    non_matching_alpha=1 - interactive_text_search_alpha_contrast,
-                    search_columns=interactive_text_search_columns2,
-                    default_radius=radius,
-                    default_alpha=alpha,
-
-                    s_expr=expr_source,
-
                     s_hm=hm_cds,
                     cols=x,
                     s_enrich=enrich_cds,
                     s_enrich2=enrich_cds2,
                     s_avg=avg_data_source,
+                    filter_logic=filter_logic,  # The AND/OR toggle widget
+                    max_label_num_len=max_label_num_len,
+                    text_input1=text_input,    # Reference to first search input
+                    text_input2=text_input2,   # Reference to second search input
+                    text_input3=text_input3,   # Reference to third search input
+                    table_columns=table_columns,
+                    num_genes=num_genes
                 ),
                 code="""
                 var d1 = s1.data; // embedding
                 var d2 = s2.data; // table
-                var d_avg = s_avg.data
-
+                var d_avg = s_avg.data;
                 var d_expr = s_expr.data; // expression plot
                 var d_hm = s_hm.data; // heatmap
                 var d_enrich = s_enrich.data; // enrichment table
                 var d_enrich2 = s_enrich2.data; // enrichment plot
-
+                
                 var selected_ttherm_id = "";
-
                 var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
                 const num_cols = cols.length;
-
-                var text_search = cb_obj.value;
-                var search_terms = text_search.toLowerCase().split(',');
-                console.log(search_terms);
-
-                d2['module'] = []
-                d2['ID'] = []
-
-
-                // JS INITIALIZE
-
-                // EMBEDDING
-                // Start by making everything tiny and pale
-                d1['alpha'] = Array(d1['ID'].length).fill(0.0001)
-                d1['line_alpha'] = Array(d1['ID'].length).fill(0.0001)
-                d1['radius'] = Array(d1['ID'].length).fill(0.0001)
-
-                // TABLE
-                d2['ID'] = []
-                // d2['YF_ID'] = []
-
-                \n"""+'\n'.join([f"d2['{tc}'] = []" for tc in table_columns])+"""\n
                 
-                // d2['KEGG_TC'] = []
-                // d2['CAZy'] = []
-                // d2['BiGG_Reaction'] = []
-
+                // Get values from all three search inputs
+                var text_search1 = text_input1.value;
+                var text_search2 = text_input2.value;
+                var text_search3 = text_input3.value;
+                
+                // Get search terms from all inputs
+                var search_terms1 = text_search1.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
+                var search_terms2 = text_search2.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
+                var search_terms3 = text_search3.toLowerCase().split(',').map(t => {
+                    t = t.trim();
+                    if (!isNaN(t) && t !== '') {
+                        return 'm' + t.padStart("""+str(max_label_num_len)+""", '0');
+                    }
+                    return t;
+                }).filter(t => t);
+                
+                // Determine which searches are active (have terms)
+                var search1_active = search_terms1.length > 0;
+                var search2_active = search_terms2.length > 0;
+                var search3_active = search_terms3.length > 0;
+                
+                // Get the filter logic (AND=0, OR=1)
+                var use_and_logic = filter_logic.active === 0;
+                
+                // Initialize data structures
+                d2['module'] = [];
+                d2['ID'] = [];
+                
+                """ + '\n'.join([f"d2['{tc}'] = []" for tc in table_columns]) + """
+                
+                // EMBEDDING - Start by making everything tiny and pale
+                d1['alpha'] = Array(d1['ID'].length).fill(0.0001);
+                d1['line_alpha'] = Array(d1['ID'].length).fill(0.0001);
+                d1['radius'] = Array(d1['ID'].length).fill(0.0001);
+                
                 // EXPRESSION
-                d_expr['TTHERM_ID'] = ['blah']
-                d_expr['module'] = ['blah']
-                d_expr['ID'] = [['blah']]
-                d_expr['expr_xs'] = [['Ll']]
-                d_expr['expr_ys'] = [[0]]
-                d_expr['alpha'] = [0]
-                d_expr['color'] = ['black']
-                d_expr['line_dash'] = ['solid']
-
+                d_expr['TTHERM_ID'] = ['blah'];
+                d_expr['module'] = ['blah'];
+                d_expr['ID'] = [['blah']];
+                d_expr['expr_xs'] = [['Ll']];
+                d_expr['expr_ys'] = [[0]];
+                d_expr['alpha'] = [0];
+                d_expr['color'] = ['black'];
+                d_expr['line_dash'] = ['solid'];
+                
                 // HEATMAP
-                d_hm['fill_alpha'] = []
-                d_hm['line_alpha'] = []
+                d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7);
+                d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7);
                 
-                d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
-                d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7)
+                // Clear selections
+                s_avg.selected.indices = [];
+                s_enrich.selected.indices = [];
+                s_enrich2.selected.indices = [];
+                s1.selected.indices = [];
                 
-                s_avg.selected.indices = []
-
-                d_avg['alpha'] = Array(d_avg['alpha'].length).fill(default_radius)
-                d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius)
-                d_avg['line_color'] = Array(d_avg['line_color'].length).fill("black")
-
-                // JS SEARCH
-
-                var search_columns_dict = {}
-                for (var col in search_columns){
-                    search_columns_dict[col] = search_columns[col]
-                }
-
-                // ENRICHMENT  
-                s_enrich.selected.indices = []
-                s_enrich2.selected.indices = []
-
-                d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.3)
-                d_enrich2['size'] = Array(d_enrich2['size'].length).fill(7)
-                d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill("black")
-
-
-                s1.selected.indices = []
-
-                // Run search
-                if (text_search.length > 0){
-                    
+                // Reset average plot
+                d_avg['alpha'] = Array(d_avg['alpha'].length).fill(default_radius);
+                d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius);
+                d_avg['line_color'] = Array(d_avg['line_color'].length).fill("black");
+                
+                // Reset enrichment plot
+                d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.3);
+                d_enrich2['size'] = Array(d_enrich2['size'].length).fill(7);
+                d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill("black");
+                
+                // Only proceed if at least one search has terms
+                if (search1_active || search2_active || search3_active) {
                     // HEATMAP deselect all
-                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005)
-                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005)
-
-                    // Loop over columns and values
-                    // If there is no match for any column for a given row, change the alpha value
-                    var string_match = false;
+                    d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005);
+                    d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.005);
+                    
+                    // Create search columns dictionaries
+                    var search_columns_dict1 = {};
+                    for (var col in search_columns1) {
+                        search_columns_dict1[col] = search_columns1[col];
+                    }
+                    
+                    var search_columns_dict2 = {};
+                    for (var col in search_columns2) {
+                        search_columns_dict2[col] = search_columns2[col];
+                    }
+                    
+                    // Loop through all data points
                     for (var i = 0; i < d1.x.length; i++) {
-                        string_match = false
-                        for (var j in search_columns_dict) {
-                            var target = String(d1[search_columns_dict[j]][i]).toLowerCase();
-                            if (search_terms.some(t => target.includes(t.trim()))) {
-                                string_match = true
+                        var match1 = false;
+                        var match2 = false;
+                        var match3 = false;
+                        
+                        // Check search 1 if active
+                        if (search1_active) {
+                            for (var col in search_columns_dict1) {
+                                var target = String(d1[search_columns_dict1[col]][i]).toLowerCase();
+                                if (search_terms1.some(t => target.includes(t))) {
+                                    match1 = true;
+                                    break;
+                                }
                             }
                         }
                         
-                        if (string_match){
-                            // d1['alpha'][i] = matching_alpha
-                            // d1['radius'][i] = 1
-                            // d2['YF_ID'].push(d1['YF_ID'][i])
-
-                            // d3['xs'].push(ref_expr['xs'][i])
-                            // d3['ys'].push(ref_expr['ys'][i])
-
-                            // So that these points are actually considered selected
-                            s1.selected.indices.push(i)
-
-                            // TABLE
-                            d2['ID'].push(d1['ID'][i])
-                            // d2['YF_ID'].push(d1['YF_ID'][i])
-
-                            \n"""+'\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns])+"""\n
-
-                            // d2['KEGG_TC'].push(d1['KEGG_TC'][i])
-                            // d2['CAZy'].push(d1['CAZy'][i])
-                            // d2['BiGG_Reaction'].push(d1['BiGG_Reaction'][i])
-                            
-                            // EMBEDDING
-                            // d1['alpha'][i] = 1
-                            // d1['line_alpha'][i] = 1
-                            // d1['radius'][i] = 100
-
-                            // EXPRESSION
-                            d_expr['TTHERM_ID'].push(d1['ID'][i])
-                            d_expr['module'].push(d1['module'][i])
-                            d_expr['ID'].push(Array(18).fill(d1['ID'][i]))
-                            d_expr['expr_xs'].push(d1['expr_xs'][i])
-                            d_expr['expr_ys'].push(d1['expr_ys'][i])
-                            d_expr['color'].push(d1['color'][i])
-                            d_expr['line_dash'].push('solid')
-                            // console.log(d_expr)
-                            // console.log(i)
-                            // console.log(
-                            //     d_expr['ID'].length, 
-                            //     d_expr['expr_xs'].length, 
-                            //     d_expr['expr_ys'].length
-                            // )
-
-                            // HEATMAP
-                            // selected_ttherm_id = d1['ID'][i];
-                            // var match = (element) => element == selected_ttherm_id;
-                            var gene_index = i;
-
-                            for (var k = 0; k < num_cols; k++) {
-                                d_hm['fill_alpha'][gene_index] = 0.7
-                                d_hm['line_alpha'][gene_index] = 0.7
-
-                                gene_index = gene_index + ttids.length
+                        // Check search 2 if active
+                        if (search2_active) {
+                            for (var col in search_columns_dict2) {
+                                var target = String(d1[search_columns_dict2[col]][i]).toLowerCase();
+                                if (search_terms2.some(t => target.includes(t))) {
+                                    match2 = true;
+                                    break;
+                                }
                             }
-
-                        }else{
-                            // d1['alpha'][i] = non_matching_alpha
-                            // d1['radius'][i] = 0.01
+                        }
+                        
+                        // Check search 3 if active (exact match)
+                        if (search3_active) {
+                            var target = String(d1[search_column3][i]).toLowerCase();
+                            match3 = search_terms3.includes(target);
+                        }
+                        
+                        // Determine if this row should be included based on logic
+                        var include_row = false;
+                        
+                        if (use_and_logic) {
+                            // AND logic: must match all active searches
+                            include_row = true;
+                            if (search1_active && !match1) include_row = false;
+                            if (search2_active && !match2) include_row = false;
+                            if (search3_active && !match3) include_row = false;
+                        } else {
+                            // OR logic: must match at least one active search
+                            include_row = false;
+                            if (search1_active && match1) include_row = true;
+                            if (search2_active && match2) include_row = true;
+                            if (search3_active && match3) include_row = true;
+                        }
+                        
+                        if (include_row) {
+                            // This row matches our criteria
+                            s1.selected.indices.push(i);
+                            
+                            // Update TABLE data
+                            d2['ID'].push(d1['ID'][i]);
+                            """ + '\n'.join([f"d2['{tc}'].push(d1['{tc}'][i])" for tc in table_columns]) + """
+                            
+                            // Update EXPRESSION data
+                            d_expr['TTHERM_ID'].push(d1['ID'][i]);
+                            d_expr['module'].push(d1['module'][i]);
+                            d_expr['ID'].push(Array(18).fill(d1['ID'][i]));
+                            d_expr['expr_xs'].push(d1['expr_xs'][i]);
+                            d_expr['expr_ys'].push(d1['expr_ys'][i]);
+                            d_expr['color'].push(d1['color'][i]);
+                            d_expr['line_dash'].push('solid');
+                            
+                            // Update HEATMAP
+                            var gene_index = i;
+                            for (var k = 0; k < num_cols; k++) {
+                                d_hm['fill_alpha'][gene_index] = 0.7;
+                                d_hm['line_alpha'][gene_index] = 0.7;
+                                gene_index = gene_index + ttids.length;
+                            }
                         }
                     }
                 }
-
+                
+                // Set expression alpha based on number of matches
                 d_expr['alpha'].push.apply(d_expr['alpha'],
                     Array(d2['ID'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)))
                 );
-
+                
+                // Update average module plot selections
                 var avg_mods = d_avg['label'].slice(0);
                 var selected_mods = d2['module'].slice(0);
                 
-                var avg_nmod_str = ""
-                var avg_nmod = -1
-                
-                for (let mod of selected_mods){
+                for (let mod of selected_mods) {
                     let avg_nmod_str = mod.slice(1);
                     let avg_nmod = +avg_nmod_str;
-                    // console.log(avg_nmod);
                     avg_mods.forEach((item, index) => {
                         if (item === avg_nmod) {
-                            // console.log("IN");
-                            // console.log(index);
                             s_avg.selected.indices.push(index);
                         }
                     });
                 }
-
-                if (selected_mods.length > 0 && s_avg.selected.indices.length == 0){
-                    d_avg['alpha'] = Array(d_avg['alpha'].length).fill(0.05)
-                    // d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius/20)
-                    d_avg['line_color'] = Array(d_avg['line_color'].length).fill(null)
+                
+                if (selected_mods.length > 0 && s_avg.selected.indices.length == 0) {
+                    d_avg['alpha'] = Array(d_avg['alpha'].length).fill(0.05);
+                    d_avg['line_color'] = Array(d_avg['line_color'].length).fill(null);
                 }
-
-
+                
+                // Update enrichment selections
                 var enrich_mods = d_enrich['module'].slice(0);
-
-                // console.log("selected_mods")
-                // console.log(selected_mods)
                 
-                var enrich_mod_idx = -1
-                var nmod_str = ""
-                var nmod = -1
-
-                // console.log(s_enrich.selected.indices);
-                
-                for (let mod of selected_mods){
+                for (let mod of selected_mods) {
                     let nmod_str = mod.slice(1);
                     let nmod = +nmod_str;
-                    // console.log(nmod);
                     enrich_mods.forEach((item, index) => {
                         if (item === nmod) {
-                            // console.log("IN");
-                            // console.log(index);
                             s_enrich.selected.indices.push(index);
                             s_enrich2.selected.indices.push(index);
                         }
                     });
                 }
                 
-                // console.log(s_enrich.selected.indices.length);
-                // console.log(s_enrich.selected.indices);
-
-                if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0){
-                    // console.log("NONE");
-                    d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.05)
-                    // d_enrich2['size'] = Array(d_enrich2['size'].length).fill(1)
-                    d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null)
+                if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0) {
+                    d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.05);
+                    d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null);
                 }
-
-                // console.log(s_enrich.selected.indices);
-
+                
+                // Emit changes
                 s1.change.emit();
                 s2.change.emit();
                 table.change.emit();
-
-
                 s_expr.change.emit();
-                    
                 s_hm.change.emit();
-
                 s_enrich.change.emit();
                 s_enrich2.change.emit();
-
                 s_avg.change.emit();
-
-                console.log("RAN search");
-                // console.log(s1.selected.indices.length);
-                // console.log(s1.selected.indices);
-
-            """,
+                
+                console.log("RAN combined search");
+                """
             )
 
-            # text_input.js_on_change("value", callback)
-            text_input2.js_on_event(events.ValueSubmit, callback2)
+            # Attach the combined callback to all three search inputs and the filter logic toggle
+            text_input.js_on_event(events.ValueSubmit, combined_callback);
+            text_input2.js_on_event(events.ValueSubmit, combined_callback);
+            text_input3.js_on_event(events.ValueSubmit, combined_callback);
+            filter_logic.js_on_change('active', combined_callback);
+
+            # filter_logic = RadioButtonGroup(labels=["AND", "OR"], active=0)
+            filter_description = Div(text="<b>Filter Logic:</b> AND - Items must match both filters")
+
+            filter_logic_callback = CustomJS(
+                args=dict(description=filter_description),
+                code="""
+                if (cb_obj.active === 0) {
+                    description.text = "<b>Filter Logic:</b> AND - Items must match all filters";
+                } else {
+                    description.text = "<b>Filter Logic:</b> OR - Items matching any filter will be shown";
+                }
+                """
+            )
+            filter_logic.js_on_change('active', filter_logic_callback)
 
     module_list = list(hover_data['module'].values)
     sorted_module_list = sorted(module_list)
@@ -1545,13 +1282,13 @@ def interactive(
 
         rows_sizing_mode = 'stretch_width'
 
-        row_search = row(text_input, text_input2, download_button1, download_button2, download_button3, sizing_mode='stretch_width')
+        row_search = row(text_input3, text_input, text_input2, sizing_mode='stretch_width')
         rowa = row(row(col1a, col2a, sizing_mode=rows_sizing_mode), col3a)
         rowa.sizing_mode = rows_sizing_mode
         rowb = row(col2b)
         rowb.sizing_mode = rows_sizing_mode
 
-        plot = column(row_search, rowa, rowb)
+        plot = column(row_search, row(filter_logic, filter_description, download_button1, download_button2, download_button3, sizing_mode='stretch_width'), rowa, rowb)
         plot.sizing_mode = 'stretch_width'
 
     else:
@@ -2182,7 +1919,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     return arranged_df
 
 
-def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None, avg_df=None, avg_radius=None, text_input=None, text_input2=None):
+def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None, avg_df=None, avg_radius=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None):
     
     """
     Function to plot the UMAP of expression data.
@@ -2352,7 +2089,7 @@ def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_
                     expr_max=expr_max,
                     avg_df=avg_df,
                     avg_radius=avg_radius,
-                    text_input=text_input, text_input2=text_input2
+                    text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic
                    )
     
     #p.children[1].title = title
@@ -2364,7 +2101,7 @@ def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_
 def compute_2d_embedding_point_radius(embedding_df, const=339.30587926495537):
     return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / const
 
-def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None, text_input=None, text_input2=None):
+def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None):
        
     data = expression_df[list(expression_df.columns)[1:]].values
     
@@ -2388,7 +2125,7 @@ def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, pale
 
     avg_radius = compute_2d_embedding_point_radius(avg_umap_df)
     
-    p = plot_embedding(expression_df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius, text_input=text_input, text_input2=text_input2)
+    p = plot_embedding(expression_df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic)
 
     return p
 
@@ -2415,6 +2152,8 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
         text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', sizing_mode='stretch_both')
         text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes', sizing_mode='stretch_both')
+        text_input3 = TextInput(value="", placeholder=f'Comma-separated module numbers', sizing_mode='stretch_both')
+        filter_logic = RadioButtonGroup(labels=["AND", "OR"], active=0)
 
         for idx in range(num_elements_list[0]):
             expression_df = expression_dfs[idx]
@@ -2427,7 +2166,7 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
             tab_label = tab_labels[idx]
 
-            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2)
+            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic)
 
             tabs.append(TabPanel(child=p, title=tab_label))
 
@@ -2441,7 +2180,7 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
         return tabbed_plot
 
-def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: list, annotation_df: pd.DataFrame, label_dfs: list, phase, palettes, title, n_neighbors=5, n_components=2, random_state=42, expr_mins=[], expr_maxs=[], embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_dfs=None, text_input=None, text_input2=None):
+def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: list, annotation_df: pd.DataFrame, label_dfs: list, phase, palettes, title, n_neighbors=5, n_components=2, random_state=42, expr_mins=[], expr_maxs=[], embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_dfs=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None):
         if avg_dfs is None:
             avg_dfs = [None for _ in range(len(expression_dfs))]
 
@@ -2466,7 +2205,7 @@ def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: lis
 
             tab_label = tab_labels[idx]
 
-            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2)
+            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic)
 
             tabs.append(TabPanel(child=p, title=tab_label))
 
