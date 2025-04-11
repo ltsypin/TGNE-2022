@@ -1121,8 +1121,10 @@ def interactive(
                     let nmod = +nmod_str;
                     enrich_mods.forEach((item, index) => {
                         if (item === nmod) {
-                            s_enrich.selected.indices.push(index);
-                            s_enrich2.selected.indices.push(index);
+                            if (!s_enrich.selected.indices.includes(index)) {
+                                s_enrich.selected.indices.push(index);
+                                s_enrich2.selected.indices.push(index);
+                            }
                         }
                     });
                 }
