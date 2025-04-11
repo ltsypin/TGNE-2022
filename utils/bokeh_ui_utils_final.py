@@ -265,7 +265,7 @@ def interactive(
     search_sizing_mode = 'stretch_both',
     avg_df=None,
     avg_radius=None,
-    text_input=None, text_input2=None, text_input3=None, filter_logic=None
+    text_input=None, text_input2=None, text_input3=None, filter_logic=None, filter_logic2=None
 ):
     """Create an interactive bokeh plot of a UMAP embedding.
     While static plots are useful, sometimes a plot that
@@ -883,6 +883,7 @@ def interactive(
                     s_enrich2=enrich_cds2,
                     s_avg=avg_data_source,
                     filter_logic=filter_logic,  # The AND/OR toggle widget
+                    filter_logic2=filter_logic2,  # The AND/OR toggle widget
                     max_label_num_len=max_label_num_len,
                     text_input1=text_input,    # Reference to first search input
                     text_input2=text_input2,   # Reference to second search input
@@ -898,16 +899,16 @@ def interactive(
                 var d_hm = s_hm.data; // heatmap
                 var d_enrich = s_enrich.data; // enrichment table
                 var d_enrich2 = s_enrich2.data; // enrichment plot
-                
+
                 var selected_ttherm_id = "";
                 var ttids = d_hm['TTHERM_ID'].slice(0, """+str(num_genes)+""");
                 const num_cols = cols.length;
-                
+
                 // Get values from all three search inputs
                 var text_search1 = text_input1.value;
                 var text_search2 = text_input2.value;
                 var text_search3 = text_input3.value;
-                
+
                 // Get search terms from all inputs
                 var search_terms1 = text_search1.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
                 var search_terms2 = text_search2.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
@@ -918,26 +919,27 @@ def interactive(
                     }
                     return t;
                 }).filter(t => t);
-                
+
                 // Determine which searches are active (have terms)
                 var search1_active = search_terms1.length > 0;
                 var search2_active = search_terms2.length > 0;
                 var search3_active = search_terms3.length > 0;
-                
-                // Get the filter logic (AND=0, OR=1)
-                var use_and_logic = filter_logic.active === 0;
-                
+
+                // Get the filter logics (AND=0, OR=1)
+                var outer_operator_and = filter_logic.active === 0;  // Between search3 and (search1/search2 group)
+                var inner_operator_and = filter_logic2.active === 0; // Between search1 and search2
+
                 // Initialize data structures
                 d2['module'] = [];
                 d2['ID'] = [];
-                
+
                 """ + '\n'.join([f"d2['{tc}'] = []" for tc in table_columns]) + """
-                
+
                 // EMBEDDING - Start by making everything tiny and pale
                 d1['alpha'] = Array(d1['ID'].length).fill(0.0001);
                 d1['line_alpha'] = Array(d1['ID'].length).fill(0.0001);
                 d1['radius'] = Array(d1['ID'].length).fill(0.0001);
-                
+
                 // EXPRESSION
                 d_expr['TTHERM_ID'] = ['blah'];
                 d_expr['module'] = ['blah'];
@@ -947,27 +949,27 @@ def interactive(
                 d_expr['alpha'] = [0];
                 d_expr['color'] = ['black'];
                 d_expr['line_dash'] = ['solid'];
-                
+
                 // HEATMAP
                 d_hm['fill_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7);
                 d_hm['line_alpha'] = Array(d_hm['TTHERM_ID'].length).fill(0.7);
-                
+
                 // Clear selections
                 s_avg.selected.indices = [];
                 s_enrich.selected.indices = [];
                 s_enrich2.selected.indices = [];
                 s1.selected.indices = [];
-                
+
                 // Reset average plot
                 d_avg['alpha'] = Array(d_avg['alpha'].length).fill(default_radius);
                 d_avg['radius'] = Array(d_avg['radius'].length).fill(default_radius);
                 d_avg['line_color'] = Array(d_avg['line_color'].length).fill("black");
-                
+
                 // Reset enrichment plot
                 d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.3);
                 d_enrich2['size'] = Array(d_enrich2['size'].length).fill(7);
                 d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill("black");
-                
+
                 // Only proceed if at least one search has terms
                 if (search1_active || search2_active || search3_active) {
                     // HEATMAP deselect all
@@ -1022,18 +1024,41 @@ def interactive(
                         // Determine if this row should be included based on logic
                         var include_row = false;
                         
-                        if (use_and_logic) {
-                            // AND logic: must match all active searches
-                            include_row = true;
-                            if (search1_active && !match1) include_row = false;
-                            if (search2_active && !match2) include_row = false;
-                            if (search3_active && !match3) include_row = false;
+                        // First evaluate the inner group (search1 and search2)
+                        var inner_group_result = false;
+                        
+                        if (search1_active && search2_active) {
+                            // Both searches active - apply inner operator
+                            if (inner_operator_and) {
+                                inner_group_result = match1 && match2;
+                            } else {
+                                inner_group_result = match1 || match2;
+                            }
+                        } else if (search1_active) {
+                            // Only search1 active
+                            inner_group_result = match1;
+                        } else if (search2_active) {
+                            // Only search2 active
+                            inner_group_result = match2;
                         } else {
-                            // OR logic: must match at least one active search
-                            include_row = false;
-                            if (search1_active && match1) include_row = true;
-                            if (search2_active && match2) include_row = true;
-                            if (search3_active && match3) include_row = true;
+                            // Neither search1 nor search2 active - inner group doesn't contribute
+                            inner_group_result = false;
+                        }
+                        
+                        // Now evaluate the outer condition: search3 operator (inner group)
+                        if (search3_active && (search1_active || search2_active)) {
+                            // Both search3 and inner group active - apply outer operator
+                            if (outer_operator_and) {
+                                include_row = match3 && inner_group_result;
+                            } else {
+                                include_row = match3 || inner_group_result;
+                            }
+                        } else if (search3_active) {
+                            // Only search3 active
+                            include_row = match3;
+                        } else if (search1_active || search2_active) {
+                            // Only inner group active
+                            include_row = inner_group_result;
                         }
                         
                         if (include_row) {
@@ -1063,16 +1088,16 @@ def interactive(
                         }
                     }
                 }
-                
+
                 // Set expression alpha based on number of matches
                 d_expr['alpha'].push.apply(d_expr['alpha'],
                     Array(d2['ID'].length).fill(Math.min(1, Math.max(7/(d2['ID'].length), 0.05)))
                 );
-                
+
                 // Update average module plot selections
                 var avg_mods = d_avg['label'].slice(0);
                 var selected_mods = d2['module'].slice(0);
-                
+
                 for (let mod of selected_mods) {
                     let avg_nmod_str = mod.slice(1);
                     let avg_nmod = +avg_nmod_str;
@@ -1082,15 +1107,15 @@ def interactive(
                         }
                     });
                 }
-                
+
                 if (selected_mods.length > 0 && s_avg.selected.indices.length == 0) {
                     d_avg['alpha'] = Array(d_avg['alpha'].length).fill(0.05);
                     d_avg['line_color'] = Array(d_avg['line_color'].length).fill(null);
                 }
-                
+
                 // Update enrichment selections
                 var enrich_mods = d_enrich['module'].slice(0);
-                
+
                 for (let mod of selected_mods) {
                     let nmod_str = mod.slice(1);
                     let nmod = +nmod_str;
@@ -1101,12 +1126,12 @@ def interactive(
                         }
                     });
                 }
-                
+
                 if (selected_mods.length > 0 && s_enrich2.selected.indices.length == 0) {
                     d_enrich2['alpha'] = Array(d_enrich2['alpha'].length).fill(0.05);
                     d_enrich2['line_color'] = Array(d_enrich2['line_color'].length).fill(null);
                 }
-                
+
                 // Emit changes
                 s1.change.emit();
                 s2.change.emit();
@@ -1116,7 +1141,7 @@ def interactive(
                 s_enrich.change.emit();
                 s_enrich2.change.emit();
                 s_avg.change.emit();
-                
+
                 console.log("RAN combined search");
                 """
             )
@@ -1126,21 +1151,22 @@ def interactive(
             text_input2.js_on_event(events.ValueSubmit, combined_callback);
             text_input3.js_on_event(events.ValueSubmit, combined_callback);
             filter_logic.js_on_change('active', combined_callback);
+            filter_logic2.js_on_change('active', combined_callback);
 
-            # filter_logic = RadioButtonGroup(labels=["AND", "OR"], active=0)
-            filter_description = Div(text="<b>Filter Logic:</b> AND - Items must match both filters")
+            # # filter_logic = RadioButtonGroup(labels=["AND", "OR"], active=0)
+            # filter_description = Div(text="<b>Filter Logic:</b> AND - Items must match both filters")
 
-            filter_logic_callback = CustomJS(
-                args=dict(description=filter_description),
-                code="""
-                if (cb_obj.active === 0) {
-                    description.text = "<b>Filter Logic:</b> AND - Items must match all filters";
-                } else {
-                    description.text = "<b>Filter Logic:</b> OR - Items matching any filter will be shown";
-                }
-                """
-            )
-            filter_logic.js_on_change('active', filter_logic_callback)
+            # filter_logic_callback = CustomJS(
+            #     args=dict(description=filter_description),
+            #     code="""
+            #     if (cb_obj.active === 0) {
+            #         description.text = "<b>Filter Logic:</b> AND - Items must match all filters";
+            #     } else {
+            #         description.text = "<b>Filter Logic:</b> OR - Items matching any filter will be shown";
+            #     }
+            #     """
+            # )
+            # filter_logic.js_on_change('active', filter_logic_callback)
 
     module_list = list(hover_data['module'].values)
     sorted_module_list = sorted(module_list)
@@ -1282,13 +1308,27 @@ def interactive(
 
         rows_sizing_mode = 'stretch_width'
 
-        row_search = row(text_input3, text_input, text_input2, sizing_mode='stretch_width')
+        op_html = """
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <p style="text-align: center; font-weight: bold; font-size: 1.75em;">(</p>
+        </div>
+        """
+        op_obj = Div(text=op_html)
+
+        cp_html = """
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <p style="text-align: center; font-weight: bold; font-size: 1.75em;">)</p>
+        </div>
+        """
+        cp_obj = Div(text=cp_html)
+
+        row_search = row(text_input3, filter_logic, op_obj, text_input, filter_logic2, text_input2, cp_obj, sizing_mode='stretch_width')
         rowa = row(row(col1a, col2a, sizing_mode=rows_sizing_mode), col3a)
         rowa.sizing_mode = rows_sizing_mode
         rowb = row(col2b)
         rowb.sizing_mode = rows_sizing_mode
 
-        plot = column(row_search, row(filter_logic, filter_description, download_button1, download_button2, download_button3, sizing_mode='stretch_width'), rowa, rowb)
+        plot = column(row_search, row(download_button1, download_button2, download_button3, sizing_mode='stretch_width'), rowa, rowb)
         plot.sizing_mode = 'stretch_width'
 
     else:
@@ -1919,7 +1959,7 @@ def arrange_modules(expr_df, cluster_label_df, phases):
     return arranged_df
 
 
-def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None, avg_df=None, avg_radius=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None):
+def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_df, phases, palette, n_components=2, n_neighbors=15, title=None, random_state=42, radius=0.01, expr_min=0, expr_max=1, yf_to_ttherm_map_df=None, avg_df=None, avg_radius=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None, filter_logic2=None):
     
     """
     Function to plot the UMAP of expression data.
@@ -2089,7 +2129,7 @@ def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_
                     expr_max=expr_max,
                     avg_df=avg_df,
                     avg_radius=avg_radius,
-                    text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic
+                    text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic, filter_logic2=filter_logic2
                    )
     
     #p.children[1].title = title
@@ -2101,7 +2141,7 @@ def plot_embedding(expression_df, enrich_df, embedding_df, annotation_df, label_
 def compute_2d_embedding_point_radius(embedding_df, const=339.30587926495537):
     return ((((max(embedding_df['x'].values) - min(embedding_df['x'].values))**2) + ((max(embedding_df['y'].values) - min(embedding_df['y'].values))**2))**(0.5)) / const
 
-def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None):
+def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=5, n_components=2, random_state=42, expr_min=0, expr_max=1, embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_df=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None, filter_logic2=None):
        
     data = expression_df[list(expression_df.columns)[1:]].values
     
@@ -2125,7 +2165,7 @@ def generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, pale
 
     avg_radius = compute_2d_embedding_point_radius(avg_umap_df)
     
-    p = plot_embedding(expression_df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic)
+    p = plot_embedding(expression_df, enrich_df, umap_df, annotation_df, label_df, phase, palette, title=title, n_neighbors=n_neighbors, radius=radius, expr_min=expr_min, expr_max=expr_max, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_umap_df, avg_radius=avg_radius, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic, filter_logic2=filter_logic2)
 
     return p
 
@@ -2150,10 +2190,32 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
         tabs = []
 
-        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', sizing_mode='stretch_both')
-        text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes', sizing_mode='stretch_both')
-        text_input3 = TextInput(value="", placeholder=f'Comma-separated module numbers', sizing_mode='stretch_both')
-        filter_logic = RadioButtonGroup(labels=["AND", "OR"], active=0)
+        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', 
+                                sizing_mode='stretch_width',
+                                # min_width=500,
+                                # min_width=475,
+                               )
+        text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes',
+                                sizing_mode='stretch_width',
+                                # min_width=700,
+                                # max_width=700,
+                                )
+        text_input3 = TextInput(
+            value="", 
+            placeholder='Comma-separated module numbers',
+            # sizing_mode='stretch_width',
+            # width_policy='max',
+            # min_width=400,
+            min_width=235,
+        )
+        filter_logic = RadioButtonGroup(labels=["AND", "OR"], 
+                                        # sizing_mode='stretch_height', 
+                                        active=0
+                                        )
+        filter_logic2 = RadioButtonGroup(labels=["AND", "OR"], 
+                                        #  sizing_mode='stretch_height', 
+                                         active=0
+                                         )
 
         for idx in range(num_elements_list[0]):
             expression_df = expression_dfs[idx]
@@ -2166,7 +2228,7 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
             tab_label = tab_labels[idx]
 
-            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic)
+            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic, filter_logic2=filter_logic2)
 
             tabs.append(TabPanel(child=p, title=tab_label))
 
@@ -2180,7 +2242,7 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
         return tabbed_plot
 
-def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: list, annotation_df: pd.DataFrame, label_dfs: list, phase, palettes, title, n_neighbors=5, n_components=2, random_state=42, expr_mins=[], expr_maxs=[], embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_dfs=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None):
+def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: list, annotation_df: pd.DataFrame, label_dfs: list, phase, palettes, title, n_neighbors=5, n_components=2, random_state=42, expr_mins=[], expr_maxs=[], embedding_metric='euclidean', yf_to_ttherm_map_df=None, avg_dfs=None, text_input=None, text_input2=None, text_input3=None, filter_logic=None, filter_logic2=None):
         if avg_dfs is None:
             avg_dfs = [None for _ in range(len(expression_dfs))]
 
@@ -2191,9 +2253,33 @@ def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: lis
 
         tabs = []
 
-        # text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', sizing_mode='stretch_both')
-        # text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes', sizing_mode='stretch_both')
-
+        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', 
+                                sizing_mode='stretch_width',
+                                # min_width=500,
+                                # min_width=475,
+                               )
+        text_input2 = TextInput(value="", placeholder=f'Comma-separated functional terms: PFAM names or InterPro/GO/KEGG/EC codes',
+                                sizing_mode='stretch_width',
+                                # min_width=700,
+                                # max_width=700,
+                                )
+        text_input3 = TextInput(
+            value="", 
+            placeholder='Comma-separated module numbers',
+            # sizing_mode='stretch_width',
+            # width_policy='max',
+            # min_width=400,
+            min_width=235,
+        )
+        filter_logic = RadioButtonGroup(labels=["AND", "OR"], 
+                                        # sizing_mode='stretch_height', 
+                                        active=0
+                                        )
+        filter_logic2 = RadioButtonGroup(labels=["AND", "OR"], 
+                                        #  sizing_mode='stretch_height', 
+                                         active=0
+                                         )
+        
         for idx in range(num_elements_list[0]):
             expression_df = expression_dfs[idx]
             enrich_df = enrich_dfs[idx]
@@ -2205,7 +2291,7 @@ def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: lis
 
             tab_label = tab_labels[idx]
 
-            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic)
+            p = generate_umap(expression_df, enrich_df, annotation_df, label_df, phase, palette, title, n_neighbors=n_neighbors, n_components=n_components, random_state=random_state, expr_min=expr_min, expr_max=expr_max, embedding_metric=embedding_metric, yf_to_ttherm_map_df=yf_to_ttherm_map_df, avg_df=avg_df, text_input=text_input, text_input2=text_input2, text_input3=text_input3, filter_logic=filter_logic, filter_logic2=filter_logic2)
 
             tabs.append(TabPanel(child=p, title=tab_label))
 
