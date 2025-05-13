@@ -188,7 +188,7 @@ if __name__ == '__main__':
     # Process data in parallel
     with Pool(initializer=init_pool, initargs=(lldf, )) as pool:
         # module_dfs = list(tqdm.tqdm(pool.imap(process_module, sorted(lldf['label'].unique())), total=len(lldf['label'].unique())))
-        module_dfs = list(pool.imap(process_module, sorted(lldf['label'].unique())))
+        module_dfs = list(pool.imap_unordered(process_module, sorted(lldf['label'].unique())))
 
     # Concatenate results
     all_enrichment_df = pd.concat(module_dfs)
