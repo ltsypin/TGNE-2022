@@ -2192,7 +2192,7 @@ def generate_and_save_umap_tabbed(outfile_name: str, expression_dfs: list, tab_l
 
         tabs = []
 
-        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', 
+        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: ID(s), names, or descriptions', 
                                 sizing_mode='stretch_width',
                                 # min_width=500,
                                 # min_width=475,
@@ -2255,7 +2255,7 @@ def generate_umap_tabbed(expression_dfs: list, tab_labels: list, enrich_dfs: lis
 
         tabs = []
 
-        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: module(s), ID(s), names, or descriptions', 
+        text_input = TextInput(value="", placeholder=f'Comma-separated descriptive terms: ID(s), names, or descriptions', 
                                 sizing_mode='stretch_width',
                                 # min_width=500,
                                 # min_width=475,
